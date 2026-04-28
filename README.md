@@ -36,7 +36,7 @@ Open the `.ino` files in Arduino IDE.
 
 - **Python 3.9 or newer**
 - **WeasyPrint native libraries** (Pango, Cairo, GDK-PixBuf, libffi, HarfBuzz). Install varies by platform:
-  - **macOS**: `brew install pango` (Cairo and the rest come along as dependencies)
+  - **macOS**: `brew install pango python` (Cairo and the rest come along as dependencies). On Apple Silicon, **use Homebrew's Python** (`/opt/homebrew/bin/python3`) to create the venv below — Apple's stock `/usr/bin/python3` can't find Homebrew's libraries at runtime and fails with `OSError: cannot load library 'libgobject-2.0-0'`. As a fallback if you must use a non-Homebrew Python, run with `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib python3 doc-src/build_pdf.py`.
   - **Debian / Ubuntu**: `sudo apt install libpango-1.0-0 libpangoft2-1.0-0`
   - **Windows**: install the GTK3 runtime — follow [WeasyPrint's Windows guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows)
   - Other platforms / troubleshooting: [WeasyPrint first steps](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)
