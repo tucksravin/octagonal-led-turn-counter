@@ -1,0 +1,265 @@
+<svg viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .title { font-size: 22px; font-weight: bold; fill: #111; }
+    .subtitle { font-size: 14px; font-weight: bold; fill: #111; }
+    .label { font-size: 11px; fill: #111; }
+    .pin { font-size: 10px; fill: #111; }
+    .small { font-size: 9px; fill: #555; }
+    .component { fill: #fafafa; stroke: #111; stroke-width: 1.5; }
+    .ic { fill: #f0f0f0; stroke: #111; stroke-width: 1.5; }
+    .wire { stroke: #111; stroke-width: 1.5; fill: none; }
+    .power { stroke: #c0392b; stroke-width: 2; fill: none; }
+    .gnd { stroke: #111; stroke-width: 2; fill: none; }
+    .signal { stroke: #2563eb; stroke-width: 1.5; fill: none; }
+    .junction { fill: #111; }
+    .note { font-size: 10px; fill: #444; font-style: italic; }
+    .box { fill: none; stroke: #999; stroke-width: 1; stroke-dasharray: 4,3; }
+  </style>
+
+  <rect x="0" y="0" width="1200" height="900" fill="#ffffff"/>
+
+  <text x="600" y="32" text-anchor="middle" class="title">Octagonal Turn Counter — Wiring Diagram</text>
+  <text x="600" y="52" text-anchor="middle" class="small">8 piezos • ESP32 • WS2812B (240 LEDs) • 5V/10A PSU</text>
+
+  <g id="psu">
+    <rect x="60" y="100" width="180" height="110" rx="4" class="component"/>
+    <text x="150" y="125" text-anchor="middle" class="subtitle">PSU</text>
+    <text x="150" y="142" text-anchor="middle" class="label">Mean Well LRS-50-5</text>
+    <text x="150" y="158" text-anchor="middle" class="label">5 V • 10 A</text>
+    <circle cx="200" cy="180" r="2.5" class="junction"/>
+    <text x="210" y="184" class="pin">+V</text>
+    <circle cx="200" cy="200" r="2.5" class="junction"/>
+    <text x="210" y="204" class="pin">−V</text>
+    <text x="150" y="230" text-anchor="middle" class="small">AC mains in (with switch)</text>
+  </g>
+
+  <g id="fuse">
+    <rect x="290" y="170" width="60" height="22" rx="3" class="component"/>
+    <text x="320" y="185" text-anchor="middle" class="label">FUSE 5A</text>
+    <line x1="200" y1="180" x2="290" y2="180" class="power"/>
+    <line x1="350" y1="180" x2="400" y2="180" class="power"/>
+  </g>
+
+  <line x1="400" y1="180" x2="1080" y2="180" class="power"/>
+  <text x="740" y="172" text-anchor="middle" class="label" fill="#c0392b">+5 V rail</text>
+
+  <line x1="200" y1="200" x2="1080" y2="200" class="gnd"/>
+  <text x="740" y="218" text-anchor="middle" class="label">GND rail</text>
+
+  <g id="cap">
+    <line x1="480" y1="180" x2="480" y2="190" class="power"/>
+    <line x1="470" y1="190" x2="490" y2="190" class="power" stroke-width="2.5"/>
+    <line x1="473" y1="195" x2="487" y2="195" class="gnd"/>
+    <line x1="480" y1="195" x2="480" y2="200" class="gnd"/>
+    <text x="495" y="194" class="pin">1000 µF</text>
+    <circle cx="480" cy="180" r="2.5" class="junction"/>
+    <circle cx="480" cy="200" r="2.5" class="junction"/>
+  </g>
+
+  <g id="injection-marks">
+    <circle cx="800" cy="180" r="3" class="junction"/>
+    <text x="800" y="170" text-anchor="middle" class="small">inject 2</text>
+    <circle cx="1080" cy="180" r="3" class="junction"/>
+    <text x="1080" y="170" text-anchor="middle" class="small">inject 3</text>
+    <circle cx="800" cy="200" r="3" class="junction"/>
+    <circle cx="1080" cy="200" r="3" class="junction"/>
+  </g>
+
+  <g id="esp32">
+    <rect x="380" y="280" width="220" height="280" rx="6" class="component"/>
+    <text x="490" y="305" text-anchor="middle" class="subtitle">ESP32</text>
+    <text x="490" y="322" text-anchor="middle" class="small">WROOM-32 Dev Board</text>
+
+    <line x1="380" y1="345" x2="360" y2="345" class="power"/>
+    <text x="395" y="349" class="pin">5V</text>
+    <text x="357" y="349" text-anchor="end" class="pin" fill="#c0392b">+5V</text>
+
+    <line x1="380" y1="365" x2="360" y2="365" class="gnd"/>
+    <text x="395" y="369" class="pin">GND</text>
+    <text x="357" y="369" text-anchor="end" class="pin">GND</text>
+
+    <line x1="600" y1="350" x2="650" y2="350" class="signal"/>
+    <text x="595" y="354" text-anchor="end" class="pin">GPIO 5</text>
+
+    <text x="595" y="395" text-anchor="end" class="pin">GPIO 32</text>
+    <line x1="600" y1="392" x2="650" y2="392" class="wire"/>
+    <text x="595" y="412" text-anchor="end" class="pin">GPIO 33</text>
+    <line x1="600" y1="409" x2="650" y2="409" class="wire"/>
+    <text x="595" y="429" text-anchor="end" class="pin">GPIO 34</text>
+    <line x1="600" y1="426" x2="650" y2="426" class="wire"/>
+    <text x="595" y="446" text-anchor="end" class="pin">GPIO 35</text>
+    <line x1="600" y1="443" x2="650" y2="443" class="wire"/>
+    <text x="595" y="463" text-anchor="end" class="pin">GPIO 36</text>
+    <line x1="600" y1="460" x2="650" y2="460" class="wire"/>
+    <text x="595" y="480" text-anchor="end" class="pin">GPIO 39</text>
+    <line x1="600" y1="477" x2="650" y2="477" class="wire"/>
+    <text x="595" y="497" text-anchor="end" class="pin">GPIO 25</text>
+    <line x1="600" y1="494" x2="650" y2="494" class="wire"/>
+    <text x="595" y="514" text-anchor="end" class="pin">GPIO 26</text>
+    <line x1="600" y1="511" x2="650" y2="511" class="wire"/>
+
+    <rect x="650" y="380" width="50" height="140" fill="none" stroke="#999" stroke-width="1"/>
+    <text x="675" y="540" text-anchor="middle" class="small">to piezos ×8</text>
+    <text x="675" y="552" text-anchor="middle" class="small">(see detail)</text>
+  </g>
+
+  <line x1="360" y1="345" x2="360" y2="180" class="power"/>
+  <circle cx="360" cy="180" r="2.5" class="junction"/>
+  <line x1="360" y1="365" x2="360" y2="200" class="gnd"/>
+  <circle cx="360" cy="200" r="2.5" class="junction"/>
+
+  <g id="resistor-470">
+    <rect x="660" y="343" width="40" height="14" class="component"/>
+    <text x="680" y="338" text-anchor="middle" class="pin">470 Ω</text>
+    <line x1="650" y1="350" x2="660" y2="350" class="signal"/>
+    <line x1="700" y1="350" x2="730" y2="350" class="signal"/>
+  </g>
+
+  <g id="level-shifter">
+    <rect x="730" y="290" width="140" height="120" rx="4" class="ic"/>
+    <text x="800" y="312" text-anchor="middle" class="subtitle">74AHCT125</text>
+    <text x="800" y="328" text-anchor="middle" class="small">level shifter</text>
+    <text x="800" y="344" text-anchor="middle" class="small">3.3V → 5V</text>
+
+    <line x1="730" y1="350" x2="715" y2="350" class="signal"/>
+    <text x="740" y="354" class="pin">1A</text>
+    <text x="710" y="354" text-anchor="end" class="pin">in</text>
+
+    <line x1="870" y1="350" x2="900" y2="350" class="signal"/>
+    <text x="860" y="354" text-anchor="end" class="pin">1Y</text>
+    <text x="905" y="354" class="pin">out</text>
+
+    <line x1="800" y1="290" x2="800" y2="270" class="power"/>
+    <line x1="800" y1="270" x2="800" y2="180" class="power"/>
+    <circle cx="800" cy="180" r="2.5" class="junction"/>
+    <text x="810" y="265" class="pin">VCC</text>
+
+    <line x1="730" y1="395" x2="715" y2="395" class="gnd"/>
+    <text x="740" y="399" class="pin">GND</text>
+    <line x1="715" y1="395" x2="715" y2="200" class="gnd"/>
+    <circle cx="715" cy="200" r="2.5" class="junction"/>
+  </g>
+
+  <g id="strip">
+    <rect x="900" y="280" width="200" height="120" rx="4" class="component" fill="#fff8e1"/>
+    <text x="1000" y="305" text-anchor="middle" class="subtitle">WS2812B Strip</text>
+    <text x="1000" y="322" text-anchor="middle" class="small">240 LEDs • 4 m</text>
+    <text x="1000" y="338" text-anchor="middle" class="small">60 LEDs/m</text>
+
+    <line x1="900" y1="350" x2="900" y2="350" class="signal"/>
+    <text x="910" y="354" class="pin">DIN</text>
+
+    <line x1="900" y1="370" x2="880" y2="370" class="power"/>
+    <line x1="880" y1="370" x2="880" y2="180" class="power"/>
+    <circle cx="880" cy="180" r="2.5" class="junction"/>
+    <text x="908" y="374" class="pin">+5V</text>
+
+    <line x1="900" y1="390" x2="870" y2="390" class="gnd"/>
+    <line x1="870" y1="390" x2="870" y2="200" class="gnd"/>
+    <circle cx="870" cy="200" r="2.5" class="junction"/>
+    <text x="908" y="394" class="pin">GND</text>
+
+    <text x="1000" y="378" text-anchor="middle" class="note">inject power at 3 points along strip</text>
+  </g>
+
+  <g id="injection-1">
+    <text x="1000" y="395" text-anchor="middle" class="note">(start, mid, end)</text>
+  </g>
+
+  <rect x="40" y="600" width="560" height="270" rx="6" class="box"/>
+  <text x="320" y="625" text-anchor="middle" class="subtitle">Per-Piezo Input Network (×8)</text>
+  <text x="320" y="642" text-anchor="middle" class="small">one of these for each side</text>
+
+  <g id="piezo-detail" transform="translate(80, 660)">
+    <line x1="220" y1="20" x2="450" y2="20" class="wire"/>
+    <text x="455" y="24" class="pin">→ ESP32 ADC pin</text>
+    <text x="455" y="38" class="small">(GPIO 32/33/34/35/36/39/25/26)</text>
+
+    <circle cx="220" cy="20" r="2.5" class="junction"/>
+    <line x1="220" y1="20" x2="220" y2="60" class="wire"/>
+
+    <circle cx="160" cy="20" r="2.5" class="junction"/>
+    <line x1="160" y1="20" x2="160" y2="60" class="wire"/>
+    <line x1="220" y1="20" x2="160" y2="20" class="wire"/>
+
+    <circle cx="100" cy="20" r="2.5" class="junction"/>
+    <line x1="100" y1="20" x2="100" y2="60" class="wire"/>
+    <line x1="160" y1="20" x2="100" y2="20" class="wire"/>
+
+    <circle cx="100" cy="60" r="14" class="component"/>
+    <text x="100" y="64" text-anchor="middle" class="pin">PZ</text>
+    <line x1="100" y1="74" x2="100" y2="100" class="wire"/>
+
+    <rect x="150" y="60" width="20" height="40" class="component"/>
+    <text x="195" y="84" class="pin">1 MΩ</text>
+    <line x1="160" y1="100" x2="160" y2="120" class="wire"/>
+
+    <polygon points="210,80 230,70 230,90" fill="#fafafa" stroke="#111" stroke-width="1.5"/>
+    <line x1="210" y1="60" x2="210" y2="100" class="wire"/>
+    <line x1="230" y1="68" x2="230" y2="58" class="wire"/>
+    <line x1="225" y1="60" x2="235" y2="60" class="wire"/>
+    <line x1="220" y1="100" x2="220" y2="120" class="wire"/>
+    <text x="248" y="85" class="pin">3.3V Zener</text>
+    <text x="248" y="98" class="small">(cathode up)</text>
+
+    <line x1="100" y1="100" x2="220" y2="100" class="gnd"/>
+    <line x1="100" y1="100" x2="100" y2="120" class="gnd"/>
+    <line x1="80" y1="120" x2="240" y2="120" class="gnd"/>
+    <text x="160" y="138" text-anchor="middle" class="pin">GND</text>
+
+    <line x1="60" y1="120" x2="80" y2="115" class="gnd"/>
+    <line x1="60" y1="120" x2="80" y2="125" class="gnd"/>
+  </g>
+
+  <text x="320" y="855" text-anchor="middle" class="note">Zener clamps spikes from hard taps. 1 MΩ pulls ADC line down so it doesn't float.</text>
+
+  <rect x="640" y="600" width="520" height="270" rx="6" class="box"/>
+  <text x="900" y="625" text-anchor="middle" class="subtitle">Pin Assignments &amp; Notes</text>
+
+  <g transform="translate(660, 645)">
+    <text x="0" y="14" class="label" font-weight="bold">ESP32 GPIO</text>
+    <text x="120" y="14" class="label" font-weight="bold">Function</text>
+    <line x1="0" y1="20" x2="480" y2="20" stroke="#999" stroke-width="0.8"/>
+
+    <text x="0" y="38" class="pin">GPIO 5</text>
+    <text x="120" y="38" class="pin">LED data out → 470 Ω → 74AHCT125</text>
+
+    <text x="0" y="56" class="pin">GPIO 32</text>
+    <text x="120" y="56" class="pin">Piezo side 1 (ADC)</text>
+
+    <text x="0" y="74" class="pin">GPIO 33</text>
+    <text x="120" y="74" class="pin">Piezo side 2 (ADC)</text>
+
+    <text x="0" y="92" class="pin">GPIO 34</text>
+    <text x="120" y="92" class="pin">Piezo side 3 (ADC, input-only)</text>
+
+    <text x="0" y="110" class="pin">GPIO 35</text>
+    <text x="120" y="110" class="pin">Piezo side 4 (ADC, input-only)</text>
+
+    <text x="0" y="128" class="pin">GPIO 36</text>
+    <text x="120" y="128" class="pin">Piezo side 5 (ADC, input-only)</text>
+
+    <text x="0" y="146" class="pin">GPIO 39</text>
+    <text x="120" y="146" class="pin">Piezo side 6 (ADC, input-only)</text>
+
+    <text x="0" y="164" class="pin">GPIO 25</text>
+    <text x="120" y="164" class="pin">Piezo side 7 (ADC)</text>
+
+    <text x="0" y="182" class="pin">GPIO 26</text>
+    <text x="120" y="182" class="pin">Piezo side 8 (ADC)</text>
+
+    <line x1="0" y1="194" x2="480" y2="194" stroke="#999" stroke-width="0.8"/>
+    <text x="0" y="212" class="small">Avoid GPIO 0, 2, 12, 15 (boot strapping pins)</text>
+  </g>
+
+  <g transform="translate(60, 70)">
+    <rect x="0" y="0" width="14" height="3" fill="#c0392b"/>
+    <text x="20" y="5" class="small">+5 V power</text>
+    <rect x="100" y="0" width="14" height="3" fill="#111"/>
+    <text x="120" y="5" class="small">GND</text>
+    <rect x="160" y="0" width="14" height="3" fill="#2563eb"/>
+    <text x="180" y="5" class="small">data / signal</text>
+    <rect x="245" y="0" width="14" height="3" fill="#111"/>
+    <text x="265" y="5" class="small">analog wire</text>
+  </g>
+</svg>

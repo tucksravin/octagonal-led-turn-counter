@@ -1,0 +1,123 @@
+<svg viewBox="0 0 700 540" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .title { font-size: 16px; font-weight: bold; fill: #111; }
+    .label-bold { font-size: 12px; font-weight: bold; fill: #111; }
+    .label { font-size: 11px; fill: #111; }
+    .small { font-size: 10px; fill: #555; }
+    .tiny { font-size: 9px; fill: #666; }
+    .note { font-size: 11px; fill: #444; font-style: italic; }
+    .wood { fill: #c8a878; stroke: #6b4d28; stroke-width: 1.5; }
+    .frame { fill: #b8b8b8; stroke: #555; stroke-width: 1.5; }
+    .component { fill: #fafafa; stroke: #111; stroke-width: 1.2; }
+    .led-strip { fill: #fff8c4; stroke: #b8a838; stroke-width: 1; }
+    .piezo { fill: #c89a3f; stroke: #6b4d28; stroke-width: 1; }
+    .wire-dc-pos { stroke: #c0392b; stroke-width: 2.2; fill: none; }
+    .wire-dc-neg { stroke: #111; stroke-width: 2.2; fill: none; }
+    .wire-ac { stroke: #555; stroke-width: 1.8; fill: none; stroke-dasharray: 5,3; }
+    .powerpole { fill: #f5d050; stroke: #b8821a; stroke-width: 1.5; }
+    .lift-arrow { stroke: #2563eb; stroke-width: 1.5; fill: none; }
+  </style>
+
+  <rect x="0" y="0" width="700" height="540" fill="#ffffff"/>
+
+  <text x="350" y="26" text-anchor="middle" class="title">Removable Top Architecture — Slab + Frame</text>
+  <text x="350" y="44" text-anchor="middle" class="small">DC disconnect lets the slab lift away without touching mains wiring</text>
+
+  <g id="lift-arrow">
+    <line x1="40" y1="220" x2="40" y2="100" class="lift-arrow"/>
+    <polygon points="40,95 35,107 45,107" fill="#2563eb"/>
+    <text x="50" y="160" class="small" fill="#2563eb">slab lifts</text>
+    <text x="50" y="172" class="small" fill="#2563eb">away</text>
+  </g>
+
+  <g id="slab">
+    <rect x="100" y="80" width="540" height="160" rx="2" class="wood"/>
+    <text x="370" y="105" text-anchor="middle" class="label-bold">TOP SLAB (removable)</text>
+    <text x="370" y="120" text-anchor="middle" class="small">everything turn-counter-related lives here</text>
+
+    <rect x="125" y="135" width="490" height="20" class="led-strip"/>
+    <text x="370" y="149" text-anchor="middle" class="tiny">LED strip + aluminum channel (around rim perimeter)</text>
+
+    <ellipse cx="160" cy="170" rx="6" ry="3" class="piezo"/>
+    <ellipse cx="220" cy="170" rx="6" ry="3" class="piezo"/>
+    <ellipse cx="280" cy="170" rx="6" ry="3" class="piezo"/>
+    <ellipse cx="340" cy="170" rx="6" ry="3" class="piezo"/>
+    <ellipse cx="400" cy="170" rx="6" ry="3" class="piezo"/>
+    <ellipse cx="460" cy="170" rx="6" ry="3" class="piezo"/>
+    <ellipse cx="520" cy="170" rx="6" ry="3" class="piezo"/>
+    <ellipse cx="580" cy="170" rx="6" ry="3" class="piezo"/>
+    <text x="370" y="187" text-anchor="middle" class="tiny">8 × piezo sensors (under rim)</text>
+
+    <rect x="290" y="200" width="160" height="30" rx="3" class="component"/>
+    <text x="370" y="219" text-anchor="middle" class="label">ESP32 control box</text>
+
+    <line x1="370" y1="230" x2="370" y2="245" class="wire-dc-pos"/>
+    <line x1="380" y1="230" x2="380" y2="245" class="wire-dc-neg"/>
+  </g>
+
+  <g id="powerpole-slab">
+    <rect x="355" y="245" width="40" height="20" rx="3" class="powerpole"/>
+    <text x="375" y="259" text-anchor="middle" class="tiny">Powerpole</text>
+    <text x="465" y="252" class="small">↑ slab side</text>
+    <text x="465" y="263" class="small">(captive in slab)</text>
+  </g>
+
+  <g id="gap">
+    <text x="60" y="282" class="small" fill="#2563eb">disconnect point →</text>
+    <line x1="190" y1="278" x2="350" y2="278" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="3,3"/>
+    <line x1="400" y1="278" x2="640" y2="278" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="3,3"/>
+  </g>
+
+  <g id="powerpole-frame">
+    <rect x="355" y="290" width="40" height="20" rx="3" class="powerpole"/>
+    <text x="375" y="304" text-anchor="middle" class="tiny">Powerpole</text>
+    <text x="465" y="297" class="small">↓ frame side</text>
+    <text x="465" y="308" class="small">(pigtail from PSU)</text>
+
+    <line x1="370" y1="310" x2="370" y2="340" class="wire-dc-pos"/>
+    <line x1="380" y1="310" x2="380" y2="340" class="wire-dc-neg"/>
+  </g>
+
+  <g id="frame">
+    <rect x="100" y="340" width="540" height="160" rx="2" class="frame"/>
+    <text x="370" y="365" text-anchor="middle" class="label-bold">BUMPER POOL FRAME (permanent)</text>
+
+    <rect x="290" y="395" width="160" height="40" rx="3" class="component"/>
+    <text x="370" y="412" text-anchor="middle" class="label">PSU 5V / 10A</text>
+    <text x="370" y="425" text-anchor="middle" class="tiny">Mean Well LRS-50-5</text>
+
+    <line x1="370" y1="395" x2="370" y2="388" class="wire-dc-pos"/>
+    <line x1="370" y1="378" x2="370" y2="340" class="wire-dc-pos"/>
+    <line x1="380" y1="395" x2="380" y2="340" class="wire-dc-neg"/>
+
+    <rect x="362" y="378" width="16" height="10" class="component"/>
+    <text x="385" y="386" class="tiny">5A fuse</text>
+
+    <rect x="170" y="395" width="80" height="40" rx="3" class="component"/>
+    <text x="210" y="412" text-anchor="middle" class="label">switch /</text>
+    <text x="210" y="425" text-anchor="middle" class="label">IEC inlet</text>
+
+    <line x1="250" y1="415" x2="290" y2="415" class="wire-ac"/>
+
+    <line x1="170" y1="415" x2="120" y2="415" class="wire-ac"/>
+    <line x1="120" y1="415" x2="120" y2="475" class="wire-ac"/>
+    <text x="115" y="490" class="small">to wall</text>
+    <text x="115" y="500" class="tiny">(AC mains)</text>
+    <polygon points="120,478 116,470 124,470" fill="#555"/>
+  </g>
+
+  <g id="legend">
+    <rect x="40" y="510" width="14" height="3" fill="#c0392b"/>
+    <text x="60" y="515" class="tiny">+5V DC</text>
+    <rect x="100" y="510" width="14" height="3" fill="#111"/>
+    <text x="120" y="515" class="tiny">DC GND</text>
+    <line x1="170" y1="511" x2="184" y2="511" stroke="#555" stroke-width="1.8" stroke-dasharray="3,2"/>
+    <text x="190" y="515" class="tiny">AC mains</text>
+    <rect x="245" y="508" width="14" height="9" rx="2" class="powerpole"/>
+    <text x="265" y="515" class="tiny">Anderson Powerpole 30A</text>
+    <ellipse cx="395" cy="513" rx="5" ry="2.5" class="piezo"/>
+    <text x="405" y="516" class="tiny">piezo</text>
+    <rect x="445" y="510" width="20" height="6" class="led-strip"/>
+    <text x="470" y="516" class="tiny">LED strip</text>
+  </g>
+</svg>

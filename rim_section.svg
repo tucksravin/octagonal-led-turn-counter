@@ -1,0 +1,85 @@
+<svg viewBox="0 0 600 460" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .label { font-size: 12px; fill: #111; }
+    .label-bold { font-size: 12px; font-weight: bold; fill: #111; }
+    .title { font-size: 16px; font-weight: bold; fill: #111; }
+    .small { font-size: 10px; fill: #555; }
+    .note { font-size: 11px; fill: #444; font-style: italic; }
+    .wood { fill: #c8a878; stroke: #6b4d28; stroke-width: 1.5; }
+    .wood-grain { stroke: #8a6f3c; stroke-width: 0.5; fill: none; opacity: 0.5; }
+    .channel { fill: #d8d8d8; stroke: #555; stroke-width: 1.2; }
+    .diffuser { fill: #fff8c4; stroke: #b8a838; stroke-width: 1; opacity: 0.85; }
+    .led { fill: #ffd866; stroke: #b8881a; stroke-width: 0.8; }
+    .piezo { fill: #c89a3f; stroke: #6b4d28; stroke-width: 1.2; }
+    .skin { fill: #f4caa3; stroke: #b8845a; stroke-width: 1.2; }
+    .leader { stroke: #555; stroke-width: 0.8; fill: none; }
+    .impact { stroke: #c0392b; stroke-width: 1.5; fill: none; }
+    .frame { fill: #b8b8b8; stroke: #555; stroke-width: 1.2; }
+    .air-arrow { stroke: #2563eb; stroke-width: 0.6; fill: none; opacity: 0.5; }
+  </style>
+
+  <rect x="0" y="0" width="600" height="460" fill="#ffffff"/>
+
+  <text x="300" y="28" text-anchor="middle" class="title">Edge Cross-Section (Detail View)</text>
+  <text x="300" y="46" text-anchor="middle" class="note">how LEDs and piezo mount on a thin slab — bare top surface</text>
+
+  <g id="hand">
+    <line x1="230" y1="80" x2="230" y2="190" class="impact" stroke-dasharray="3,2"/>
+    <polygon points="230,190 226,184 234,184" fill="#c0392b"/>
+    <text x="245" y="135" class="note">tap (anywhere</text>
+    <text x="245" y="148" class="note">on the slab)</text>
+  </g>
+
+  <g id="slab">
+    <rect x="80" y="195" width="430" height="50" class="wood"/>
+
+    <line x1="100" y1="207" x2="490" y2="207" class="wood-grain"/>
+    <line x1="90" y1="220" x2="500" y2="220" class="wood-grain"/>
+    <line x1="105" y1="232" x2="495" y2="232" class="wood-grain"/>
+    <line x1="115" y1="240" x2="490" y2="240" class="wood-grain"/>
+  </g>
+
+  <g id="led-channel">
+    <rect x="510" y="195" width="40" height="50" class="channel"/>
+    <rect x="513" y="200" width="34" height="40" class="diffuser"/>
+    <circle cx="530" cy="208" r="4" class="led"/>
+    <circle cx="530" cy="222" r="4" class="led"/>
+    <circle cx="530" cy="236" r="4" class="led"/>
+  </g>
+
+  <g id="piezo">
+    <ellipse cx="225" cy="245" rx="36" ry="6" class="piezo"/>
+    <ellipse cx="225" cy="244" rx="30" ry="3" fill="#e0bf6f"/>
+    <line x1="210" y1="249" x2="195" y2="280" class="leader"/>
+    <line x1="240" y1="249" x2="255" y2="280" class="leader"/>
+    <text x="225" y="294" text-anchor="middle" class="small">to control box</text>
+  </g>
+
+  <g id="air-space">
+    <text x="300" y="320" text-anchor="middle" class="small" font-style="italic">air space (slab is unsupported here, so it vibrates freely)</text>
+    <line x1="100" y1="335" x2="500" y2="335" class="air-arrow" stroke-dasharray="2,3"/>
+    <line x1="100" y1="350" x2="500" y2="350" class="air-arrow" stroke-dasharray="2,3"/>
+  </g>
+
+  <g id="frame">
+    <rect x="60" y="370" width="480" height="40" class="frame"/>
+    <text x="300" y="395" text-anchor="middle" class="small">bumper pool frame underneath</text>
+  </g>
+
+  <g id="callouts">
+    <line x1="370" y1="195" x2="370" y2="170" class="leader"/>
+    <text x="375" y="166" class="label-bold">tabletop (bare on top)</text>
+    <text x="375" y="180" class="small">~1 in. thick wooden slab</text>
+
+    <line x1="530" y1="195" x2="530" y2="120" class="leader"/>
+    <text x="530" y="105" text-anchor="middle" class="label-bold">aluminum LED channel</text>
+    <text x="530" y="118" text-anchor="middle" class="small">mounted to outer edge of slab</text>
+
+    <line x1="180" y1="248" x2="100" y2="295" class="leader"/>
+    <text x="40" y="310" class="label-bold">piezo disc (27 mm)</text>
+    <text x="40" y="324" class="small">glued to underside of slab,</text>
+    <text x="40" y="336" class="small">centered on player's section</text>
+  </g>
+
+  <text x="300" y="442" text-anchor="middle" class="note">tap on top → vibration through thin slab → piezo on bottom registers it</text>
+</svg>

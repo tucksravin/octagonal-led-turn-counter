@@ -1,0 +1,65 @@
+<svg viewBox="0 0 600 540" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .small { font-size: 10px; fill: #555; }
+    .note { font-size: 11px; fill: #444; font-style: italic; }
+    .title { font-size: 16px; font-weight: bold; fill: #111; }
+    .slab { fill: #f5e6c8; stroke: #8a6f3c; stroke-width: 2; }
+    .wedge-line { stroke: #c4a878; stroke-width: 0.6; fill: none; stroke-dasharray: 3,3; opacity: 0.7; }
+    .lit-edge { stroke: #c0392b; stroke-width: 4; stroke-linecap: round; fill: none; }
+    .piezo { fill: #2c2c2c; opacity: 0.7; }
+    .piezo-active { fill: #c0392b; opacity: 0.95; }
+  </style>
+
+  <rect x="0" y="0" width="600" height="540" fill="#ffffff"/>
+
+  <text x="300" y="32" text-anchor="middle" class="title">Octagonal Table Layout (Top View)</text>
+  <text x="300" y="50" text-anchor="middle" class="small">LED channel on outer edge, piezos on underside</text>
+
+  <polygon points="231,104 369,104 466,201 466,339 369,436 231,436 134,339 134,201" class="slab"/>
+
+  <line x1="231" y1="104" x2="369" y2="104" class="lit-edge"/>
+
+  <line x1="300" y1="270" x2="231" y2="104" class="wedge-line"/>
+  <line x1="300" y1="270" x2="369" y2="104" class="wedge-line"/>
+  <line x1="300" y1="270" x2="466" y2="201" class="wedge-line"/>
+  <line x1="300" y1="270" x2="466" y2="339" class="wedge-line"/>
+  <line x1="300" y1="270" x2="369" y2="436" class="wedge-line"/>
+  <line x1="300" y1="270" x2="231" y2="436" class="wedge-line"/>
+  <line x1="300" y1="270" x2="134" y2="339" class="wedge-line"/>
+  <line x1="300" y1="270" x2="134" y2="201" class="wedge-line"/>
+
+  <circle cx="300" cy="132" r="6" class="piezo-active"/>
+  <circle cx="398" cy="172" r="6" class="piezo"/>
+  <circle cx="438" cy="270" r="6" class="piezo"/>
+  <circle cx="398" cy="368" r="6" class="piezo"/>
+  <circle cx="300" cy="408" r="6" class="piezo"/>
+  <circle cx="202" cy="368" r="6" class="piezo"/>
+  <circle cx="162" cy="270" r="6" class="piezo"/>
+  <circle cx="202" cy="172" r="6" class="piezo"/>
+
+  <g transform="translate(300, 270)">
+    <path d="M 0,-30 A 30,30 0 1 1 -30,0" fill="none" stroke="#444" stroke-width="2"/>
+    <polygon points="-30,-10 -25,0 -35,0" fill="#444"/>
+    <text x="3" y="-3" text-anchor="middle" class="small">turn order</text>
+    <text x="3" y="9" text-anchor="middle" class="small">(clockwise)</text>
+  </g>
+
+  <g transform="translate(40, 488)">
+    <circle cx="0" cy="0" r="6" class="piezo-active"/>
+    <text x="14" y="4" class="small">active piezo (current player)</text>
+  </g>
+  <g transform="translate(40, 506)">
+    <circle cx="0" cy="0" r="6" class="piezo"/>
+    <text x="14" y="4" class="small">inactive piezo (taps ignored)</text>
+  </g>
+  <g transform="translate(330, 488)">
+    <line x1="0" y1="0" x2="22" y2="0" class="lit-edge"/>
+    <text x="30" y="4" class="small">lit LED zone (active player)</text>
+  </g>
+  <g transform="translate(330, 506)">
+    <line x1="0" y1="0" x2="22" y2="0" class="wedge-line"/>
+    <text x="30" y="4" class="small">wedge boundary</text>
+  </g>
+
+  <text x="300" y="530" text-anchor="middle" class="note">Opposite-side pairs trigger the on/off gesture when slapped simultaneously</text>
+</svg>
