@@ -4,61 +4,58 @@ LED rim turn counter for a removable octagonal gaming table that sits on top of 
 
 The full design — bill of materials, wiring schematics, mechanical drawings, build steps, and firmware reference — is in `turn_counter_design_doc.pdf`.
 
-## Files in this folder
+## Repo layout
 
-### Read this first
+```text
+.
+├── README.md
+├── turn_counter_design_doc.pdf   ← read this first
+├── turn_counter_design_doc.md    ← edit this to change content
+├── firmware/
+│   ├── turn_counter.ino          ← main project firmware
+│   └── tap_light.ino             ← Phase 0 starter (tap-activated desk light, for skill-building)
+└── doc-src/
+    ├── build_pdf.py              ← PDF build script
+    ├── table_layout.svg          ← Figure 0.1 (top-down view)
+    ├── rim_section.svg           ← Figure 4.1 (edge cross-section)
+    ├── installation_arch.svg     ← Figure 4.6 (slab/frame architecture)
+    └── turn_counter_wiring.svg   ← Figure 3.1 (wiring schematic, also good as a bench printout)
+```
 
-- **`turn_counter_design_doc.pdf`** — the complete design and build document. Start here.
+## Firmware
 
-### Source files for the design doc
+Open the `.ino` files in Arduino IDE.
 
-These are the source files used to generate the PDF. Only matters if you want to edit the doc.
-
-- **`turn_counter_design_doc.md`** — markdown source for the document body
-- **`build_pdf.py`** — Python build script that renders the PDF
-- **`table_layout.svg`** — top-down view (embedded as Figure 0.1)
-- **`rim_section.svg`** — edge cross-section (embedded as Figure 4.1)
-- **`installation_arch.svg`** — slab/frame architecture (embedded as Figure 4.6)
-- **`turn_counter_wiring.svg`** — full wiring schematic (embedded as Figure 3.1, also worth printing standalone for use at the bench)
-
-### Firmware
-
-These are the Arduino sketches you'll flash to the ESP32. Open them in the Arduino IDE.
-
-- **`turn_counter.ino`** — main project firmware
-- **`tap_light.ino`** — Phase 0 starter project firmware (a small standalone tap-activated desk light, for skill-building before the main build)
+- Board: ESP32 Dev Module, upload speed 921600
+- Required libraries: FastLED, ArduinoOTA (ArduinoOTA bundles with the ESP32 core)
+- Edit Wi-Fi credentials, mDNS hostname, and OTA password at the top of `turn_counter.ino` before the first flash
 
 ## Rebuilding the PDF
 
-If you edit the markdown or any SVG, regenerate the PDF with:
+### Prerequisites
 
+- **Python 3.9 or newer**
+- **WeasyPrint native libraries** (Pango, Cairo, GDK-PixBuf, libffi, HarfBuzz). Install varies by platform:
+  - **macOS**: `brew install pango` (Cairo and the rest come along as dependencies)
+  - **Debian / Ubuntu**: `sudo apt install libpango-1.0-0 libpangoft2-1.0-0`
+  - **Windows**: install the GTK3 runtime — follow [WeasyPrint's Windows guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows)
+  - Other platforms / troubleshooting: [WeasyPrint first steps](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)
+
+### Build
+
+From the repo root, in a virtual environment (required on systems with PEP 668, including recent Homebrew Python on macOS and Debian/Ubuntu):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
+python3 -m pip install -r requirements.txt
+python3 doc-src/build_pdf.py
 ```
-pip install markdown weasyprint
-python3 build_pdf.py
-```
 
-All files must be in the same directory when you run the build. Output is written to `turn_counter_design_doc.pdf` in the same folder.
+> Windows users: substitute `py` for `python3` in the commands above.
 
-## Editing notes
+The script reads `turn_counter_design_doc.md` from the root and SVGs from `doc-src/`, then writes `turn_counter_design_doc.pdf` back to the root.
 
-**To change content**: edit `turn_counter_design_doc.md` and rebuild. The markdown supports tables, fenced code blocks, definition lists, and HTML attribute lists.
+## Editing the doc
 
-**To change a diagram**: edit the relevant SVG file directly and rebuild. The build script reads SVGs fresh each time.
-
-**To control page breaks**: the page-break logic is near the top of `build_pdf.py` in a list of section headings. Add or remove entries from that list to change which sections start on a fresh page.
-
-**To change styling**: the CSS is a triple-quoted string inside `build_pdf.py`. Search for `STYLE = """`. Major rules:
-
-- `@page wide` controls landscape pages (used for the wiring diagram)
-- `.figure.standalone` and `.figure.full-page` control how figures occupy whole pages
-- The `h2 + p`, `h3 + p` rules with `break-before: avoid` keep headings from getting orphaned at the bottom of pages
-
-## Firmware build environment
-
-- Arduino IDE with ESP32 board support installed
-- FastLED library
-- ArduinoOTA library (bundled with the ESP32 core)
-- Board: ESP32 Dev Module
-- Upload speed: 921600
-
-Wi-Fi credentials, mDNS hostname, and OTA password live at the top of `turn_counter.ino` — edit these before first flash.
+The markdown supports tables, fenced code, definition lists, and HTML attribute lists. SVGs are read fresh on each build (no cache). Rebuild before committing.

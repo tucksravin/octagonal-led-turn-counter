@@ -3,9 +3,10 @@ import re
 from pathlib import Path
 from weasyprint import HTML, CSS
 
-doc_dir = Path('/home/claude')
+doc_dir = Path(__file__).resolve().parent
+out_dir = doc_dir.parent
 
-with open(doc_dir / 'turn_counter_design_doc.md') as f:
+with open(out_dir / 'turn_counter_design_doc.md') as f:
     md_text = f.read()
 
 with open(doc_dir / 'table_layout.svg') as f:
@@ -460,15 +461,16 @@ html_doc = f"""<!DOCTYPE html>
 with open(doc_dir / '_build_doc.html', 'w') as f:
     f.write(html_doc)
 
+pdf_path = out_dir / 'turn_counter_design_doc.pdf'
 HTML(string=html_doc, base_url=str(doc_dir)).write_pdf(
-    doc_dir / 'turn_counter_design_doc.pdf',
+    pdf_path,
     stylesheets=[CSS(string=css)]
 )
 
 import os
-size_kb = os.path.getsize(doc_dir / 'turn_counter_design_doc.pdf') / 1024
-print(f"PDF written: {size_kb:.1f} KB")
+size_kb = os.path.getsize(pdf_path) / 1024
+print(f"PDF written: {pdf_path} ({size_kb:.1f} KB)")
 
 from pypdf import PdfReader
-reader = PdfReader(doc_dir / 'turn_counter_design_doc.pdf')
+reader = PdfReader(pdf_path)
 print(f"Pages: {len(reader.pages)}")
