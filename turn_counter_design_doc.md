@@ -4,7 +4,7 @@
 **Geometry**: 8 sides × 20" each = 160" (~4 m) perimeter
 **Player count**: Variable, 2–8 (configurable in firmware setup mode)
 **Input method**: Piezo sensor per side (slap-to-advance)
-**Brain**: ESP32 (with optional OTA firmware updates over Wi-Fi)
+**Brain**: ESP32-S3 (with optional OTA firmware updates over Wi-Fi)
 **Target**: Reliable, satisfying turn-passing mechanic
 
 > **Companion files**:
@@ -97,12 +97,12 @@ You need exactly two functions for this project:
 Before any soldering, get the dev environment working:
 
 1. **Install Arduino IDE 2.x** from arduino.cc.
-2. **Add ESP32 board support**: File → Preferences → Additional Board Manager URLs → add `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`. Then Tools → Board → Boards Manager → search "esp32" → install "esp32 by Espressif Systems".
+2. **Add ESP32 board support**: File → Preferences → Additional Board Manager URLs → add `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`. Then Tools → Board → Boards Manager → search "esp32" → install "esp32 by Espressif Systems". (Same package supports the ESP32-S3.)
 3. **Install libraries**: Tools → Manage Libraries → install **FastLED** (by Daniel Garcia). For the main project later, you'll also install **ArduinoOTA** (already bundled with the ESP32 core, no separate install).
-4. **Plug in your ESP32 dev board** via USB. If your computer doesn't recognize it, install the CP210x or CH340 USB-to-serial driver depending on your board (ESP32-WROOM-32 dev boards usually have CP210x).
-5. **Test upload**: File → Examples → 01.Basics → Blink. Tools → Board → ESP32 Arduino → "ESP32 Dev Module". Tools → Port → select the new port that appeared when you plugged in the board. Click upload. The onboard LED should blink. If this works, you're ready.
+4. **Plug in your ESP32-S3 dev board** via USB-C. The S3 enumerates as a native USB CDC device — no CP210x/CH340 driver to install. (Older ESP32-WROOM-32 boards needed those drivers; the S3 does not.)
+5. **Test upload**: File → Examples → 01.Basics → Blink. Tools → Board → ESP32 Arduino → **"ESP32S3 Dev Module"**. Tools → **USB CDC On Boot: Enabled** (so Serial reaches the IDE over the native USB port). Tools → Port → select the new port that appeared when you plugged in the board. Click upload. If your board has an onboard RGB LED, the Blink example won't drive it — try `Examples → ESP32 → ChipID` to confirm the chip responds.
 
-If upload fails: hold the BOOT button on the board during upload, or drop the upload speed to 115200 in Tools → Upload Speed.
+If upload fails: hold the BOOT button on the board, tap RESET, release BOOT, then upload. Drop the upload speed to 115200 in Tools → Upload Speed if it still fails.
 
 ### 0.5 The Starter Project: Tap Light
 
@@ -114,7 +114,7 @@ This is essentially **one zone of the main project**. Every skill you exercise h
 
 | Qty | Part |
 |----:|------|
-| 1 | ESP32 dev board |
+| 1 | ESP32-S3 dev board |
 | 30 LEDs | WS2812B strip (cut from the 5 m roll — you have plenty) |
 | 1 | Piezo disc |
 | 1 | 1 MΩ resistor |
@@ -130,21 +130,21 @@ Skip the level shifter for the starter. WS2812B at short lengths often works fin
 #### Wiring
 
 ```
-ESP32 USB  ─────────────  (powers everything)
+ESP32-S3 USB  ─────────────  (powers everything)
 
-ESP32 5V   ──┬──── Strip 5V
-             │
-         [1000 µF cap]
-             │
-ESP32 GND  ──┴──── Strip GND
-                       │
-                   Piezo (–)
+ESP32-S3 5V   ──┬──── Strip 5V
+                │
+            [1000 µF cap]
+                │
+ESP32-S3 GND  ──┴──── Strip GND
+                          │
+                      Piezo (–)
 
-ESP32 GPIO 5  ──[470 Ω]──── Strip DIN
+ESP32-S3 GPIO 11  ──[470 Ω]──── Strip DIN
 
-ESP32 GPIO 32 ──┬──── Piezo (+)
-                ├──── 1 MΩ ──── GND
-                └──── Zener (cathode toward GPIO) ──── GND
+ESP32-S3 GPIO 1  ──┬──── Piezo (+)
+                   ├──── 1 MΩ ──── GND
+                   └──── Zener (cathode toward GPIO) ──── GND
 ```
 
 This is identical to the main wiring diagram, just with one piezo channel and no level shifter.
@@ -169,15 +169,15 @@ This is identical to the main wiring diagram, just with one piezo channel and no
 - [ ] On a breadboard, lay out the circuit per the wiring above
 - [ ] Place the ESP32 across the breadboard's center channel
 - [ ] Use jumper wires for the ESP32-to-component connections
-- [ ] The 1 MΩ resistor sits between GPIO 32 and GND
-- [ ] The Zener sits between GPIO 32 and GND, with the **black band (cathode) toward GPIO 32**, body toward GND. Polarity matters
+- [ ] The 1 MΩ resistor sits between GPIO 1 and GND
+- [ ] The Zener sits between GPIO 1 and GND, with the **black band (cathode) toward GPIO 1**, body toward GND. Polarity matters
 - [ ] Don't connect power yet
 
 **Session 3: Test and tune (1 hour)**
 
 - [ ] Visual check: walk the wiring against the schematic one more time
 - [ ] Multimeter polarity check: with USB unplugged, probe ESP32 5V to GND with continuity — should NOT beep (no shorts)
-- [ ] Plug in USB. The onboard ESP32 LED should light. If you smell anything or the board gets warm, unplug immediately and check for shorts
+- [ ] Plug in USB. The onboard power LED should light (most ESP32-S3-DevKitC boards have one near the USB port). If you smell anything or the board gets warm, unplug immediately and check for shorts
 - [ ] Open Arduino IDE, load `tap_light.ino`, upload
 - [ ] Strip should light up in the first mode (warm orange)
 - [ ] Open Serial Monitor at 115200 baud
@@ -238,7 +238,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 
 | Qty | Part | Specifics | Notes |
 |----:|------|-----------|-------|
-| 1 | ESP32 dev board | ESP32-WROOM-32, USB-C preferred | Buy 2 — one for the starter, one for the main. They're $8 |
+| 1 | ESP32-S3 dev board | ESP32-S3-DevKitC-1, N8 variant (8MB flash, no PSRAM), USB-C native | Buy 2 — one for the starter, one for the main. ~$10–12 each. Avoid the Octal-PSRAM variants (N8R8/N16R8); they use GPIOs 35/36/37 internally |
 | 5 m | WS2812B LED strip | 60 LEDs/m, IP30, 5V | 4 m used; the extra is for the starter and mistakes |
 | 4 m | Aluminum LED channel | With frosted/diffuser cover | Massively improves the look |
 | 10 | Piezo disc | 27 mm brass, 2 leads | Bag of 10 covers main + starter + spares |
@@ -282,24 +282,26 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 
 ### 3.1 Pinout
 
-| ESP32 GPIO | Function | Notes |
-|-----------:|----------|-------|
-| 5 | LED data out (→ 470 Ω → level shifter → strip) | |
-| 32 | Piezo side 1 ADC | |
-| 33 | Piezo side 2 ADC | |
-| 34 | Piezo side 3 ADC | Input-only pin |
-| 35 | Piezo side 4 ADC | Input-only pin |
-| 36 | Piezo side 5 ADC | Input-only pin (VP) |
-| 39 | Piezo side 6 ADC | Input-only pin (VN) |
-| 25 | Piezo side 7 ADC | |
-| 26 | Piezo side 8 ADC | |
+| ESP32-S3 GPIO | Function | Notes |
+|--------------:|----------|-------|
+| 11 | LED data out (→ 470 Ω → level shifter → strip) | |
+| 1 | Piezo side 1 ADC | ADC1_CH0 |
+| 2 | Piezo side 2 ADC | ADC1_CH1 |
+| 4 | Piezo side 3 ADC | ADC1_CH3 |
+| 5 | Piezo side 4 ADC | ADC1_CH4 |
+| 6 | Piezo side 5 ADC | ADC1_CH5 |
+| 7 | Piezo side 6 ADC | ADC1_CH6 |
+| 8 | Piezo side 7 ADC | ADC1_CH7 |
+| 9 | Piezo side 8 ADC | ADC1_CH8 |
 
-Avoid GPIO 0, 2, 12, 15 — these are strapping pins and pulling them at boot can mess with the boot mode.
+All 8 piezos are on **ADC1**. This matters: the ESP32-S3 radio takes over **ADC2** when Wi-Fi or BLE is active, and any `analogRead` on an ADC2 pin silently returns 0. Sticking to ADC1 (GPIOs 1–10) means tap detection keeps working with OTA, a phone web UI, or any future BLE feature.
+
+Avoid GPIO 0, 3, 45, 46 — strapping pins; pulling them at boot changes boot mode or flash voltage. GPIO 19 and 20 are the native USB D-/D+ lines — leave them untouched. GPIO 35/36/37 are reserved on Octal-PSRAM modules (N8R8 / N16R8); using the N8 variant in the BOM keeps them free, but if you swap to a PSRAM module those three are off-limits.
 
 ### 3.2 Per-piezo circuit (×8)
 
 ```
-                   ADC pin (e.g. GPIO 32)
+                   ADC pin (e.g. GPIO 1)
                          │
             ┌────────────┼────────────┐
             │            │            │
@@ -310,13 +312,13 @@ Avoid GPIO 0, 2, 12, 15 — these are strapping pins and pulling them at boot ca
            GND──────────GND──────────GND
 ```
 
-The 1 MΩ resistor pulls the ADC line down so it doesn't float. The Zener clamps spikes — a hard slap on a piezo can produce 20+ volts momentarily and the ESP32 ADC tops out at 3.3 V.
+The 1 MΩ resistor pulls the ADC line down so it doesn't float. The Zener clamps spikes — a hard slap on a piezo can produce 20+ volts momentarily and the ESP32-S3 ADC tops out at 3.3 V.
 
 ### 3.3 LED strip + power
 
 Three injection points along the strip — start, middle, and end — each tapping the +5V and GND rails on the slab. This prevents voltage droop along the 4 m run. Note that those rails on the slab come from the PSU on the bumper pool frame via the Powerpole DC disconnect; see §4.6 for the full slab/frame architecture. The schematic shows the electrical connections; the disconnect itself is a physical break in the +5V/GND wiring between PSU and slab.
 
-The 74AHCT125 level shifter takes the ESP32's 3.3 V data signal and bumps it to 5 V. Tie its OE pin (and any unused channel OE pins) to GND. Power VCC from +5V rail.
+The 74AHCT125 level shifter takes the ESP32-S3's 3.3 V data signal and bumps it to 5 V. Tie its OE pin (and any unused channel OE pins) to GND. Power VCC from +5V rail.
 
 A 1000 µF cap across the 5V/GND rails right where the strip starts. Acts as a local energy reservoir for sudden current draw.
 
@@ -326,7 +328,7 @@ An inline 5 A fuse between PSU 5V output and the rest of the system. If somethin
 
 - 240 LEDs × 60 mA worst case (full white) = 14.4 A
 - One side (30 LEDs) lit at 50% brightness, single color = ~0.5 A
-- Idle (lights off, ESP32 only) = ~50 mA without Wi-Fi, ~80–120 mA with Wi-Fi up for OTA
+- Idle (lights off, ESP32-S3 only) = ~30–50 mA without Wi-Fi, ~80–120 mA with Wi-Fi up for OTA
 
 A 10 A PSU is comfortable. We'll never light more than ~30 LEDs at once during normal play.
 
@@ -368,11 +370,11 @@ The thin slab + air-gap-below configuration is excellent for piezo coupling. Vib
 
 Because the whole slab is one continuous piece of wood, every tap reaches all 8 piezos to some degree. The piezo directly under the tap reads strongest; piezos on adjacent sections read moderately; piezos on the opposite side read very weakly.
 
-**First-line mitigation**: the firmware already picks the *strongest* reading among all sides, so cross-talk shows up as background noise and the strongest hit wins. This handles most cases.
+**First-line mitigation**: `readPiezos()` picks only the *strongest* above-threshold side per scan as the accepted hit (the one exception is when the diametrically-opposite side also crosses threshold in the same scan — that's the two-handed slap path). Adjacent cross-talk loses to the real hit automatically.
 
 **If you're getting false-side detection** (a tap on side 1 occasionally registers as side 2):
 - Raise `PIEZO_THRESHOLD` so weak cross-talk doesn't even cross the threshold to begin with
-- If that's not enough, modify `readPiezos()` to require the strongest reading to be at least 2× the second-strongest before accepting it as a real tap
+- If that's not enough, edit `readPiezos()` to require the winning reading to be at least 2× the second-strongest above-threshold reading before accepting the hit (you'll need to track the second-best alongside the best inside the scan loop)
 
 **On the on/off gesture specifically**: this configuration is *especially good* for opposite-side detection. Cross-talk falls off with distance through the slab, and opposite sides are physically as far apart as possible. A single hard tap will never produce strong readings on opposite piezos — the slab simply doesn't transmit cross-talk that far at strong amplitudes. So "two strong readings exactly 4 sides apart" is unambiguously a deliberate two-handed slap.
 
@@ -436,10 +438,10 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 
 ### Phase 2: Bench Prototype
 
-- [ ] Wire ESP32 + 30-LED test segment + 1 piezo on breadboard per the wiring diagram
-- [ ] Flash the main firmware, with `NUM_LEDS = 30` and `NUM_SIDES = 1` temporarily
+- [ ] Wire ESP32-S3 + 30-LED test segment + 1 piezo on breadboard per the wiring diagram. Connect the piezo to GPIO 1 (`PIEZO_PINS[0]`)
+- [ ] Flash the main firmware with these temporary edits so the bench rig fits the small strip: `NUM_LEDS = 24`, `LEDS_PER_SIDE = 3`. Leave `NUM_SIDES = 8` and the default 4-player layout — each player owns 2 sides × 3 LEDs = 6 LEDs on the test strip. Tapping the wired piezo (side 0) will advance the lit zone from player 0 to player 1 once; after that, side 0 is no longer the active player's side and further taps will print *"Tap on side 0 ignored - not active player's side"* on Serial. That's the active-side filter doing its job — proof the firmware is wired up correctly. To watch the lit zone rotate through *all* 4 players on the bench, replace the `if (playerForSide(side) == currentPlayer) { advanceTurn(); renderTurn(); } else { Serial.printf(...); }` block in `commitTap()` with just `advanceTurn(); renderTurn();` and re-flash. Every tap will now advance the turn unconditionally. Restore the original block before moving to Phase 3
 - [ ] Open Serial Monitor at 115200 baud
-- [ ] Add a temporary `if (analogRead(PIEZO_PINS[0]) > 100) Serial.println(analogRead(PIEZO_PINS[0]));` inside `loop()` and tap the piezo — the threshold of 100 keeps the serial output quiet at idle and only prints when something interesting happens
+- [ ] Add a temporary `int v = analogRead(PIEZO_PINS[0]); if (v > 100) Serial.println(v);` inside `loop()` and tap the piezo — the threshold of 100 keeps the serial output quiet at idle and only prints when something interesting happens (note the single-read pattern: a piezo's voltage decays fast, so reading twice would give two different numbers)
 - [ ] Note the reading at rest (probably 0–50) and the peak when tapped (likely 500–3000+)
 - [ ] Set `PIEZO_THRESHOLD` to ~30% of peak — adjust by feel
 - [ ] Confirm the LEDs change color/zone on tap before proceeding
@@ -458,7 +460,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 - [ ] Solder jumper wires at each corner (3-conductor: 5V, GND, Data); heat-shrink each joint
 - [ ] Test continuity: data line from start to end of the assembled strip with multimeter
 - [ ] Mount channel pieces to the **outer edge of the slab** with screws (or recessed in a routed rabbet — see §4.1)
-- [ ] **Count the actual installed LEDs** (most likely 232–240 depending on corner cuts) and update `NUM_LEDS` in firmware to match. Also recompute `LEDS_PER_SIDE = NUM_LEDS / 8` and round to the nearest integer
+- [ ] **Count the actual installed LEDs** (most likely 232–240 depending on corner cuts) and update `NUM_LEDS` in firmware to match. Also recompute `LEDS_PER_SIDE = NUM_LEDS / 8`, **rounding down** (so e.g. 235 LEDs → 29 per side, with the last 3 LEDs unaddressed). Rounding up would make `renderTurn()` write past the end of the `leds[]` array
 - [ ] Solder pigtails for power injection at three points along the strip: at the start (DIN end), at the corner roughly halfway around (the corner between the 4th and 5th side as the strip runs), and at the end of the strip. Each pigtail joins +5V and GND from the slab's main DC rails to the strip's 5V and GND pads
 
 ### Phase 4: Piezo Mounting
@@ -476,7 +478,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 - [ ] Add 8× JST-XH 2-pin headers for piezo inputs
 - [ ] Add 1× JST-XH 3-pin header for strip data + ground reference
 - [ ] Add 2× screw terminals for 5V/GND from PSU
-- [ ] Test before installing: power up with the bench-test pigtail (see §4.6) connected to a 5V supply — either a small bench supply, or a USB-C wall adapter with a USB-C-to-Powerpole adapter cable, or even just the ESP32's USB power if you only need to verify the firmware logic without driving the LED strip — then run firmware and tap piezo leads with a screwdriver to fake hits
+- [ ] Test before installing: power up with the bench-test pigtail (see §4.6) connected to a 5V supply — either a small bench supply, or a USB-C wall adapter with a USB-C-to-Powerpole adapter cable, or even just the ESP32-S3's USB power if you only need to verify the firmware logic without driving the LED strip — then run firmware and tap piezo leads with a screwdriver to fake hits
 - [ ] Mount protoboard inside the chosen enclosure (see §4.5 — typically a project box under the slab); cut cable entries for power and signal
 
 ### Phase 6: Final Assembly
@@ -512,18 +514,17 @@ The build splits into frame-side and slab-side work — see §4.6 for the archit
 - [ ] Disconnect the bench supply
 - [ ] Mate the slab Powerpole to the frame Powerpole
 - [ ] First full power-up: switch on, watch for smoke (good sign: no smoke)
-- [ ] Confirm all 8 sides light correctly when you cycle through manually
+- [ ] Tap through every player position in turn (with the default 4-player layout, that's 4 advances; each player owns 2 contiguous sides). Look for dead LEDs, wrong colors, or visible gaps at corner joints — the lit zone should sweep cleanly across all 8 sides as you cycle through
 - [ ] Test the disconnect: switch off → unmate Powerpole → lift the slab a foot → set it back → reconnect Powerpole → switch on → confirm everything works
 
 ### Phase 7: Tune & Test
 
 - [ ] Re-flash with `Serial.println` instrumentation enabled (over OTA if Wi-Fi is set up, or USB). For calibration, temporarily add a print of the raw `analogRead` values for *every* side that exceeds a low threshold (say, 100) — this captures both direct hits and cross-talk so you can see the cross-talk geometry
 - [ ] Open the Serial Monitor (or for OTA, a network log viewer) and keep it visible while you tap
-- [ ] **For the per-side reading test**: temporarily set the firmware to single-player mode (8 sides as one zone) so the active-side rule doesn't filter taps. Tap each side firmly and note peak readings — they should be roughly similar across all 8
+- [ ] **For the per-side reading test**: just tap each side firmly while watching the Serial Monitor. The instrumentation prints raw readings independent of the active-side filter, so you don't need to disable it — peaks for all 8 sides should be roughly similar
 - [ ] If any side reads much lower, check the glue contact and lead solder joints
 - [ ] Set `PIEZO_THRESHOLD` to the value that ignores incidental table bumps but catches deliberate taps (typically ~30% of the peak reading)
-- [ ] Restore the default player count (or whatever you intend to play with)
-- [ ] **Cross-talk test**: tap side 1 hard, look at the serial output. The strongest reading should be side 1; sides 2 and 8 (adjacent) will show smaller readings; side 5 (opposite) should be near-zero. Confirm the firmware identifies the hit as side 1 (look for "Tap on side N" or the lit-zone advance, depending on which player is active). If the firmware ever picks a non-adjacent side as the strongest, raise threshold or add a relative-strength check (see §4.4)
+- [ ] **Cross-talk test**: tap side 1 hard, look at the serial output. The strongest reading should be side 1; sides 2 and 8 (adjacent) will show smaller readings; side 5 (opposite) should be near-zero. Confirm the firmware identifies the hit as side 1 — the only positive signal is the lit-zone advance (or the absence of an "ignored" log line for that side). If the firmware ever picks a non-adjacent side as the strongest, raise the threshold or add a relative-strength check (see §4.4)
 - [ ] **On/off gesture test**: with two hands, slap two opposite sides simultaneously. Lights should toggle. If no toggle, check that both piezos register above threshold; raise `OPPOSITE_PAIR_WINDOW_MS` if your slap timing isn't quite synchronized
 - [ ] **Setup gesture test**: rapidly tap 4 times within 2 seconds. Strip should start blinking. Tap once more to cycle player count. Wait 3 seconds; strip resumes normal play at player 1
 - [ ] Set `BRIGHTNESS` to your preferred level (start at 128, adjust)
@@ -541,7 +542,7 @@ Once installed, the user-facing controls are:
 | Tap a side that *isn't* lit | Nothing — only the active player can pass turn |
 | Tap 4 times within 2 seconds (any sides — the gesture counts taps, not sides) | Enter setup mode (sides flash) |
 | Tap two **opposite** sides simultaneously (a two-handed slap, on sides directly across from each other) | Toggle on/off |
-| In setup: tap any side | Cycle player count (2 → 3 → … → 8 → 2) |
+| In setup: tap any side | Increment player count by one each tap, wrapping 8 → 2 (starts from whatever count was previously saved) |
 | In setup: stop tapping for 3 s | Save player count, exit setup, reset to player 1 |
 | Power cycle | Resume on the same player and same on/off state (state persists) |
 
@@ -551,7 +552,7 @@ Number of *blinking* sides = current player count selection.
 
 This rule applies only to turn advance. Setup-mode entry and the on/off gesture work from any side.
 
-**Why the entry gesture isn't a "hold"**: piezos detect vibration, not pressure. They produce a brief voltage spike when struck and then return to baseline — there's no signal to read while you keep your hand there. So setup entry uses a rapid tap burst instead. The 4 taps will spin the lit zone forward once on the first tap (since that one happens to be on the active side); the next three taps land on now-inactive sides and only register for the gesture counter, not the turn. Exiting setup mode resets to player 1 anyway.
+**Why the entry gesture isn't a "hold"**: piezos detect vibration, not pressure. They produce a brief voltage spike when struck and then return to baseline — there's no signal to read while you keep your hand there. So setup entry uses a rapid tap burst instead. If you do the gesture all on your own (active) section, the first tap spins the lit zone forward once (you ARE the active player); the remaining three then land on a now-inactive side and only count toward the gesture, not the turn. Exiting setup mode resets to player 1 anyway, so the spurious advance doesn't matter.
 
 **The on/off gesture in detail**: any two-handed slap on diametrically opposite sides toggles the LEDs. The firmware buffers each tap for 150 ms before committing it as a turn advance — long enough to detect a near-simultaneous opposite tap, short enough that the resulting delay on normal turn passes is barely perceptible. Off state is fully dark; the device still polls the piezos and watches for the on-gesture, but ignores everything else. The 150 ms buffer also handles the asymmetric-strike case where one hand lands a few milliseconds before the other.
 
@@ -580,7 +581,7 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 
 `PLAYER_COLORS[]` array defines the color for each player — edit to taste.
 
-**Build environment**: Arduino IDE with ESP32 board support, FastLED library installed (ArduinoOTA is bundled with the ESP32 core). Board: "ESP32 Dev Module". Upload speed: 921600.
+**Build environment**: Arduino IDE with ESP32 board support, FastLED library installed (ArduinoOTA is bundled with the ESP32 core). Board: **"ESP32S3 Dev Module"**. **USB CDC On Boot: Enabled** (so Serial works over the native USB port). Upload speed: 921600.
 
 ### 7.1 OTA firmware updates
 
@@ -595,7 +596,7 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 
 **Security note**: anyone on your local network can attempt to flash the device. The OTA password protects against accidental or casual attacks but isn't strong security. Don't put this on a network with untrusted devices, and definitely don't expose it to the internet.
 
-**If OTA breaks** (most common cause: pushing firmware that crashes immediately and loses Wi-Fi): you can always fall back to USB. Plug into the ESP32, hit Upload, done. Keep a USB cable accessible.
+**If OTA breaks** (most common cause: pushing firmware that crashes immediately and loses Wi-Fi): you can always fall back to USB. Plug into the ESP32-S3, hit Upload, done. Keep a USB cable accessible.
 
 ---
 
@@ -609,8 +610,8 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 | Tap doesn't register | Threshold too high, bad piezo solder, glue not contacting wood | Lower threshold, reflow joint, re-glue |
 | Tap on side 1 lights side 3 | Piezo wire mapping wrong | Check `PIEZO_PINS[]` order vs physical wiring |
 | Adjacent sides cross-trigger | Mechanical cross-talk through wood | Foam break, kerf cut, or relative-strength filter in firmware |
-| Weird boot behavior | Strapping pin pulled wrong | Confirm GPIO 0/2/12/15 unused |
-| ESP32 won't flash via USB | Upload speed, missing driver, or held button | Drop to 115200 baud, install CP210x or CH340 driver, hold BOOT during upload |
+| Weird boot behavior | Strapping pin pulled wrong | Confirm GPIO 0/3/45/46 unused (ESP32-S3 strap pins) |
+| ESP32-S3 won't flash via USB | Upload speed, USB CDC setting, or held button | Drop to 115200 baud, confirm Tools → USB CDC On Boot is Enabled, hold BOOT + tap RESET + release BOOT to enter download mode manually |
 | OTA port doesn't appear in IDE | Wi-Fi didn't join, wrong network, mDNS not resolving | Check Serial Monitor at boot for IP; ping `turn-counter.local`; fall back to USB |
 | OTA fails midway | Network drop or insufficient flash | Retry; consider partition scheme with larger OTA region |
 | Player count resets unexpectedly | NVS partition issue | Erase flash and re-flash: `esptool.py erase_flash` |
@@ -624,7 +625,7 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 If the basic build lands well, things worth considering later:
 
 - **Turn timer**: each player has N seconds; the lit zone slowly drains around the side as time runs out. Tap before it empties or it auto-advances with a red flash.
-- **Companion app**: ESP32 already has Wi-Fi up for OTA. Run a small web server, expose a phone-friendly page for round counting, scoring, initiative tracking. Especially useful for RPGs.
+- **Companion app**: ESP32-S3 already has Wi-Fi up for OTA. Run a small web server, expose a phone-friendly page for round counting, scoring, initiative tracking. Especially useful for RPGs. (BLE 5.0 is also on the table — the S3 has both radios, and ADC1 is unaffected by either.)
 - **Audio feedback**: a small piezo *buzzer* (different from the sensor piezos) on a free GPIO for soft turn-pass clicks.
 - **Per-game profiles**: store named configurations in NVS. "Magic 4-player", "RPG initiative for 6", etc.
 - **Initiative mode**: instead of round-robin, player order is a stored sequence. Useful for D&D-style turn order that isn't seat-based.

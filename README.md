@@ -26,8 +26,10 @@ The full design — bill of materials, wiring schematics, mechanical drawings, b
 
 Open the `.ino` files in Arduino IDE.
 
-- Board: ESP32 Dev Module, upload speed 921600
+- Board: **ESP32S3 Dev Module** (Tools → Board → ESP32 Arduino → ESP32S3 Dev Module), upload speed 921600
+- Tools → **USB CDC On Boot: Enabled** (so `Serial.println` reaches the IDE over the native USB port)
 - Required libraries: FastLED, ArduinoOTA (ArduinoOTA bundles with the ESP32 core)
+- The ESP32-S3 enumerates over native USB — no CP210x/CH340 driver needed
 - Edit Wi-Fi credentials, mDNS hostname, and OTA password at the top of `turn_counter.ino` before the first flash
 
 ## Rebuilding the PDF

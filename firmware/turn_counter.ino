@@ -4,7 +4,9 @@
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 
-#define LED_PIN          5
+// Targets ESP32-S3 (e.g. ESP32-S3-DevKitC-1 N8). Piezos live on ADC1
+// (GPIO 1-10) so they keep working while Wi-Fi/BLE are active.
+#define LED_PIN          11
 #define NUM_LEDS         240
 #define LEDS_PER_SIDE    30
 #define NUM_SIDES        8
@@ -19,7 +21,8 @@ const char* OTA_PASSWORD  = "change-me";
 
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 5000;
 
-const uint8_t PIEZO_PINS[NUM_SIDES] = {32, 33, 34, 35, 36, 39, 25, 26};
+// All 8 piezos on ADC1. GPIO 3 is skipped because it's a JTAG strap pin.
+const uint8_t PIEZO_PINS[NUM_SIDES] = {1, 2, 4, 5, 6, 7, 8, 9};
 
 const uint16_t PIEZO_THRESHOLD          = 400;
 const uint16_t DEBOUNCE_MS              = 250;
@@ -33,7 +36,8 @@ Preferences prefs;
 
 uint8_t  playerCount = 4;
 uint8_t  currentPlayer = 0;
-uint32_t lastTapMs = 0;
+uint32_t lastTapPerSide[NUM_SIDES] = {0};
+uint32_t lastAnyTapMs = 0;
 bool     inSetupMode = false;
 bool     isOn = true;
 bool     otaActive = false;
@@ -113,18 +117,43 @@ void renderOtaProgress(uint8_t percent) {
   FastLED.show();
 }
 
-int8_t readPiezos() {
-  int8_t hitSide = -1;
+// Returns a bitmask of accepted hits in this scan. At most two bits set:
+// the strongest above-threshold side (cross-talk filter — adjacent ghosts
+// lose to the real hit) and, if its diametrically-opposite side is also
+// above threshold this scan, that one too (two-handed slap detected in a
+// single scan, before debounce can lock it out). Cross-scan two-handed
+// slaps still work via pendingTapSide in onTapDetected().
+uint8_t readPiezos(uint32_t now) {
+  uint8_t aboveThresholdMask = 0;
+  uint8_t maxIdx = 0xFF;
   uint16_t maxReading = 0;
 
   for (uint8_t i = 0; i < NUM_SIDES; i++) {
     uint16_t reading = analogRead(PIEZO_PINS[i]);
-    if (reading > PIEZO_THRESHOLD && reading > maxReading) {
-      maxReading = reading;
-      hitSide = i;
+    if (reading > PIEZO_THRESHOLD) {
+      aboveThresholdMask |= (1 << i);
+      if (reading > maxReading) {
+        maxReading = reading;
+        maxIdx = i;
+      }
     }
   }
-  return hitSide;
+
+  if (maxIdx == 0xFF) return 0;
+  if (now - lastTapPerSide[maxIdx] <= DEBOUNCE_MS) return 0;
+
+  uint8_t resultMask = (1 << maxIdx);
+  lastTapPerSide[maxIdx] = now;
+  lastAnyTapMs = now;
+
+  uint8_t oppIdx = (maxIdx + NUM_SIDES / 2) % NUM_SIDES;
+  if ((aboveThresholdMask & (1 << oppIdx)) &&
+      now - lastTapPerSide[oppIdx] > DEBOUNCE_MS) {
+    resultMask |= (1 << oppIdx);
+    lastTapPerSide[oppIdx] = now;
+  }
+
+  return resultMask;
 }
 
 uint8_t playerForSide(int8_t side) {
@@ -313,10 +342,11 @@ void loop() {
 
   uint32_t now = millis();
 
-  int8_t hit = readPiezos();
-  if (hit >= 0 && now - lastTapMs > DEBOUNCE_MS) {
-    lastTapMs = now;
-    onTapDetected(hit, now);
+  uint8_t hits = readPiezos(now);
+  for (uint8_t i = 0; i < NUM_SIDES; i++) {
+    if (hits & (1 << i)) {
+      onTapDetected(i, now);
+    }
   }
 
   if (pendingTapSide >= 0 && now - pendingTapMs >= OPPOSITE_PAIR_WINDOW_MS) {
@@ -325,7 +355,7 @@ void loop() {
   }
 
   if (isOn && inSetupMode) {
-    if (lastTapMs != 0 && now - lastTapMs > SETUP_EXIT_IDLE_MS) {
+    if (lastAnyTapMs != 0 && now - lastAnyTapMs > SETUP_EXIT_IDLE_MS) {
       exitSetupMode();
       renderTurn();
     } else {

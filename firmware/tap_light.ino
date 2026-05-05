@@ -1,13 +1,14 @@
 #include <FastLED.h>
 #include <Preferences.h>
 
-#define LED_PIN          5
+// Targets ESP32-S3 (e.g. ESP32-S3-DevKitC-1). Piezo on ADC1 GPIO 1.
+#define LED_PIN          11
 #define NUM_LEDS         30
 #define BRIGHTNESS       100
 #define LED_TYPE         WS2812B
 #define COLOR_ORDER      GRB
 
-const uint8_t PIEZO_PIN = 32;
+const uint8_t PIEZO_PIN = 1;
 const uint16_t PIEZO_THRESHOLD = 400;
 const uint16_t DEBOUNCE_MS = 250;
 const uint8_t NUM_MODES = 6;

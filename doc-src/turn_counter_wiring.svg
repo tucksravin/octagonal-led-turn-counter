@@ -19,7 +19,7 @@
   <rect x="0" y="0" width="1200" height="900" fill="#ffffff"/>
 
   <text x="600" y="32" text-anchor="middle" class="title">Octagonal Turn Counter — Wiring Diagram</text>
-  <text x="600" y="52" text-anchor="middle" class="small">8 piezos • ESP32 • WS2812B (240 LEDs) • 5V/10A PSU</text>
+  <text x="600" y="52" text-anchor="middle" class="small">8 piezos • ESP32-S3 • WS2812B (240 LEDs) • 5V/10A PSU</text>
 
   <g id="psu">
     <rect x="60" y="100" width="180" height="110" rx="4" class="component"/>
@@ -67,8 +67,8 @@
 
   <g id="esp32">
     <rect x="380" y="280" width="220" height="280" rx="6" class="component"/>
-    <text x="490" y="305" text-anchor="middle" class="subtitle">ESP32</text>
-    <text x="490" y="322" text-anchor="middle" class="small">WROOM-32 Dev Board</text>
+    <text x="490" y="305" text-anchor="middle" class="subtitle">ESP32-S3</text>
+    <text x="490" y="322" text-anchor="middle" class="small">DevKitC-1 (N8)</text>
 
     <line x1="380" y1="345" x2="360" y2="345" class="power"/>
     <text x="395" y="349" class="pin">5V</text>
@@ -79,23 +79,23 @@
     <text x="357" y="369" text-anchor="end" class="pin">GND</text>
 
     <line x1="600" y1="350" x2="650" y2="350" class="signal"/>
-    <text x="595" y="354" text-anchor="end" class="pin">GPIO 5</text>
+    <text x="595" y="354" text-anchor="end" class="pin">GPIO 11</text>
 
-    <text x="595" y="395" text-anchor="end" class="pin">GPIO 32</text>
+    <text x="595" y="395" text-anchor="end" class="pin">GPIO 1</text>
     <line x1="600" y1="392" x2="650" y2="392" class="wire"/>
-    <text x="595" y="412" text-anchor="end" class="pin">GPIO 33</text>
+    <text x="595" y="412" text-anchor="end" class="pin">GPIO 2</text>
     <line x1="600" y1="409" x2="650" y2="409" class="wire"/>
-    <text x="595" y="429" text-anchor="end" class="pin">GPIO 34</text>
+    <text x="595" y="429" text-anchor="end" class="pin">GPIO 4</text>
     <line x1="600" y1="426" x2="650" y2="426" class="wire"/>
-    <text x="595" y="446" text-anchor="end" class="pin">GPIO 35</text>
+    <text x="595" y="446" text-anchor="end" class="pin">GPIO 5</text>
     <line x1="600" y1="443" x2="650" y2="443" class="wire"/>
-    <text x="595" y="463" text-anchor="end" class="pin">GPIO 36</text>
+    <text x="595" y="463" text-anchor="end" class="pin">GPIO 6</text>
     <line x1="600" y1="460" x2="650" y2="460" class="wire"/>
-    <text x="595" y="480" text-anchor="end" class="pin">GPIO 39</text>
+    <text x="595" y="480" text-anchor="end" class="pin">GPIO 7</text>
     <line x1="600" y1="477" x2="650" y2="477" class="wire"/>
-    <text x="595" y="497" text-anchor="end" class="pin">GPIO 25</text>
+    <text x="595" y="497" text-anchor="end" class="pin">GPIO 8</text>
     <line x1="600" y1="494" x2="650" y2="494" class="wire"/>
-    <text x="595" y="514" text-anchor="end" class="pin">GPIO 26</text>
+    <text x="595" y="514" text-anchor="end" class="pin">GPIO 9</text>
     <line x1="600" y1="511" x2="650" y2="511" class="wire"/>
 
     <rect x="650" y="380" width="50" height="140" fill="none" stroke="#999" stroke-width="1"/>
@@ -172,8 +172,8 @@
 
   <g id="piezo-detail" transform="translate(80, 660)">
     <line x1="220" y1="20" x2="450" y2="20" class="wire"/>
-    <text x="455" y="24" class="pin">→ ESP32 ADC pin</text>
-    <text x="455" y="38" class="small">(GPIO 32/33/34/35/36/39/25/26)</text>
+    <text x="455" y="24" class="pin">→ ESP32-S3 ADC1 pin</text>
+    <text x="455" y="38" class="small">(GPIO 1/2/4/5/6/7/8/9)</text>
 
     <circle cx="220" cy="20" r="2.5" class="junction"/>
     <line x1="220" y1="20" x2="220" y2="60" class="wire"/>
@@ -217,39 +217,39 @@
   <text x="900" y="625" text-anchor="middle" class="subtitle">Pin Assignments &amp; Notes</text>
 
   <g transform="translate(660, 645)">
-    <text x="0" y="14" class="label" font-weight="bold">ESP32 GPIO</text>
+    <text x="0" y="14" class="label" font-weight="bold">ESP32-S3 GPIO</text>
     <text x="120" y="14" class="label" font-weight="bold">Function</text>
     <line x1="0" y1="20" x2="480" y2="20" stroke="#999" stroke-width="0.8"/>
 
-    <text x="0" y="38" class="pin">GPIO 5</text>
+    <text x="0" y="38" class="pin">GPIO 11</text>
     <text x="120" y="38" class="pin">LED data out → 470 Ω → 74AHCT125</text>
 
-    <text x="0" y="56" class="pin">GPIO 32</text>
-    <text x="120" y="56" class="pin">Piezo side 1 (ADC)</text>
+    <text x="0" y="56" class="pin">GPIO 1</text>
+    <text x="120" y="56" class="pin">Piezo side 1 (ADC1_CH0)</text>
 
-    <text x="0" y="74" class="pin">GPIO 33</text>
-    <text x="120" y="74" class="pin">Piezo side 2 (ADC)</text>
+    <text x="0" y="74" class="pin">GPIO 2</text>
+    <text x="120" y="74" class="pin">Piezo side 2 (ADC1_CH1)</text>
 
-    <text x="0" y="92" class="pin">GPIO 34</text>
-    <text x="120" y="92" class="pin">Piezo side 3 (ADC, input-only)</text>
+    <text x="0" y="92" class="pin">GPIO 4</text>
+    <text x="120" y="92" class="pin">Piezo side 3 (ADC1_CH3)</text>
 
-    <text x="0" y="110" class="pin">GPIO 35</text>
-    <text x="120" y="110" class="pin">Piezo side 4 (ADC, input-only)</text>
+    <text x="0" y="110" class="pin">GPIO 5</text>
+    <text x="120" y="110" class="pin">Piezo side 4 (ADC1_CH4)</text>
 
-    <text x="0" y="128" class="pin">GPIO 36</text>
-    <text x="120" y="128" class="pin">Piezo side 5 (ADC, input-only)</text>
+    <text x="0" y="128" class="pin">GPIO 6</text>
+    <text x="120" y="128" class="pin">Piezo side 5 (ADC1_CH5)</text>
 
-    <text x="0" y="146" class="pin">GPIO 39</text>
-    <text x="120" y="146" class="pin">Piezo side 6 (ADC, input-only)</text>
+    <text x="0" y="146" class="pin">GPIO 7</text>
+    <text x="120" y="146" class="pin">Piezo side 6 (ADC1_CH6)</text>
 
-    <text x="0" y="164" class="pin">GPIO 25</text>
-    <text x="120" y="164" class="pin">Piezo side 7 (ADC)</text>
+    <text x="0" y="164" class="pin">GPIO 8</text>
+    <text x="120" y="164" class="pin">Piezo side 7 (ADC1_CH7)</text>
 
-    <text x="0" y="182" class="pin">GPIO 26</text>
-    <text x="120" y="182" class="pin">Piezo side 8 (ADC)</text>
+    <text x="0" y="182" class="pin">GPIO 9</text>
+    <text x="120" y="182" class="pin">Piezo side 8 (ADC1_CH8)</text>
 
     <line x1="0" y1="194" x2="480" y2="194" stroke="#999" stroke-width="0.8"/>
-    <text x="0" y="212" class="small">Avoid GPIO 0, 2, 12, 15 (boot strapping pins)</text>
+    <text x="0" y="212" class="small">All piezos on ADC1 — works with Wi-Fi/BLE active. Avoid GPIO 0, 3, 19, 20, 45, 46.</text>
   </g>
 
   <g transform="translate(60, 70)">
