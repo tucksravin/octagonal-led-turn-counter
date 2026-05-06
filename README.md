@@ -11,6 +11,7 @@ The full design — bill of materials, wiring schematics, mechanical drawings, b
 ├── README.md
 ├── turn_counter_design_doc.pdf   ← read this first
 ├── turn_counter_design_doc.md    ← edit this to change content
+├── shopping_list.md              ← concrete parts list with PNs and vendors
 ├── firmware/
 │   ├── turn_counter.ino          ← main project firmware
 │   └── tap_light.ino             ← Phase 0 starter (tap-activated desk light, for skill-building)
