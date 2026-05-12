@@ -27,12 +27,12 @@ DigiKey doesn't bundle parts kits the way Amazon does. Two workarounds:
 
 | Qty | Part | Manufacturer PN | ~$ ea | Notes |
 |----:|------|-----------------|------:|-------|
-| 2 | ESP32-S3-DevKitC-1, N8 | Espressif `ESP32-S3-DevKitC-1-N8` (or `-N8R2` with PSRAM, +$1) | $11 | **Avoid N8R8 / N16R8** — octal PSRAM uses GPIOs 35/36/37. Two boards lets the Phase 0 Tap Light survive as a permanent desk lamp. |
+| 2 | ESP32-S3-DevKitC-1, N8R8 | Espressif `ESP32-S3-DEVKITC-1-N8R8` (PCB antenna — **not** the `-1U-N8R8` external-antenna variant) | $15 | N8 and N8R2 are end-of-life at DigiKey; N8R8 is what's stocked. Octal PSRAM uses GPIOs 35/36/37 internally — fine for this build (the pinout doesn't touch those), just don't reassign anything to those pins. Two boards lets the Phase 0 Tap Light survive as a permanent desk lamp. |
 | 2 | Level shifter, DIP-14 | TI `SN74AHCT125N` | $0.85 | One spare is cheap insurance. |
-| 1 | 5V / 10A PSU | Mean Well `LRS-50-5` | $15 | Authentic Mean Well — Amazon is full of counterfeits at this price point. |
+| 1 | 5V / 18A PSU | Mean Well `LRS-100-5` | $18 | Authentic Mean Well — Amazon is full of counterfeits at this price point. LRS-50-5 was the original spec; substituted to LRS-100-5 when the -50 was out of stock at DigiKey. Same series, bigger footprint (~129×97 mm vs 99×82 mm — wood block is still plenty), more headroom. The 5A inline fuse is *more* important now since the PSU itself won't trip on a downstream short. |
 | 1 | Switched IEC C14 inlet w/ fuse holder | Schurter `DG12` series — search "Schurter DG12 fused IEC C14 switch" | $20 | Combines plug, switch, and fuse holder in one panel-mount. Far safer for a first electronics project than a discrete rocker switch. |
 
-**Active components subtotal: ~$59.**
+**Active components subtotal: ~$70.**
 
 ### Passives — single-value bulk packs
 
@@ -41,9 +41,9 @@ DigiKey doesn't bundle parts kits the way Amazon does. Two workarounds:
 | 12 | 1 MΩ, 1/4 W axial resistor | Yageo `CFR-25JT-52-1M0` | 100-pack | $1.50 |
 | 5 | 470 Ω, 1/4 W axial resistor | Yageo `CFR-25JT-52-470R` | 100-pack | $1.50 |
 | 12 | 1N4728A 3.3 V Zener diode | ON Semi `1N4728ATR` (or Vishay equivalent) | 25-pack | $4 |
-| 3 | 1000 µF, 50 V electrolytic capacitor | Nichicon `UVR1H102MED1TD` | individually (~$0.50 ea) | $1.50 |
+| 5 | 1000 µF, 50 V electrolytic capacitor | Panasonic `ECA-1HM102` (DigiKey P5186-ND) | individually (~$1.45 ea) | $7.25 |
 
-**Passives subtotal: ~$8.50.** Buying 100-packs feels excessive but they're $1.50 a pack — cheaper *per piece* than Amazon assortment kits, and you get authentic parts.
+**Passives subtotal: ~$14.** Buying 100-packs feels excessive but they're $1.50 a pack — cheaper *per piece* than Amazon assortment kits, and you get authentic parts.
 
 ### Connectors
 
@@ -54,11 +54,12 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 | 3 | Anderson Powerpole 30 A housing, red | Anderson `1327G6` | $0.80 ea |
 | 3 | Anderson Powerpole 30 A housing, black | Anderson `1327G7` | $0.80 ea |
 | 6 | Anderson 30 A contact | Anderson `1331` | $0.80 ea |
-| 5 | Phoenix-style 2-pin screw terminal block, 5.08 mm pitch | On Shore Tech `OSTYK22504030` | $0.80 ea |
 
 > Three Powerpole housing-pairs total: one on the slab, one on the frame side it mates with, one for the bench-test pigtail. (Earlier draft listed 4 pairs; corrected.)
+>
+> Screw-terminal blocks were dropped — the On Shore Tech OSTYK225/OSTYK223 barrier strips were both out of stock at DigiKey, and WAGO 221 lever connectors (now in the Amazon order) are the cleaner choice for the branching network anyway. See the design doc §4.6 — WAGOs were already the doc's preferred option.
 
-**Connectors subtotal: ~$13.60.**
+**Connectors subtotal: ~$9.60.**
 
 ### Mechanical
 
@@ -77,13 +78,12 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 | Qty | Part | Manufacturer PN | ~$ |
 |----:|------|-----------------|---:|
 | 25 ft (6 colors, mixed) | 22 AWG stranded hookup wire | Adafruit `1311` (6-color spool set) | $16 |
-| 1 | 1/2" rubber grommet | Heyco `2092` or generic | $1 |
 
-**Wire & consumables subtotal: ~$17.** (14 AWG silicone wire moved to Amazon — DigiKey's Alpha Wire is ~$30 for the same length BNTECHGO sells for $16.)
+**Wire & consumables subtotal: ~$16.** (14 AWG silicone wire moved to Amazon — DigiKey's Alpha Wire is ~$30 for the same length BNTECHGO sells for $16. Rubber grommet for slab cable entry moved to the hardware store — the original Heyco BOM part `2092` is designed for 3 mm sheet-metal panels, not 1″ wood.)
 
 ---
 
-### **DigiKey total: ~$136**
+### **DigiKey total: ~$148**
 
 Easily clears the $100 free-shipping threshold.
 
@@ -97,9 +97,14 @@ Easily clears the $100 free-shipping threshold.
 | 4-5 sections × 1 m | **"Muzata U01 1m LED aluminum channel with frosted cover"** | $28-35 |
 | 1 | **"MUYI JST-XH connector kit 2/3/4/5-pin 530pcs with pre-crimped wires"** | $18 |
 | 1 ea | **"BNTECHGO 14 AWG silicone wire 25 ft red"** + **"...black"** | $16 |
+| 1 | **"Anker PowerLine USB-C to USB-A 3ft data cable"** (or any known-good USB-C *data* cable) | $10 |
+| 1 | **"ELEGOO Electronic Component Fun Kit"** (assorted resistors, caps, LEDs, transistors, diodes) | $18 |
+| 1 | **"WAGO 221-415 5-conductor lever connector"** (25-pack) — for branching the slab DC rail into 4 nodes | $10 |
 
-**Amazon subtotal: ~$82-89.**
+**Amazon subtotal: ~$120-127.**
 
+> The USB-C cable is for flashing the ESP32-S3-DevKitC-1, which ships without one. Many USB-C cables you have lying around are charge-only — confirm data support before flash day. The ELEGOO Fun Kit isn't strictly needed (the DigiKey bulk packs cover this build), but at $18 it's the right call if you'll ever do another project — it's the "I need a 10 kΩ at midnight" insurance. Component values in cheap assortment kits are loosely binned; for any precision-critical use, fall back to the DigiKey passives.
+>
 > Order 4 sections of channel if your perimeter is exactly 4 m and you're confident in the corner cuts; 5 if you want one spare meter for mistakes (recommended for first build).
 
 ---
@@ -111,8 +116,9 @@ Easily clears the $100 free-shipping threshold.
 | 1 | Pine 1×6 scrap, ~6" length | $0-3 |
 | 1 box | #8 wood screws, 3/4" + 1.5" assortment | $5 |
 | 1 pack | P-clips or adhesive cable mounts, mixed sizes | $5 |
+| 1 | Soft rubber grommet, ½″ or ⅝″ panel-hole, ID matched to your DC cable OD (the 14 AWG silicone twisted pair is ~5/16″ / 8 mm OD) | $2 |
 
-**Hardware-store subtotal: ~$10-15.**
+**Hardware-store subtotal: ~$12-17.**
 
 ---
 
@@ -148,8 +154,9 @@ DigiKey carries Hakko irons and many of these but typically at +20–40% over Am
 | Heat-shrink kit | **Eventronic 560pc assortment** | $10 |
 | Solder wick | **MG Chemicals 4-25** (3.5 mm × 5 ft) | $5 |
 | Silicone bench mat | iFixit ProTech or generic 24×16 silicone | $20 |
+| Wire ferrule kit + ratcheting crimper combo | **"IWISS self-adjustable ferrule crimping kit"** (crimper + ~1,200 assorted ferrules AWG 28-10) | $25 |
 
-**Tools subtotal: ~$188.** Full-comfort tier — items chosen so they keep earning their keep on future projects rather than being one-build throwaways.
+**Tools subtotal: ~$213.** Full-comfort tier — items chosen so they keep earning their keep on future projects rather than being one-build throwaways. The ferrule crimper is for terminating stranded silicone wire into the Phoenix-style screw terminals — bare strands clamped raw will slowly back out under thermal cycling.
 
 ---
 
@@ -192,13 +199,13 @@ Rolling tool chests, smart-app parts management systems, anything calling itself
 
 | Category | Cost |
 |----------|-----:|
-| DigiKey (parts) | ~$136 |
-| Amazon (LED strip + channel + JST + silicone wire) | ~$82-89 |
-| Hardware store | ~$10-15 |
-| **Parts subtotal** | **~$228-240** |
-| Tools (skip if owned) | ~$188 |
+| DigiKey (parts) | ~$148 |
+| Amazon (LED strip + channel + JST + silicone wire + USB-C cable + ELEGOO kit + WAGOs) | ~$120-127 |
+| Hardware store | ~$12-17 |
+| **Parts subtotal** | **~$280-292** |
+| Tools (skip if owned) | ~$213 |
 | Bench organization (recommended) | ~$100-105 |
-| **Project total** | **~$516-533** |
+| **Project total** | **~$593-610** |
 
 **The numbers honestly:** the doc's §2 estimate of "$80-120 parts" was optimistic — based on Amazon-everything sourcing with mystery-source kits. Authenticated parts from DigiKey + a real LED channel + spares pushes it to ~$230. There isn't much more to trim without compromising safety (the IEC inlet) or the build (the LED channel diffuser is what makes the rim look professional vs janky).
 

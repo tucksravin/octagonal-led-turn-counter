@@ -238,7 +238,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 
 | Qty | Part | Specifics | Notes |
 |----:|------|-----------|-------|
-| 1 | ESP32-S3 dev board | ESP32-S3-DevKitC-1, N8 variant (8MB flash, no PSRAM), USB-C native | Buy 2 — one for the starter, one for the main. ~$10–12 each. Avoid the Octal-PSRAM variants (N8R8/N16R8); they use GPIOs 35/36/37 internally |
+| 1 | ESP32-S3 dev board | ESP32-S3-DevKitC-1, N8R8 variant (8MB flash + 8MB octal PSRAM), USB-C native | Buy 2 — one for the starter, one for the main. ~$15 each. N8 and N8R2 are end-of-life at DigiKey; N8R8 is the current stocked variant. Octal PSRAM uses GPIOs 35/36/37 internally — fine for this build (the pinout in §3.1 doesn't touch them), just don't reassign anything to those pins. Get the PCB-antenna part (no `U` suffix); the `-1U-N8R8` variant has a U.FL connector and no antenna |
 | 5 m | WS2812B LED strip | 60 LEDs/m, IP30, 5V | 4 m used; the extra is for the starter and mistakes |
 | 4 m | Aluminum LED channel | With frosted/diffuser cover | Massively improves the look |
 | 10 | Piezo disc | 27 mm brass, 2 leads | Bag of 10 covers main + starter + spares |
@@ -247,7 +247,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 | 5 | Resistor | 470 Ω, 1/4 W | Series resistor on data line |
 | 3 | Capacitor | 1000 µF, 10 V or higher, electrolytic | Across 5V/GND at strip start |
 | 2 | Level shifter | 74AHCT125 (DIP-14) | 3.3 V → 5 V data line |
-| 1 | Power supply | Mean Well LRS-50-5 (5 V, 10 A) | Don't cheap out here |
+| 1 | Power supply | Mean Well LRS-100-5 (5 V, 18 A) | Don't cheap out here. LRS-50-5 (5 V, 10 A) is the original spec and also fine if you can find it; the -100 was substituted when the -50 went out of stock at DigiKey |
 | 1 | Power switch | Panel-mount rocker, 250 V AC rated, 6 A+ | Or use a switched IEC inlet (safer) |
 | 1 | DC barrel jack or terminal block | For PSU output | Personal preference |
 | ~ | Hookup wire | 22 AWG stranded for signal, 18 AWG for power | A few colors helps |
@@ -263,7 +263,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 | 2 | Anderson Powerpole 30 A connector kit | Pair of red + black housings + crimp contacts | One pair for the slab, one pair for a bench-test pigtail |
 | 1 | Powerpole crimp tool | TRIcrimp (~$30) | Or use a ratcheting crimper carefully. One-time tool cost, reusable forever |
 | 6 ft | Silicone-insulated wire | 14 AWG, red and black (3 ft each) | DC run from PSU to slab |
-| 1 | Rubber grommet | 1/2" inside diameter | Cable entry through slab |
+| 1 | Soft rubber grommet | ½″ or ⅝″ panel-hole size; inside diameter sized to your DC cable (the 14 AWG silicone twisted pair is ~⁵⁄₁₆″ / 8 mm OD) | Cable entry through slab. Hardware-store generic — *avoid* sheet-metal-panel bushings like Heyco 2092, which are designed for 3 mm panels, not 1″ wood |
 | 2 | P-clips or adhesive cable mounts | Various sizes | Cable strain relief inside slab |
 | 1 | Pine block or scrap | ~4×6×1" | PSU mounting platform on frame |
 | ~ | #8 wood screws | 3/4" and 1.5" lengths | Mount block to frame and PSU to block |
@@ -296,7 +296,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 
 All 8 piezos are on **ADC1**. This matters: the ESP32-S3 radio takes over **ADC2** when Wi-Fi or BLE is active, and any `analogRead` on an ADC2 pin silently returns 0. Sticking to ADC1 (GPIOs 1–10) means tap detection keeps working with OTA, a phone web UI, or any future BLE feature.
 
-Avoid GPIO 0, 3, 45, 46 — strapping pins; pulling them at boot changes boot mode or flash voltage. GPIO 19 and 20 are the native USB D-/D+ lines — leave them untouched. GPIO 35/36/37 are reserved on Octal-PSRAM modules (N8R8 / N16R8); using the N8 variant in the BOM keeps them free, but if you swap to a PSRAM module those three are off-limits.
+Avoid GPIO 0, 3, 45, 46 — strapping pins; pulling them at boot changes boot mode or flash voltage. GPIO 19 and 20 are the native USB D-/D+ lines — leave them untouched. GPIO 35/36/37 are reserved on Octal-PSRAM modules (N8R8 / N16R8) — and since the BOM now specs the N8R8 (N8/N8R2 are EOL at DigiKey), those three pins are off-limits for this build. The current pinout above doesn't use them, so this is only a constraint if you add features later.
 
 ### 3.2 Per-piezo circuit (×8)
 
@@ -330,7 +330,7 @@ An inline 5 A fuse between PSU 5V output and the rest of the system. If somethin
 - One side (30 LEDs) lit at 50% brightness, single color = ~0.5 A
 - Idle (lights off, ESP32-S3 only) = ~30–50 mA without Wi-Fi, ~80–120 mA with Wi-Fi up for OTA
 
-A 10 A PSU is comfortable. We'll never light more than ~30 LEDs at once during normal play.
+An 18 A PSU (LRS-100-5) is generous — even a 10 A PSU (LRS-50-5) would be comfortable, since we'll never light more than ~30 LEDs at once during normal play. The extra headroom on the -100 means the PSU itself won't enter overcurrent protection even if the firmware ever drives full-brightness white across the full strip (~14.4 A theoretical max), so the **inline 5 A fuse is what protects downstream wiring on a short** — don't skip it.
 
 ---
 
@@ -416,7 +416,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 
 **Cable**: 14 AWG silicone-insulated wire is overkill for 10A but stays flexible at the connector and is pleasant to work with. 16 AWG is the practical minimum. Run twisted pairs (red 5V + black GND) for tidy routing. Length: PSU location to slab + 18" of slack so you can lift the slab a foot before having to disconnect.
 
-**Slab cable entry**: Drill a 1/2" hole through the slab (edge or underside, depending on routing). Install a rubber grommet to protect the cable. Inside the slab, secure the cable with a P-clip or adhesive cable mount within 4 inches of the entry — any pull on the cord should hit the clip, not the connector terminations.
+**Slab cable entry**: Buy the rubber grommet first, *then* drill the hole to match — most hardware-store grommets are spec'd by their *panel-hole size* (commonly ½″ or ⅝″), and the grommet's inside diameter should snug-fit your DC cable (the 14 AWG silicone twisted pair is ~⁵⁄₁₆″ / 8 mm OD). Use a soft rubber grommet from the hardware store, not a sheet-metal-panel bushing like the Heyco 2092 — those snap-fit into 3 mm panels and won't retain in 1″ wood. After installing the grommet, secure the cable inside the slab with a P-clip or adhesive cable mount within 4 inches of the entry — any pull on the cord should hit the clip, not the connector terminations.
 
 **PSU mounting**: The Mean Well's mounting flanges screw to a small wood block (~4×6×1"), which then screws to the bumper pool frame underside in a ventilated location. Don't seal it inside an enclosed box — these run warm and need airflow.
 
