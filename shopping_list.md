@@ -30,9 +30,14 @@ DigiKey doesn't bundle parts kits the way Amazon does. Two workarounds:
 | 2 | ESP32-S3-DevKitC-1, N8R8 | Espressif `ESP32-S3-DEVKITC-1-N8R8` (PCB antenna — **not** the `-1U-N8R8` external-antenna variant) | $15 | N8 and N8R2 are end-of-life at DigiKey; N8R8 is what's stocked. Octal PSRAM uses GPIOs 35/36/37 internally — fine for this build (the pinout doesn't touch those), just don't reassign anything to those pins. Two boards lets the Phase 0 Tap Light survive as a permanent desk lamp. |
 | 2 | Level shifter, DIP-14 | TI `SN74AHCT125N` | $0.85 | One spare is cheap insurance. |
 | 1 | 5V / 18A PSU | Mean Well `LRS-100-5` | $18 | Authentic Mean Well — Amazon is full of counterfeits at this price point. LRS-50-5 was the original spec; substituted to LRS-100-5 when the -50 was out of stock at DigiKey. Same series, bigger footprint (~129×97 mm vs 99×82 mm — wood block is still plenty), more headroom. The 5A inline fuse is *more* important now since the PSU itself won't trip on a downstream short. |
-| 1 | Switched IEC C14 inlet w/ fuse holder | Schurter `DG12` series — search "Schurter DG12 fused IEC C14 switch" | $20 | Combines plug, switch, and fuse holder in one panel-mount. Far safer for a first electronics project than a discrete rocker switch. |
+| 1 | IEC C14 panel-mount inlet (no switch, no fuse) | Schurter `6100.4315` or equivalent — snap-in panel mount with quick-connect 0.250″ faston tabs | $5 | The original BOM spec'd the integrated Schurter DG12 (switch + fuse + inlet in one unit) but those run ~$46 at DigiKey post-COVID; this discrete approach is ~⅓ the price. |
+| 1 | Panel-mount rocker switch, SPST, 20 A @ 125 VAC | E-Switch `RR511D1121` (DigiKey EG4777-ND) | $3 | SPST switches only Line — same approach as every wall switch in your US household. Verify "In Stock" on the listing before ordering (the 13-week lead time only applies if DigiKey is out). 20 A rating is heavy overkill for ~0.5 A AC draw; that's just the smallest part E-Switch makes in this series. 125 V rating works for US 120 V; would not work in 240 V countries. |
 
-**Active components subtotal: ~$70.**
+**Active components subtotal: ~$58.**
+
+> **Discrete-component AC mains approach:** Wall plug → IEC inlet → SPST switch (on Line only) → inline blade fuse (already in BOM under Mechanical) → PSU's Line input. Neutral runs direct from inlet to PSU's N input; Earth runs direct from inlet to PSU's chassis Earth lug. ~2 extra mains splices vs the integrated DG12. SPST matches standard US household wiring — every wall switch in your house works this way.
+>
+> **Faston terminal note:** the IEC inlet uses 0.250″ quick-connect tabs (industry standard). Either crimp female faston spade terminals onto your AC wires (DigiKey: `WM4040-ND` or similar 22-18 AWG female spades, ~$0.20 ea — buy 6 for L/N/Earth + spares), or solder wires directly to the tabs with heat-shrink. Soldering works fine if you don't have a spade crimper. The switch's terminals are typically also faston tabs — same handling.
 
 ### Passives — single-value bulk packs
 
@@ -83,7 +88,7 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 
 ---
 
-### **DigiKey total: ~$148**
+### **DigiKey total: ~$136**
 
 Easily clears the $100 free-shipping threshold.
 
@@ -199,13 +204,13 @@ Rolling tool chests, smart-app parts management systems, anything calling itself
 
 | Category | Cost |
 |----------|-----:|
-| DigiKey (parts) | ~$148 |
+| DigiKey (parts) | ~$136 |
 | Amazon (LED strip + channel + JST + silicone wire + USB-C cable + ELEGOO kit + WAGOs) | ~$120-127 |
 | Hardware store | ~$12-17 |
-| **Parts subtotal** | **~$280-292** |
+| **Parts subtotal** | **~$268-280** |
 | Tools (skip if owned) | ~$213 |
 | Bench organization (recommended) | ~$100-105 |
-| **Project total** | **~$593-610** |
+| **Project total** | **~$581-598** |
 
 **The numbers honestly:** the doc's §2 estimate of "$80-120 parts" was optimistic — based on Amazon-everything sourcing with mystery-source kits. Authenticated parts from DigiKey + a real LED channel + spares pushes it to ~$230. There isn't much more to trim without compromising safety (the IEC inlet) or the build (the LED channel diffuser is what makes the rim look professional vs janky).
 

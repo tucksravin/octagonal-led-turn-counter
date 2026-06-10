@@ -83,8 +83,8 @@
     <text x="370" y="365" text-anchor="middle" class="label-bold">BUMPER POOL FRAME (permanent)</text>
 
     <rect x="290" y="395" width="160" height="40" rx="3" class="component"/>
-    <text x="370" y="412" text-anchor="middle" class="label">PSU 5V / 10A</text>
-    <text x="370" y="425" text-anchor="middle" class="tiny">Mean Well LRS-50-5</text>
+    <text x="370" y="412" text-anchor="middle" class="label">PSU 5V / 18A</text>
+    <text x="370" y="425" text-anchor="middle" class="tiny">Mean Well LRS-100-5</text>
 
     <line x1="370" y1="395" x2="370" y2="388" class="wire-dc-pos"/>
     <line x1="370" y1="378" x2="370" y2="340" class="wire-dc-pos"/>

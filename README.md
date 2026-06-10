@@ -11,12 +11,16 @@ The full design — bill of materials, wiring schematics, mechanical drawings, b
 ├── README.md
 ├── turn_counter_design_doc.pdf   ← read this first
 ├── turn_counter_design_doc.md    ← edit this to change content
+├── dry_run.pdf                   ← Phase −1 bench checklist, print this for the bench
+├── dry_run.md                    ← edit this to change the dry-run checklist
 ├── shopping_list.md              ← concrete parts list with PNs and vendors
 ├── firmware/
 │   ├── turn_counter.ino          ← main project firmware
 │   └── tap_light.ino             ← Phase 0 starter (tap-activated desk light, for skill-building)
 └── doc-src/
-    ├── build_pdf.py              ← PDF build script
+    ├── build_pdf.py              ← design-doc PDF build script
+    ├── build_dry_run_pdf.py      ← dry-run PDF build script
+    ├── doc_style.py              ← shared stylesheet for both PDFs
     ├── table_layout.svg          ← Figure 0.1 (top-down view)
     ├── rim_section.svg           ← Figure 4.1 (edge cross-section)
     ├── installation_arch.svg     ← Figure 4.6 (slab/frame architecture)
@@ -52,12 +56,13 @@ From the repo root, in a virtual environment (required on systems with PEP 668, 
 python3 -m venv .venv
 source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
 python3 -m pip install -r requirements.txt
-python3 doc-src/build_pdf.py
+python3 doc-src/build_pdf.py            # design doc  → turn_counter_design_doc.pdf
+python3 doc-src/build_dry_run_pdf.py    # dry run     → dry_run.pdf
 ```
 
 > Windows users: substitute `py` for `python3` in the commands above.
 
-The script reads `turn_counter_design_doc.md` from the root and SVGs from `doc-src/`, then writes `turn_counter_design_doc.pdf` back to the root.
+`build_pdf.py` reads `turn_counter_design_doc.md` from the root and the SVGs from `doc-src/`, then writes `turn_counter_design_doc.pdf` back to the root. `build_dry_run_pdf.py` reads `dry_run.md` and writes `dry_run.pdf`. Both share the stylesheet in `doc-src/doc_style.py`, so the two PDFs stay visually consistent — edit styling there once.
 
 ## Editing the doc
 

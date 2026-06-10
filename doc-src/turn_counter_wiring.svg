@@ -19,13 +19,13 @@
   <rect x="0" y="0" width="1200" height="900" fill="#ffffff"/>
 
   <text x="600" y="32" text-anchor="middle" class="title">Octagonal Turn Counter — Wiring Diagram</text>
-  <text x="600" y="52" text-anchor="middle" class="small">8 piezos • ESP32-S3 • WS2812B (240 LEDs) • 5V/10A PSU</text>
+  <text x="600" y="52" text-anchor="middle" class="small">8 piezos • ESP32-S3 • WS2812B (240 LEDs) • 5V/18A PSU</text>
 
   <g id="psu">
     <rect x="60" y="100" width="180" height="110" rx="4" class="component"/>
     <text x="150" y="125" text-anchor="middle" class="subtitle">PSU</text>
-    <text x="150" y="142" text-anchor="middle" class="label">Mean Well LRS-50-5</text>
-    <text x="150" y="158" text-anchor="middle" class="label">5 V • 10 A</text>
+    <text x="150" y="142" text-anchor="middle" class="label">Mean Well LRS-100-5</text>
+    <text x="150" y="158" text-anchor="middle" class="label">5 V • 18 A</text>
     <circle cx="200" cy="180" r="2.5" class="junction"/>
     <text x="210" y="184" class="pin">+V</text>
     <circle cx="200" cy="200" r="2.5" class="junction"/>
@@ -68,7 +68,7 @@
   <g id="esp32">
     <rect x="380" y="280" width="220" height="280" rx="6" class="component"/>
     <text x="490" y="305" text-anchor="middle" class="subtitle">ESP32-S3</text>
-    <text x="490" y="322" text-anchor="middle" class="small">DevKitC-1 (N8)</text>
+    <text x="490" y="322" text-anchor="middle" class="small">DevKitC-1 (N8R8)</text>
 
     <line x1="380" y1="345" x2="360" y2="345" class="power"/>
     <text x="395" y="349" class="pin">5V</text>
@@ -138,6 +138,8 @@
     <text x="740" y="399" class="pin">GND</text>
     <line x1="715" y1="395" x2="715" y2="200" class="gnd"/>
     <circle cx="715" cy="200" r="2.5" class="junction"/>
+    <text x="800" y="428" text-anchor="middle" class="note">Tie 1OE (pin 1) → GND, or output stays Hi-Z (no data).</text>
+    <text x="800" y="441" text-anchor="middle" class="small">Ground unused inputs/OE pins too.</text>
   </g>
 
   <g id="strip">

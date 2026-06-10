@@ -4,7 +4,7 @@
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 
-// Targets ESP32-S3 (e.g. ESP32-S3-DevKitC-1 N8). Piezos live on ADC1
+// Targets ESP32-S3 (e.g. ESP32-S3-DevKitC-1 N8R8). Piezos live on ADC1
 // (GPIO 1-10) so they keep working while Wi-Fi/BLE are active.
 #define LED_PIN          11
 #define NUM_LEDS         240
@@ -227,16 +227,17 @@ void commitTap(int8_t side, uint32_t whenMs) {
     return;
   }
 
-  bool shouldEnterSetup = registerTapForSetupGesture(whenMs);
-  if (shouldEnterSetup) {
-    enterSetupMode();
-    return;
-  }
-
   if (playerForSide(side) == currentPlayer) {
     advanceTurn();
     renderTurn();
   } else {
+    // Setup gesture only counts taps on a non-active (unlit) side. Turn-passes
+    // always land on the active side, so brisk normal play can never accumulate
+    // toward the gesture and trip setup mode by accident.
+    if (registerTapForSetupGesture(whenMs)) {
+      enterSetupMode();
+      return;
+    }
     Serial.printf("Tap on side %d ignored - not active player's side\n", side);
   }
 }

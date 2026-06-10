@@ -1,5 +1,6 @@
 .venv/
 doc-src/_build_doc.html
+doc-src/_build_dry_run.html
 __pycache__/
 *.pyc
 .DS_Store

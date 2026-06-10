@@ -8,6 +8,7 @@
 **Target**: Reliable, satisfying turn-passing mechanic
 
 > **Companion files**:
+> - `dry_run.md` — Phase −1 bench & skills shakedown on penny parts; do this first
 > - `turn_counter_wiring.svg` — full schematic, print and keep at the bench
 > - `turn_counter.ino` — main project firmware
 > - `tap_light.ino` — Phase 0 starter project firmware
@@ -34,6 +35,8 @@ Phase 0 has three goals:
 3. Leave you with a finished, working **tap-activated desk light** that uses the same parts and patterns as the main build, just at 1/8 scale.
 
 Plan on **4–6 hours** for Phase 0 spread over a couple of evenings. First-time soldering is slow, and that's fine.
+
+> **Even before Phase 0**, there's a ~2–3 hour **Phase −1 dry run** in `dry_run.md`. It shakes down your bench, multimeter, soldering, and (optionally) the ESP32 toolchain on penny parts from your ELEGOO kit — no strip, no PSU, no expensive components on the bench. If this is genuinely your first time holding an iron, do it first: it means any problem on the Tap Light is a wiring issue, not a "does my equipment even work" mystery.
 
 ### 0.1 Tools You'll Need
 
@@ -103,6 +106,8 @@ Before any soldering, get the dev environment working:
 5. **Test upload**: File → Examples → 01.Basics → Blink. Tools → Board → ESP32 Arduino → **"ESP32S3 Dev Module"**. Tools → **USB CDC On Boot: Enabled** (so Serial reaches the IDE over the native USB port). Tools → Port → select the new port that appeared when you plugged in the board. Click upload. If your board has an onboard RGB LED, the Blink example won't drive it — try `Examples → ESP32 → ChipID` to confirm the chip responds.
 
 If upload fails: hold the BOOT button on the board, tap RESET, release BOOT, then upload. Drop the upload speed to 115200 in Tools → Upload Speed if it still fails.
+
+> **Before starting the Tap Light**: if you haven't done the **Phase −1 dry run** (`dry_run.md`), do it now. It confirms your iron, meter, soldering, and the ESP32 toolchain all work — on throwaway parts — so the Tap Light is the first time those skills meet real components, not the first time you find out a tool is broken.
 
 ### 0.5 The Starter Project: Tap Light
 
@@ -219,6 +224,7 @@ The main build splits into seven phases on top of Phase 0. Do them in order.
 
 | Phase | What happens | Why it's here |
 |-------|--------------|---------------|
+| **−1. Dry run** | Bench + skills shakedown on penny parts (see `dry_run.md`) | Prove your tools and hands work before any expensive part is on the bench |
 | **0. Starter project** | Build the Tap Light (see §0) | Skills, bench setup, confidence |
 | **1. Plan & gather** | Parts list ordered, work area set up | Nothing worse than getting halfway and realizing you're missing a Zener |
 | **2. Bench prototype** | ESP32 + 1 LED segment + 1 piezo on a breadboard, firmware running | Proves the full firmware works before anything is permanent |
@@ -228,7 +234,7 @@ The main build splits into seven phases on top of Phase 0. Do them in order.
 | **6. Final assembly** | Mount PSU on the bumper pool frame, wire the Powerpole disconnect, dress wiring on the slab, mate and test | The slab/frame split (§4.6) is most of the work here |
 | **7. Tune & test** | Dial in piezo threshold per side, calibrate brightness, play a real game | Real-world testing always reveals something the bench didn't |
 
-**Estimated time**: 4–6 hours for Phase 0, plus 10–14 hours for Phases 1–7 spread over a weekend. Most of the main build is mechanical (channel cutting, mounting), not electronics.
+**Estimated time**: ~2–3 hours for the Phase −1 dry run, 4–6 hours for Phase 0, plus 10–14 hours for Phases 1–7 spread over a weekend. Most of the main build is mechanical (channel cutting, mounting), not electronics.
 
 ---
 
@@ -260,7 +266,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 | 1 | Breadboard | Standard half-size | For prototyping. Useful forever |
 | | | | |
 | | **Removable-top installation (§4.6)** | | |
-| 2 | Anderson Powerpole 30 A connector kit | Pair of red + black housings + crimp contacts | One pair for the slab, one pair for a bench-test pigtail |
+| 3 | Anderson Powerpole 30 A connector kit | Pair of red + black housings + crimp contacts | One pair for the slab, one for the frame side it mates with, one for a bench-test pigtail (see §4.6) |
 | 1 | Powerpole crimp tool | TRIcrimp (~$30) | Or use a ratcheting crimper carefully. One-time tool cost, reusable forever |
 | 6 ft | Silicone-insulated wire | 14 AWG, red and black (3 ft each) | DC run from PSU to slab |
 | 1 | Soft rubber grommet | ½″ or ⅝″ panel-hole size; inside diameter sized to your DC cable (the 14 AWG silicone twisted pair is ~⁵⁄₁₆″ / 8 mm OD) | Cable entry through slab. Hardware-store generic — *avoid* sheet-metal-panel bushings like Heyco 2092, which are designed for 3 mm panels, not 1″ wood |
@@ -272,7 +278,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 
 **Where to source**: Strip and channel from BTF-Lighting or Adafruit. Piezos, resistors, Zeners, level shifter from any electronics supplier (DigiKey/Mouser if you want quality, Amazon if you want speed). PSU from Mean Well's authorized resellers — there are a lot of fakes on Amazon.
 
-**Power switch wiring note**: the rocker switch goes on the **AC mains side**, between the wall plug and the PSU's L (live) input. Wire L through the switch, and N (neutral) and Earth direct. That way nothing downstream is ever live with the switch off. If you're not comfortable with mains wiring, the alternative is a switched IEC inlet — they exist as a single panel-mount unit with built-in fuse holder, switch, and IEC C14 socket. Slightly more expensive but much safer to wire, and a good choice for a first electronics project.
+**AC mains wiring note**: the BOM uses a **discrete-component approach** — separate IEC C14 inlet + panel-mount SPST switch + inline blade fuse — wired in series on the Line conductor between the wall plug and the PSU. The wall plug feeds the IEC inlet's Line and Neutral pins; Line goes through the SPST switch and then through the inline fuse before reaching the PSU's L input; Neutral runs from the IEC inlet direct to the PSU's N input (no switch); Earth runs from the IEC inlet's Earth pin direct to the PSU's chassis Earth lug. With the switch off, Line is interrupted so no current can flow — same approach as every wall switch in your US household. **Important safety habit:** unplug from the wall before opening the enclosure. Never rely on the switch alone as service isolation — only the wall plug guarantees both Line and Neutral are disconnected. The alternatives — an integrated switched/fused IEC inlet (Schurter DG12 series, ~$46) or a DPST switch that interrupts both Line and Neutral — are nice-to-haves, not requirements. The SPST + "unplug before service" discipline is the residential-wiring standard.
 
 ---
 
@@ -296,7 +302,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 
 All 8 piezos are on **ADC1**. This matters: the ESP32-S3 radio takes over **ADC2** when Wi-Fi or BLE is active, and any `analogRead` on an ADC2 pin silently returns 0. Sticking to ADC1 (GPIOs 1–10) means tap detection keeps working with OTA, a phone web UI, or any future BLE feature.
 
-Avoid GPIO 0, 3, 45, 46 — strapping pins; pulling them at boot changes boot mode or flash voltage. GPIO 19 and 20 are the native USB D-/D+ lines — leave them untouched. GPIO 35/36/37 are reserved on Octal-PSRAM modules (N8R8 / N16R8) — and since the BOM now specs the N8R8 (N8/N8R2 are EOL at DigiKey), those three pins are off-limits for this build. The current pinout above doesn't use them, so this is only a constraint if you add features later.
+Avoid GPIO 0, 3, 45, 46 — strapping pins; pulling them at boot changes boot mode (GPIO 0/46), flash/VDD_SPI voltage (GPIO 45), or the JTAG signal source (GPIO 3). GPIO 19 and 20 are the native USB D-/D+ lines — leave them untouched. GPIO 35/36/37 are reserved on Octal-PSRAM modules (N8R8 / N16R8) — and since the BOM now specs the N8R8 (N8/N8R2 are EOL at DigiKey), those three pins are off-limits for this build. The current pinout above doesn't use them, so this is only a constraint if you add features later.
 
 ### 3.2 Per-piezo circuit (×8)
 
@@ -489,7 +495,7 @@ The build splits into frame-side and slab-side work — see §4.6 for the archit
 
 - [ ] Mount Mean Well PSU to the wood block with #8 screws through its mounting flanges
 - [ ] Screw the wood block to the underside of the bumper pool frame, in a ventilated location
-- [ ] Wire AC mains. Two configurations to choose from: (a) wall plug → separate panel-mount rocker switch → PSU's L (live) terminal, with N (neutral) and Earth direct from wall to PSU; or (b) a switched IEC inlet that combines plug socket, fuse, and switch in one unit, wired directly to PSU's L/N/Earth. Option (b) is preferred for a first electronics project — fewer mains-rated joints to make
+- [ ] Wire AC mains using the discrete-component approach (BOM default): wall plug → IEC C14 inlet → SPST rocker switch (interrupts Line only) → inline 5 A blade fuse on Line → PSU's L (live) terminal. Neutral runs IEC inlet → PSU's N terminal **direct, with no switch** (the SPST switch has only one pole — it breaks Line only, same as every wall switch in a US household). Earth runs IEC inlet's Earth pin → PSU's chassis Earth lug, no switch on Earth. The IEC inlet and switch terminals are 0.250″ faston tabs — either crimp female spade connectors onto the wire ends or solder directly with heat-shrink (3 on Line + 1 Neutral + 1 Earth = 5 connections total). Verify continuity with a multimeter (switch ON: Line continuous from inlet to PSU; switch OFF: Line open; Neutral and Earth always continuous) **before** plugging into the wall. Remember the safety habit from §2: the SPST switch breaks Line only, so **unplug from the wall before opening the enclosure** — only the wall plug guarantees both Line and Neutral are dead. If you'd rather interrupt both poles, swap the SPST for a DPST switch (wire Neutral through its second pole) or use a Schurter DG12 integrated inlet — see §2 wiring note
 - [ ] Wire PSU's +V output through the inline 5 A fuse to the +V contact of a Powerpole housing; PSU's −V direct to the −V contact
 - [ ] Crimp Powerpole contacts onto silicone wire ends; insert into housings (red = +V, black = GND); slide the two housings together so they're locked
 - [ ] Leave the cable long enough to reach the slab's connector with ~18" of slack
@@ -526,7 +532,7 @@ The build splits into frame-side and slab-side work — see §4.6 for the archit
 - [ ] Set `PIEZO_THRESHOLD` to the value that ignores incidental table bumps but catches deliberate taps (typically ~30% of the peak reading)
 - [ ] **Cross-talk test**: tap side 1 hard, look at the serial output. The strongest reading should be side 1; sides 2 and 8 (adjacent) will show smaller readings; side 5 (opposite) should be near-zero. Confirm the firmware identifies the hit as side 1 — the only positive signal is the lit-zone advance (or the absence of an "ignored" log line for that side). If the firmware ever picks a non-adjacent side as the strongest, raise the threshold or add a relative-strength check (see §4.4)
 - [ ] **On/off gesture test**: with two hands, slap two opposite sides simultaneously. Lights should toggle. If no toggle, check that both piezos register above threshold; raise `OPPOSITE_PAIR_WINDOW_MS` if your slap timing isn't quite synchronized
-- [ ] **Setup gesture test**: rapidly tap 4 times within 2 seconds. Strip should start blinking. Tap once more to cycle player count. Wait 3 seconds; strip resumes normal play at player 1
+- [ ] **Setup gesture test**: rapidly tap an **unlit** side 4 times within 2 seconds. Strip should start blinking. Tap once more to cycle player count. Wait 3 seconds; strip resumes normal play at player 1
 - [ ] Set `BRIGHTNESS` to your preferred level (start at 128, adjust)
 - [ ] Play an actual game. Take notes on anything weird
 
@@ -540,7 +546,7 @@ Once installed, the user-facing controls are:
 |--------|--------|
 | Tap your **own** (lit) side during play | Advance turn to next player |
 | Tap a side that *isn't* lit | Nothing — only the active player can pass turn |
-| Tap 4 times within 2 seconds (any sides — the gesture counts taps, not sides) | Enter setup mode (sides flash) |
+| Rapid-tap an **unlit** side 4 times within 2 seconds | Enter setup mode (sides flash) |
 | Tap two **opposite** sides simultaneously (a two-handed slap, on sides directly across from each other) | Toggle on/off |
 | In setup: tap any side | Increment player count by one each tap, wrapping 8 → 2 (starts from whatever count was previously saved) |
 | In setup: stop tapping for 3 s | Save player count, exit setup, reset to player 1 |
@@ -550,9 +556,9 @@ Number of *blinking* sides = current player count selection.
 
 **The active-side rule**: turn advance only triggers when the tapped side belongs to the currently lit zone. If player 3 is active, only taps within player 3's wedge advance the turn. This means players can't accidentally (or deliberately) advance someone else's turn by tapping their own section while waiting. It also reinforces "look at the lights to know whose turn it is" as the natural way to play. Non-active-side taps are silently ignored — no flash, no sound, the lit zone stays put.
 
-This rule applies only to turn advance. Setup-mode entry and the on/off gesture work from any side.
+This rule applies only to turn advance. The on/off gesture works from any sides (any opposite pair). Setup-mode entry, by contrast, counts **only taps on unlit sides** — so fast turn-passing (which always lands on the lit side) can never trip it. See below.
 
-**Why the entry gesture isn't a "hold"**: piezos detect vibration, not pressure. They produce a brief voltage spike when struck and then return to baseline — there's no signal to read while you keep your hand there. So setup entry uses a rapid tap burst instead. If you do the gesture all on your own (active) section, the first tap spins the lit zone forward once (you ARE the active player); the remaining three then land on a now-inactive side and only count toward the gesture, not the turn. Exiting setup mode resets to player 1 anyway, so the spurious advance doesn't matter.
+**Why the entry gesture isn't a "hold"**: piezos detect vibration, not pressure. They produce a brief voltage spike when struck and then return to baseline — there's no signal to read while you keep your hand there. So setup entry uses a rapid tap burst instead. To keep a brisk round of normal play from looking like that burst, the firmware counts **only taps on unlit (non-active) sides** toward the gesture — turn-passes always land on the lit side, so they never accumulate. The natural way in is therefore to rapidly tap any dark side 4 times. If you instead start on your own lit section, the first tap just passes the turn (your side goes dark), and four more dark-side taps then trigger setup — i.e. it takes one extra tap from your own seat. Exiting setup resets to player 1 anyway, so that initial pass doesn't matter.
 
 **The on/off gesture in detail**: any two-handed slap on diametrically opposite sides toggles the LEDs. The firmware buffers each tap for 150 ms before committing it as a turn advance — long enough to detect a near-simultaneous opposite tap, short enough that the resulting delay on normal turn passes is barely perceptible. Off state is fully dark; the device still polls the piezos and watches for the on-gesture, but ignores everything else. The 150 ms buffer also handles the asymmetric-strike case where one hand lands a few milliseconds before the other.
 
@@ -640,7 +646,7 @@ Keep this part handy at the table:
 
 > **To pass turn**: tap the lit section in front of you. Only the active player can advance.
 > **To turn on/off**: slap any two opposite sides of the table at the same time (a two-handed gesture: left hand on one side, right hand on the side directly across).
-> **To change player count**: rapid-tap the table 4 times within 2 seconds. The lights will start blinking. Then tap to cycle through counts. Stop tapping for 3 seconds to save.
+> **To change player count**: rapid-tap an unlit (dark) side 4 times within 2 seconds. The lights will start blinking. Then tap to cycle through counts. Stop tapping for 3 seconds to save.
 > **To reset to player 1**: enter setup mode and exit (count stays the same, turn resets).
 > **State persists across power cycles** — including on/off, current player, and player count.
 
