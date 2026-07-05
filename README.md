@@ -14,20 +14,28 @@ The full design — bill of materials, wiring schematics, mechanical drawings, b
 ├── dry_run.pdf                   ← Phase −1 bench checklist, print this for the bench
 ├── dry_run.md                    ← edit this to change the dry-run checklist
 ├── shopping_list.md              ← concrete parts list with PNs and vendors
+├── requirements.txt              ← Python deps for the PDF build scripts
 ├── firmware/
 │   ├── turn_counter.ino          ← main project firmware
-│   └── tap_light.ino             ← Phase 0 starter (tap-activated desk light, for skill-building)
+│   ├── tap_light.ino             ← Phase 0 starter (tap-activated desk light, for skill-building)
+│   ├── hello_board/
+│   │   └── hello_board.ino       ← board-connection smoke test (serial heartbeat + onboard RGB)
+│   └── strip_test/
+│       └── strip_test.ino        ← minimal WS2812B smoke test (onboard RGB pixel or short strip)
 └── doc-src/
     ├── build_pdf.py              ← design-doc PDF build script
     ├── build_dry_run_pdf.py      ← dry-run PDF build script
     ├── doc_style.py              ← shared stylesheet for both PDFs
     ├── table_layout.svg          ← Figure 0.1 (top-down view)
+    ├── breadboard_layout.svg     ← Phase 2 bench-prototype breadboard placement (bench printout)
     ├── rim_section.svg           ← Figure 4.1 (edge cross-section)
     ├── installation_arch.svg     ← Figure 4.6 (slab/frame architecture)
     └── turn_counter_wiring.svg   ← Figure 3.1 (wiring schematic, also good as a bench printout)
 ```
 
 ## Firmware
+
+### Arduino IDE
 
 Open the `.ino` files in Arduino IDE.
 
@@ -36,6 +44,23 @@ Open the `.ino` files in Arduino IDE.
 - Required libraries: FastLED, ArduinoOTA (ArduinoOTA bundles with the ESP32 core)
 - The ESP32-S3 enumerates over native USB — no CP210x/CH340 driver needed
 - Edit Wi-Fi credentials, mDNS hostname, and OTA password at the top of `turn_counter.ino` before the first flash
+
+### arduino-cli (no IDE needed)
+
+`arduino-cli` reuses the IDE's installed cores and libraries (macOS: `~/Library/Arduino15` and `~/Documents/Arduino/libraries`), so there is no separate setup and it produces the same binaries.
+
+```bash
+brew install arduino-cli    # macOS; other platforms: arduino.github.io/arduino-cli
+
+arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/strip_test
+arduino-cli upload  -p /dev/cu.usbserial-1130 --fqbn esp32:esp32:esp32s3 firmware/strip_test
+arduino-cli monitor -p /dev/cu.usbserial-1130 -c baudrate=115200
+```
+
+- Find your port with `arduino-cli board list` or `ls /dev/cu.*` (the port number varies with USB topology — `-1130`, `-140`, etc.). The board has two USB ports: the **UART** port (CP2102 bridge) enumerates as `/dev/cu.usbserial-*` and is the one to flash through; the board's **native-USB** port would show up as `/dev/cu.usbmodem*` — but so do unrelated USB devices (hubs, monitors), which is why the `usbserial-*` entry is the unambiguous choice on a busy Mac.
+- `turn_counter` overflows the default 1.25 MB app partition (Wi-Fi + OTA + mDNS), so plain `esp32:esp32:esp32s3` fails to link with "text section exceeds available space". Compile **and upload** it with `--fqbn esp32:esp32:esp32s3:PartitionScheme=min_spiffs` (1.9 MB app slots, keeps the OTA partition). `tap_light` and `strip_test` fit the default scheme fine (~52%).
+- Default board options leave **USB CDC On Boot disabled**, so `Serial` output arrives on the same `usbserial-*` UART port you flash through — no IDE setting to remember. To instead match the IDE configuration above (serial over the native-USB port), compile with `--fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc`.
+- The CLI builds *sketch folders*, not bare `.ino` files. `strip_test/` is already laid out that way; to CLI-build `tap_light` or `turn_counter`, first give each its own folder (e.g. `firmware/tap_light/tap_light.ino`).
 
 ## Rebuilding the PDF
 

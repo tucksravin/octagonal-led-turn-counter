@@ -10,6 +10,7 @@
 > **Companion files**:
 > - `dry_run.md` — Phase −1 bench & skills shakedown on penny parts; do this first
 > - `turn_counter_wiring.svg` — full schematic, print and keep at the bench
+> - `doc-src/breadboard_layout.svg` — hole-by-hole breadboard placement for the **Phase 2 bench prototype** (it includes the level shifter — the Phase 0 Tap Light deliberately skips it)
 > - `turn_counter.ino` — main project firmware
 > - `tap_light.ino` — Phase 0 starter project firmware
 >
@@ -45,7 +46,7 @@ Plan on **4–6 hours** for Phase 0 spread over a couple of evenings. First-time
 | Tool | Recommendation | Notes |
 |------|----------------|-------|
 | Soldering iron with adjustable temp | Pinecil V2 (~$30) or Hakko FX-888D (~$110) | Skip the $15 fixed-temp pencil irons. Variable temp is the difference between fun and frustration |
-| Solder | 60/40 leaded rosin core, 0.6 mm or 0.8 mm | Leaded is much easier to learn on. Ventilate and wash hands. Lead-free is harder and not necessary at this scale |
+| Solder | 60/40 or 63/37 leaded rosin core, 0.6 mm or 0.8 mm | Leaded is much easier to learn on (63/37 is eutectic — snaps solid instantly, even fewer cold joints). Ventilate and wash hands. Lead-free is harder and not necessary at this scale |
 | Side cutters / flush cutters | Hakko CHP-170 (~$8) | For trimming component leads |
 | Wire strippers | Any self-adjusting strippers (~$15) | Not the manual ones with a sliding stop |
 | Multimeter | Any cheap one (~$20) | You only need continuity and DC voltage. AstroAI on Amazon is fine |
@@ -102,7 +103,7 @@ Before any soldering, get the dev environment working:
 1. **Install Arduino IDE 2.x** from arduino.cc.
 2. **Add ESP32 board support**: File → Preferences → Additional Board Manager URLs → add `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`. Then Tools → Board → Boards Manager → search "esp32" → install "esp32 by Espressif Systems". (Same package supports the ESP32-S3.)
 3. **Install libraries**: Tools → Manage Libraries → install **FastLED** (by Daniel Garcia). For the main project later, you'll also install **ArduinoOTA** (already bundled with the ESP32 core, no separate install).
-4. **Plug in your ESP32-S3 dev board** via USB-C. The S3 enumerates as a native USB CDC device — no CP210x/CH340 driver to install. (Older ESP32-WROOM-32 boards needed those drivers; the S3 does not.)
+4. **Plug in your ESP32-S3 dev board** via USB-C. Most DevKitC-1-style boards have **two** USB ports and either one flashes the chip: the port labeled **USB** is the S3's native USB (enumerates as a USB CDC device, `/dev/cu.usbmodem*` on macOS — no driver to install); the port labeled **UART**/**COM** goes through a CP2102 bridge (`/dev/cu.usbserial-*` — modern macOS and Windows ship the driver). Serial output follows the **USB CDC On Boot** setting: Enabled → native port, Disabled → UART port.
 5. **Test upload**: File → Examples → 01.Basics → Blink. Tools → Board → ESP32 Arduino → **"ESP32S3 Dev Module"**. Tools → **USB CDC On Boot: Enabled** (so Serial reaches the IDE over the native USB port). Tools → Port → select the new port that appeared when you plugged in the board. Click upload. If your board has an onboard RGB LED, the Blink example won't drive it — try `Examples → ESP32 → ChipID` to confirm the chip responds.
 
 If upload fails: hold the BOOT button on the board, tap RESET, release BOOT, then upload. Drop the upload speed to 115200 in Tools → Upload Speed if it still fails.
@@ -111,7 +112,7 @@ If upload fails: hold the BOOT button on the board, tap RESET, release BOOT, the
 
 ### 0.5 The Starter Project: Tap Light
 
-A small WS2812B accent light with a single piezo sensor. Tap it to cycle through 6 modes (warm white-ish, blue, green, amber, rainbow, off). Power it from the ESP32's USB port — no separate PSU, no mains wiring, no level shifter to start.
+A small WS2812B accent light with a single piezo sensor. Tap it to cycle through 6 modes (warm orange, blue, green, amber, rainbow, off). Power it from the ESP32's USB port — no separate PSU, no mains wiring, no level shifter to start.
 
 This is essentially **one zone of the main project**. Every skill you exercise here transfers directly.
 
@@ -187,7 +188,7 @@ This is identical to the main wiring diagram, just with one piezo channel and no
 - [ ] Strip should light up in the first mode (warm orange)
 - [ ] Open Serial Monitor at 115200 baud
 - [ ] Tap the piezo. Mode should advance, and a line should print to serial showing the peak reading
-- [ ] If no response: tap harder, or lower `PIEZO_THRESHOLD` in the code and re-upload. Watch the readings to find a good value
+- [ ] If no response: tap harder, or lower `PIEZO_THRESHOLD` in the code and re-upload. Watch the readings to find a good value — the sketch ships with a deliberately conservative threshold (2000, ≈1.5 V of the ADC's ~3.1 V full scale), so expect to tune down; ~30% of your observed peak is the rule of thumb
 - [ ] Cycle through all 6 modes by tapping. Confirm the rainbow mode looks right (each LED a different color)
 - [ ] Unplug USB, plug back in. The strip should resume on whatever mode you left it on (state persists in NVS)
 
@@ -249,36 +250,34 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 | 4 m | Aluminum LED channel | With frosted/diffuser cover | Massively improves the look |
 | 10 | Piezo disc | 27 mm brass, 2 leads | Bag of 10 covers main + starter + spares |
 | 12 | Resistor | 1 MΩ, 1/4 W | Pulldown across each piezo. Buy a 100-pack, they're nothing |
-| 12 | Zener diode | 3.3 V, 500 mW (1N4728A) | ADC overvoltage clamp |
+| 12 | Zener diode | 3.3 V, 1 W (1N4728A) | ADC overvoltage clamp |
 | 5 | Resistor | 470 Ω, 1/4 W | Series resistor on data line |
 | 3 | Capacitor | 1000 µF, 10 V or higher, electrolytic | Across 5V/GND at strip start |
 | 2 | Level shifter | 74AHCT125 (DIP-14) | 3.3 V → 5 V data line |
 | 1 | Power supply | Mean Well LRS-100-5 (5 V, 18 A) | Don't cheap out here. LRS-50-5 (5 V, 10 A) is the original spec and also fine if you can find it; the -100 was substituted when the -50 went out of stock at DigiKey |
-| 1 | Power switch | Panel-mount rocker, 250 V AC rated, 6 A+ | Or use a switched IEC inlet (safer) |
-| 1 | DC barrel jack or terminal block | For PSU output | Personal preference |
+| 1 | Power switch | Panel-mount rocker rated for your mains (≥125 V AC covers US 120 V; 250 V AC if outside the US), 6 A+ | Or use a switched IEC inlet (safer) |
 | ~ | Hookup wire | 22 AWG stranded for signal, 18 AWG for power | A few colors helps |
 | 12 | JST-XH 2-pin connector pairs | For piezo leads | Makes service easy |
 | 2 | JST-XH 3-pin connector pair | For LED strip data + ground | Detachable rim |
-| 2 | Terminal blocks, 2-pin | For 5V/GND power injection points | Or solder direct |
-| 1 | Project box | ~100×60×30 mm | See §4 for mounting options |
+| 1 pk | WAGO 221-415 lever connectors | 5-conductor, 25-pack | Branch nodes for the slab DC rail (control-box feed + 3 strip injection points). Replaces the screw-terminal blocks of earlier drafts |
+| 1 | Project box | ~110×60×30 mm | See §4 for mounting options |
 | 2 | Protoboard | 5×7 cm or similar | One for starter, one for main |
 | 1 | Inline fuse | 5 A automotive blade fuse + holder | Between PSU 5V output and Powerpole pigtail |
 | 1 | Breadboard | Standard half-size | For prototyping. Useful forever |
 | | | | |
 | | **Removable-top installation (§4.6)** | | |
-| 3 | Anderson Powerpole 30 A connector kit | Pair of red + black housings + crimp contacts | One pair for the slab, one for the frame side it mates with, one for a bench-test pigtail (see §4.6) |
-| 1 | Powerpole crimp tool | TRIcrimp (~$30) | Or use a ratcheting crimper carefully. One-time tool cost, reusable forever |
+| 3 | Anderson Powerpole 30 A connector kit | Pair of red + black housings + contacts | One pair for the slab, one for the frame side it mates with, one for a bench-test pigtail (see §4.6). Contacts get soldered + heat-shrunk, not crimped (procedure in `shopping_list.md`) — no crimp tool needed |
 | 6 ft | Silicone-insulated wire | 14 AWG, red and black (3 ft each) | DC run from PSU to slab |
 | 1 | Soft rubber grommet | ½″ or ⅝″ panel-hole size; inside diameter sized to your DC cable (the 14 AWG silicone twisted pair is ~⁵⁄₁₆″ / 8 mm OD) | Cable entry through slab. Hardware-store generic — *avoid* sheet-metal-panel bushings like Heyco 2092, which are designed for 3 mm panels, not 1″ wood |
 | 2 | P-clips or adhesive cable mounts | Various sizes | Cable strain relief inside slab |
 | 1 | Pine block or scrap | ~4×6×1" | PSU mounting platform on frame |
 | ~ | #8 wood screws | 3/4" and 1.5" lengths | Mount block to frame and PSU to block |
 
-**Total cost**: roughly $80–$120 for parts, plus $80–$150 for tools if you don't have them. Tools are a one-time investment that'll serve every future project.
+**Total cost**: ~$271–281 for parts, plus ~$213 for tools if you own none — `shopping_list.md` has the vendor-priced, per-part accounting. Tools are a one-time investment that'll serve every future project.
 
 **Where to source**: Strip and channel from BTF-Lighting or Adafruit. Piezos, resistors, Zeners, level shifter from any electronics supplier (DigiKey/Mouser if you want quality, Amazon if you want speed). PSU from Mean Well's authorized resellers — there are a lot of fakes on Amazon.
 
-**AC mains wiring note**: the BOM uses a **discrete-component approach** — separate IEC C14 inlet + panel-mount SPST switch + inline blade fuse — wired in series on the Line conductor between the wall plug and the PSU. The wall plug feeds the IEC inlet's Line and Neutral pins; Line goes through the SPST switch and then through the inline fuse before reaching the PSU's L input; Neutral runs from the IEC inlet direct to the PSU's N input (no switch); Earth runs from the IEC inlet's Earth pin direct to the PSU's chassis Earth lug. With the switch off, Line is interrupted so no current can flow — same approach as every wall switch in your US household. **Important safety habit:** unplug from the wall before opening the enclosure. Never rely on the switch alone as service isolation — only the wall plug guarantees both Line and Neutral are disconnected. The alternatives — an integrated switched/fused IEC inlet (Schurter DG12 series, ~$46) or a DPST switch that interrupts both Line and Neutral — are nice-to-haves, not requirements. The SPST + "unplug before service" discipline is the residential-wiring standard.
+**AC mains wiring note**: the BOM uses a **discrete-component approach** — a separate IEC C14 inlet and panel-mount SPST switch wired in series on the Line conductor between the wall plug and the PSU. The wall plug feeds the IEC inlet's Line and Neutral pins; Line goes through the SPST switch to the PSU's L input; Neutral runs from the IEC inlet direct to the PSU's N input (no switch); Earth runs from the IEC inlet's Earth pin direct to the PSU's chassis Earth lug. **The BOM's inline 5 A blade fuse is a DC-side part** — it goes between the PSU's +5 V output and the Powerpole pigtail (§3.3), never on the AC line: automotive blade fuses are rated 32 V DC and cannot safely interrupt 120 V AC. The AC side needs no added fuse — the LRS-100-5 carries its own internal input fuse. With the switch off, Line is interrupted so no current can flow — same approach as every wall switch in your US household. **Important safety habit:** unplug from the wall before opening the enclosure. Never rely on the switch alone as service isolation — only the wall plug guarantees both Line and Neutral are disconnected. The alternatives — an integrated switched/fused IEC inlet (Schurter DG12 series, ~$46) or a DPST switch that interrupts both Line and Neutral — are nice-to-haves, not requirements. The SPST + "unplug before service" discipline is the residential-wiring standard.
 
 ---
 
@@ -319,6 +318,8 @@ Avoid GPIO 0, 3, 45, 46 — strapping pins; pulling them at boot changes boot mo
 ```
 
 The 1 MΩ resistor pulls the ADC line down so it doesn't float. The Zener clamps spikes — a hard slap on a piezo can produce 20+ volts momentarily and the ESP32-S3 ADC tops out at 3.3 V.
+
+**Optional hardening**: a 10 kΩ–47 kΩ resistor in series between the piezo/clamp node and the ADC pin. The piezo's negative half-swing forward-biases the Zener at about −0.6 V, slightly past the S3's −0.3 V absolute-maximum rating. The classic knock-sensor circuit survives this in practice (microjoule pulses from a very high-impedance source), but the series resistor limits the injected current to tens of microamps and makes it unambiguously safe — and costs nothing for tap detection, since the ADC input draws no current.
 
 ### 3.3 LED strip + power
 
@@ -389,7 +390,7 @@ Because the whole slab is one continuous piece of wood, every tap reaches all 8 
 Three choices, ranked from least to most effort:
 
 **Option A — Project box, surface-mounted under the slab** (default).
-A small ABS or aluminum project box (~100×60×30 mm) screws to the underside of the slab. Cable glands or grommets for entries. Cheapest, fastest, easiest to service. Slight visual penalty if you ever flip the slab over.
+A small ABS or aluminum project box (~110×60×30 mm) screws to the underside of the slab. Cable glands or grommets for entries. Cheapest, fastest, easiest to service. Slight visual penalty if you ever flip the slab over.
 
 **Option B — Recessed pocket in the slab underside**.
 Route a rectangular pocket into the underside of the slab, sized to fit the protoboard + ESP32 + connectors. Cover plate (wood or thin metal) screws over it. Flush, invisible from below, but you have to commit to a location and dimension before routing — and any future hardware change means another router pass. Pay attention to slab thickness: with a ~1" slab and a typical protoboard depth of ~10–15 mm, you have very little wood left between the pocket bottom and the top surface. Best if you're confident in the design and the protoboard is thin enough.
@@ -416,9 +417,9 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 
 *Slab (top, removable)*: LED strip + channel, all 8 piezos, ESP32 control box, level shifter, all signal wiring, and a DC pigtail terminating in a Powerpole connector.
 
-*Frame (bottom, permanent)*: PSU, switch or IEC inlet, AC cord to wall, inline 5A fuse, DC pigtail terminating in the mating Powerpole connector.
+*Frame (bottom, permanent)*: PSU, switch or IEC inlet, AC cord to wall, inline 5A fuse (DC side), DC pigtail terminating in the mating Powerpole connector.
 
-**The disconnect itself**: **Anderson Powerpole 30A** connectors. They're polarized (can't connect backwards), genderless (the same housing mates with itself), rated comfortably above the 10A budget, and click together solidly. Red + black housing pairs are about $5; a proper TRIcrimp tool is ~$30 (or use ratcheting pliers carefully). XT60 connectors (RC vehicle world) are $2/pair and electrically equivalent, but the exposed bullet pins on the disconnected end aren't great if anyone ever pokes at them. Powerpole contacts are recessed.
+**The disconnect itself**: **Anderson Powerpole 30A** connectors. They're polarized (can't connect backwards), genderless (the same housing mates with itself), rated comfortably above the 10A budget, and click together solidly. Red + black housing pairs are about $5; the contacts are soldered and heat-shrunk rather than crimped (decision locked in — `shopping_list.md` has the per-contact procedure), so there's no crimp tool to buy. XT60 connectors (RC vehicle world) are $2/pair and electrically equivalent, but the exposed bullet pins on the disconnected end aren't great if anyone ever pokes at them. Powerpole contacts are recessed.
 
 **Cable**: 14 AWG silicone-insulated wire is overkill for 10A but stays flexible at the connector and is pleasant to work with. 16 AWG is the practical minimum. Run twisted pairs (red 5V + black GND) for tidy routing. Length: PSU location to slab + 18" of slack so you can lift the slab a foot before having to disconnect.
 
@@ -444,7 +445,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 
 ### Phase 2: Bench Prototype
 
-- [ ] Wire ESP32-S3 + 30-LED test segment + 1 piezo on breadboard per the wiring diagram. Connect the piezo to GPIO 1 (`PIEZO_PINS[0]`)
+- [ ] Wire ESP32-S3 + 30-LED test segment + 1 piezo on breadboard per the wiring diagram (`doc-src/breadboard_layout.svg` shows a hole-by-hole placement). Connect the piezo to GPIO 1 (`PIEZO_PINS[0]`)
 - [ ] Flash the main firmware with these temporary edits so the bench rig fits the small strip: `NUM_LEDS = 24`, `LEDS_PER_SIDE = 3`. Leave `NUM_SIDES = 8` and the default 4-player layout — each player owns 2 sides × 3 LEDs = 6 LEDs on the test strip. Tapping the wired piezo (side 0) will advance the lit zone from player 0 to player 1 once; after that, side 0 is no longer the active player's side and further taps will print *"Tap on side 0 ignored - not active player's side"* on Serial. That's the active-side filter doing its job — proof the firmware is wired up correctly. To watch the lit zone rotate through *all* 4 players on the bench, replace the `if (playerForSide(side) == currentPlayer) { advanceTurn(); renderTurn(); } else { Serial.printf(...); }` block in `commitTap()` with just `advanceTurn(); renderTurn();` and re-flash. Every tap will now advance the turn unconditionally. Restore the original block before moving to Phase 3
 - [ ] Open Serial Monitor at 115200 baud
 - [ ] Add a temporary `int v = analogRead(PIEZO_PINS[0]); if (v > 100) Serial.println(v);` inside `loop()` and tap the piezo — the threshold of 100 keeps the serial output quiet at idle and only prints when something interesting happens (note the single-read pattern: a piezo's voltage decays fast, so reading twice would give two different numbers)
@@ -473,7 +474,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 
 - [ ] Solder leads to all 8 piezos (red to +, black to –). Quick — under 2 seconds per pad
 - [ ] Test each piezo before mounting: connect to multimeter on AC voltage, tap it, expect a brief swing
-- [ ] Crimp JST-XH connectors onto piezo leads
+- [ ] Splice each piezo's leads onto a pre-crimped JST-XH pigtail from the connector kit (solder + heat-shrink — the kit's wires come pre-crimped, so no JST crimper is needed)
 - [ ] On the slab underside, mark 8 piezo locations: one per wedge, ~3–4" inward from each outer edge, avoiding any spot where the slab rests on the pool table frame
 - [ ] Glue each piezo at its mark, brass face against wood
 - [ ] Route piezo cables along the slab underside toward where the control box will live; secure with adhesive cable mounts every 6"
@@ -483,7 +484,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 - [ ] Build the protoboard: ESP32 socket (use female headers, don't solder it directly), level shifter, 8× pulldown resistors, 8× Zeners, 470 Ω data resistor, 1000 µF cap
 - [ ] Add 8× JST-XH 2-pin headers for piezo inputs
 - [ ] Add 1× JST-XH 3-pin header for strip data + ground reference
-- [ ] Add 2× screw terminals for 5V/GND from PSU
+- [ ] Add a 5V/GND input pigtail (its far end lands in a WAGO 221 lever node on the slab DC rail)
 - [ ] Test before installing: power up with the bench-test pigtail (see §4.6) connected to a 5V supply — either a small bench supply, or a USB-C wall adapter with a USB-C-to-Powerpole adapter cable, or even just the ESP32-S3's USB power if you only need to verify the firmware logic without driving the LED strip — then run firmware and tap piezo leads with a screwdriver to fake hits
 - [ ] Mount protoboard inside the chosen enclosure (see §4.5 — typically a project box under the slab); cut cable entries for power and signal
 
@@ -495,9 +496,9 @@ The build splits into frame-side and slab-side work — see §4.6 for the archit
 
 - [ ] Mount Mean Well PSU to the wood block with #8 screws through its mounting flanges
 - [ ] Screw the wood block to the underside of the bumper pool frame, in a ventilated location
-- [ ] Wire AC mains using the discrete-component approach (BOM default): wall plug → IEC C14 inlet → SPST rocker switch (interrupts Line only) → inline 5 A blade fuse on Line → PSU's L (live) terminal. Neutral runs IEC inlet → PSU's N terminal **direct, with no switch** (the SPST switch has only one pole — it breaks Line only, same as every wall switch in a US household). Earth runs IEC inlet's Earth pin → PSU's chassis Earth lug, no switch on Earth. The IEC inlet and switch terminals are 0.250″ faston tabs — either crimp female spade connectors onto the wire ends or solder directly with heat-shrink (3 on Line + 1 Neutral + 1 Earth = 5 connections total). Verify continuity with a multimeter (switch ON: Line continuous from inlet to PSU; switch OFF: Line open; Neutral and Earth always continuous) **before** plugging into the wall. Remember the safety habit from §2: the SPST switch breaks Line only, so **unplug from the wall before opening the enclosure** — only the wall plug guarantees both Line and Neutral are dead. If you'd rather interrupt both poles, swap the SPST for a DPST switch (wire Neutral through its second pole) or use a Schurter DG12 integrated inlet — see §2 wiring note
+- [ ] Wire AC mains using the discrete-component approach (BOM default): wall plug → IEC C14 inlet → SPST rocker switch (interrupts Line only) → PSU's L (live) terminal. No fuse on the AC line — the inline blade fuse is DC-side only (see §2's wiring note; the PSU has its own internal input fuse). Neutral runs IEC inlet → PSU's N terminal **direct, with no switch** (the SPST switch has only one pole — it breaks Line only, same as every wall switch in a US household). Earth runs IEC inlet's Earth pin → PSU's chassis Earth lug, no switch on Earth. The IEC inlet and switch terminals are 0.250″ faston tabs — either crimp female spade connectors onto the wire ends or solder directly with heat-shrink (3 on Line + 1 Neutral + 1 Earth = 5 faston connections total). Verify continuity with a multimeter (switch ON: Line continuous from inlet to PSU; switch OFF: Line open; Neutral and Earth always continuous) **before** plugging into the wall. Remember the safety habit from §2: the SPST switch breaks Line only, so **unplug from the wall before opening the enclosure** — only the wall plug guarantees both Line and Neutral are dead. If you'd rather interrupt both poles, swap the SPST for a DPST switch (wire Neutral through its second pole) or use a Schurter DG12 integrated inlet — see §2 wiring note
 - [ ] Wire PSU's +V output through the inline 5 A fuse to the +V contact of a Powerpole housing; PSU's −V direct to the −V contact
-- [ ] Crimp Powerpole contacts onto silicone wire ends; insert into housings (red = +V, black = GND); slide the two housings together so they're locked
+- [ ] Solder Powerpole contacts onto silicone wire ends (procedure in `shopping_list.md`); insert into housings (red = +V, black = GND); slide the two housings together so they're locked
 - [ ] Leave the cable long enough to reach the slab's connector with ~18" of slack
 - [ ] First power test (frame only, no slab connected): switch on, multimeter the Powerpole, expect +5V between red and black
 - [ ] Switch off before continuing
@@ -506,8 +507,8 @@ The build splits into frame-side and slab-side work — see §4.6 for the archit
 
 - [ ] Drill a 1/2" hole near the slab edge for the cable; install the rubber grommet
 - [ ] Run the slab-side DC cable through the grommet into the slab
-- [ ] Crimp Powerpole contacts onto the slab-side cable ends; insert into mating housings (the genderless design means it's the same housing as the frame side)
-- [ ] Inside the slab: branch from the slab-side DC cable to the control box's 5V/GND terminals AND to the 3 strip injection points (start, middle, end of strip). Branching method: solder all incoming wires into a small set of WAGO-style lever connectors (cleanest), or twist-and-solder them with heat-shrink (works fine but harder to service). The BOM's "Terminal blocks, 2-pin" can serve as the strip-side termination at each injection point
+- [ ] Solder Powerpole contacts onto the slab-side cable ends; insert into mating housings (the genderless design means it's the same housing as the frame side)
+- [ ] Inside the slab: branch from the slab-side DC cable to the control box's 5V/GND terminals AND to the 3 strip injection points (start, middle, end of strip). Branching method: land all incoming wires in the BOM's WAGO 221 lever connectors (cleanest), or twist-and-solder them with heat-shrink (works fine but harder to service)
 - [ ] **Verify polarity at every junction with a multimeter before connecting.** Reversed 5V instantly kills the strip
 - [ ] Secure the cable with a P-clip or adhesive cable mount within 4" of the grommet — strain relief should hit the clip, not the connector
 - [ ] Connect all 8 piezo JST connectors to the control box

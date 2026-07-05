@@ -9,7 +9,7 @@ Concrete parts list for the build. DigiKey-first sourcing for authenticity (espe
 | Vendor | Why |
 |--------|-----|
 | **DigiKey** | ~75% of the BOM. Free ground shipping ≥ $100. Authentic ICs/PSU/connectors. |
-| **Amazon** | Four items: LED strip, aluminum LED channel, JST connector kit, and 14 AWG silicone wire (DigiKey-grade Alpha Wire is ~2× the price for the same thing). |
+| **Amazon** | Seven items: LED strip, aluminum LED channel, JST connector kit, 14 AWG silicone wire (DigiKey-grade Alpha Wire is ~2× the price for the same thing), USB-C data cable, ELEGOO fun kit, and WAGO 221s. |
 | **Hardware store** | Wood block, screws, P-clips — cheaper and same-day. |
 
 ## On "bundles"
@@ -35,7 +35,7 @@ DigiKey doesn't bundle parts kits the way Amazon does. Two workarounds:
 
 **Active components subtotal: ~$58.**
 
-> **Discrete-component AC mains approach:** Wall plug → IEC inlet → SPST switch (on Line only) → inline blade fuse (already in BOM under Mechanical) → PSU's Line input. Neutral runs direct from inlet to PSU's N input; Earth runs direct from inlet to PSU's chassis Earth lug. ~2 extra mains splices vs the integrated DG12. SPST matches standard US household wiring — every wall switch in your house works this way.
+> **Discrete-component AC mains approach:** Wall plug → IEC inlet → SPST switch (on Line only) → PSU's Line input. Neutral runs direct from inlet to PSU's N input; Earth runs direct from inlet to PSU's chassis Earth lug. ~2 extra mains splices vs the integrated DG12. SPST matches standard US household wiring — every wall switch in your house works this way. (The inline blade fuse under Mechanical is the **DC-side** fuse — PSU +5 V output → fuse → Powerpole. Automotive blade fuses are 32 V DC parts and don't belong on the AC line; the LRS-100-5 has its own internal input fuse.)
 >
 > **Faston terminal note:** the IEC inlet uses 0.250″ quick-connect tabs (industry standard). Either crimp female faston spade terminals onto your AC wires (DigiKey: `WM4040-ND` or similar 22-18 AWG female spades, ~$0.20 ea — buy 6 for L/N/Earth + spares), or solder wires directly to the tabs with heat-shrink. Soldering works fine if you don't have a spade crimper. The switch's terminals are typically also faston tabs — same handling.
 
@@ -46,7 +46,7 @@ DigiKey doesn't bundle parts kits the way Amazon does. Two workarounds:
 | 12 | 1 MΩ, 1/4 W axial resistor | Yageo `CFR-25JT-52-1M0` | 100-pack | $1.50 |
 | 5 | 470 Ω, 1/4 W axial resistor | Yageo `CFR-25JT-52-470R` | 100-pack | $1.50 |
 | 12 | 1N4728A 3.3 V Zener diode | ON Semi `1N4728ATR` (or Vishay equivalent) | 25-pack | $4 |
-| 5 | 1000 µF, 50 V electrolytic capacitor | Panasonic `ECA-1HM102` (DigiKey P5186-ND) | individually (~$1.45 ea) | $7.25 |
+| 5 | 1000 µF, 50 V electrolytic capacitor | Panasonic `ECA-1HM102` (DigiKey P5186-ND) | individually (~$1.45 ea; BOM needs 3, +2 spares) | $7.25 |
 
 **Passives subtotal: ~$14.** Buying 100-packs feels excessive but they're $1.50 a pack — cheaper *per piece* than Amazon assortment kits, and you get authentic parts.
 
@@ -56,13 +56,13 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 
 | Qty | Part | Manufacturer PN | ~$ |
 |----:|------|-----------------|---:|
-| 3 | Anderson Powerpole 30 A housing, red | Anderson `1327G6` | $0.80 ea |
-| 3 | Anderson Powerpole 30 A housing, black | Anderson `1327G7` | $0.80 ea |
+| 3 | Anderson Powerpole 30 A housing, red | Anderson `1327` | $0.80 ea |
+| 3 | Anderson Powerpole 30 A housing, black | Anderson `1327G6` | $0.80 ea |
 | 6 | Anderson 30 A contact | Anderson `1331` | $0.80 ea |
 
 > Three Powerpole housing-pairs total: one on the slab, one on the frame side it mates with, one for the bench-test pigtail. (Earlier draft listed 4 pairs; corrected.)
 >
-> Screw-terminal blocks were dropped — the On Shore Tech OSTYK225/OSTYK223 barrier strips were both out of stock at DigiKey, and WAGO 221 lever connectors (now in the Amazon order) are the cleaner choice for the branching network anyway. See the design doc §4.6 — WAGOs were already the doc's preferred option.
+> Screw-terminal blocks were dropped — the On Shore Tech OSTYK225/OSTYK223 barrier strips were both out of stock at DigiKey, and WAGO 221 lever connectors (now in the Amazon order) are the cleaner choice for the branching network anyway. See the design doc Phase 6b — WAGOs were already the doc's preferred branching option.
 
 **Connectors subtotal: ~$9.60.**
 
@@ -82,7 +82,7 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 
 | Qty | Part | Manufacturer PN | ~$ |
 |----:|------|-----------------|---:|
-| 25 ft (6 colors, mixed) | 22 AWG stranded hookup wire | Adafruit `1311` (6-color spool set) | $16 |
+| 25 ft (6 colors, mixed) | 22 AWG stranded hookup wire | Adafruit `3111` (6-color **stranded** spool set — not `1311`, which is the solid-core set; the BOM wants stranded for vibration tolerance) | $16 |
 
 **Wire & consumables subtotal: ~$16.** (14 AWG silicone wire moved to Amazon — DigiKey's Alpha Wire is ~$30 for the same length BNTECHGO sells for $16. Rubber grommet for slab cable entry moved to the hardware store — the original Heyco BOM part `2092` is designed for 3 mm sheet-metal panels, not 1″ wood.)
 
@@ -122,8 +122,9 @@ Easily clears the $100 free-shipping threshold.
 | 1 box | #8 wood screws, 3/4" + 1.5" assortment | $5 |
 | 1 pack | P-clips or adhesive cable mounts, mixed sizes | $5 |
 | 1 | Soft rubber grommet, ½″ or ⅝″ panel-hole, ID matched to your DC cable OD (the 14 AWG silicone twisted pair is ~5/16″ / 8 mm OD) | $2 |
+| 1 | 9 V battery (for dry-run Stations 2–3 — not included in the ELEGOO kit) | $3 |
 
-**Hardware-store subtotal: ~$12-17.**
+**Hardware-store subtotal: ~$15-18.**
 
 ---
 
@@ -150,7 +151,7 @@ DigiKey carries Hakko irons and many of these but typically at +20–40% over Am
 | Tool | Specific recommendation | ~$ |
 |------|------------------------|---:|
 | Soldering iron | **Pinecil V2** (USB-PD; great iron at any price) | $30 |
-| Solder, 1 lb spool | **Kester `24-6337-0027`** (60/40 leaded, 0.031" rosin core) | $30 |
+| Solder, 1 lb spool | **Kester `24-6337-0027`** (63/37 leaded, 0.031" rosin core — eutectic, even a touch easier than 60/40) | $30 |
 | Side cutters | **Hakko CHP-170** | $8 |
 | Wire strippers | **Irwin Vise-Grip 2078300** self-adjusting | $25 |
 | Multimeter | **AstroAI DM6000AR** (auto-ranging, capacitance, frequency) | $35 |
@@ -161,13 +162,13 @@ DigiKey carries Hakko irons and many of these but typically at +20–40% over Am
 | Silicone bench mat | iFixit ProTech or generic 24×16 silicone | $20 |
 | Wire ferrule kit + ratcheting crimper combo | **"IWISS self-adjustable ferrule crimping kit"** (crimper + ~1,200 assorted ferrules AWG 28-10) | $25 |
 
-**Tools subtotal: ~$213.** Full-comfort tier — items chosen so they keep earning their keep on future projects rather than being one-build throwaways. The ferrule crimper is for terminating stranded silicone wire into the Phoenix-style screw terminals — bare strands clamped raw will slowly back out under thermal cycling.
+**Tools subtotal: ~$213.** Full-comfort tier — items chosen so they keep earning their keep on future projects rather than being one-build throwaways. The ferrule crimper is for terminating stranded wire into the PSU's screw-terminal blocks (the LRS-100-5's input/output strips) — bare strands clamped raw will slowly back out under thermal cycling.
 
 ---
 
 ## Bench organization (recommended)
 
-The leftover passives, JST kit, wire spools, and heat-shrink will swamp a desk if not corralled. Modest upfront spend ($90-100) saves hours of "where did I put the 470 Ω resistors" later.
+The leftover passives, JST kit, wire spools, and heat-shrink will swamp a desk if not corralled. Modest upfront spend (~$100-105) saves hours of "where did I put the 470 Ω resistors" later.
 
 ### Essentials
 
@@ -206,15 +207,15 @@ Rolling tool chests, smart-app parts management systems, anything calling itself
 |----------|-----:|
 | DigiKey (parts) | ~$136 |
 | Amazon (LED strip + channel + JST + silicone wire + USB-C cable + ELEGOO kit + WAGOs) | ~$120-127 |
-| Hardware store | ~$12-17 |
-| **Parts subtotal** | **~$268-280** |
+| Hardware store | ~$15-18 |
+| **Parts subtotal** | **~$271-281** |
 | Tools (skip if owned) | ~$213 |
 | Bench organization (recommended) | ~$100-105 |
-| **Project total** | **~$581-598** |
+| **Project total** | **~$584-599** |
 
-**The numbers honestly:** the doc's §2 estimate of "$80-120 parts" was optimistic — based on Amazon-everything sourcing with mystery-source kits. Authenticated parts from DigiKey + a real LED channel + spares pushes it to ~$230. There isn't much more to trim without compromising safety (the IEC inlet) or the build (the LED channel diffuser is what makes the rim look professional vs janky).
+**The numbers honestly:** early drafts estimated "$80-120 parts" based on Amazon-everything sourcing with mystery-source kits. Authenticated parts from DigiKey + a real LED channel + spares comes to ~$271-281 (the design doc §2 now carries the same figure). There isn't much more to trim without compromising safety (the IEC inlet) or the build (the LED channel diffuser is what makes the rim look professional vs janky).
 
-If you already own any tools, deduct directly from the ~$188 total — they're all standard bench items. Bench organization is genuinely optional for one project (cardboard boxes work) but pays back fast if this becomes a recurring hobby.
+If you already own any tools, deduct directly from the ~$213 total — they're all standard bench items. Bench organization is genuinely optional for one project (cardboard boxes work) but pays back fast if this becomes a recurring hobby.
 
 ---
 
@@ -232,4 +233,4 @@ Before placing the DigiKey order:
 - [x] 2 ESP32-S3 boards (keeps Phase 0 Tap Light alive as a permanent desk lamp)
 - [x] Powerpole assembly method: solder + heat-shrink (no TRIcrimp)
 - [x] Wi-Fi reaches the planned PSU mounting location (OTA path is viable)
-- [x] Tools tier: full comfort (~$188; investing in keepers, not throwaways)
+- [x] Tools tier: full comfort (~$213; investing in keepers, not throwaways)
