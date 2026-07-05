@@ -9,7 +9,7 @@
 #define COLOR_ORDER      GRB
 
 const uint8_t PIEZO_PIN = 1;
-const uint16_t PIEZO_THRESHOLD = 400;
+const uint16_t PIEZO_THRESHOLD = 2000;
 const uint16_t DEBOUNCE_MS = 250;
 const uint8_t NUM_MODES = 6;
 
