@@ -15,9 +15,12 @@ The full design — bill of materials, wiring schematics, mechanical drawings, b
 ├── dry_run.md                    ← edit this to change the dry-run checklist
 ├── shopping_list.md              ← concrete parts list with PNs and vendors
 ├── requirements.txt              ← Python deps for the PDF build scripts
-├── firmware/
-│   ├── turn_counter.ino          ← main project firmware
-│   ├── tap_light.ino             ← Phase 0 starter (tap-activated desk light, for skill-building)
+├── Makefile                      ← bench shortcuts: make flash-tap, make monitor, …
+├── firmware/                     ← one sketch folder per firmware (arduino-cli/IDE layout)
+│   ├── turn_counter/
+│   │   └── turn_counter.ino      ← main project firmware
+│   ├── tap_light/
+│   │   └── tap_light.ino         ← Phase 0 starter (tap-activated desk light, for skill-building)
 │   ├── hello_board/
 │   │   └── hello_board.ino       ← board-connection smoke test (serial heartbeat + onboard RGB)
 │   └── strip_test/
@@ -60,7 +63,24 @@ arduino-cli monitor -p /dev/cu.usbserial-1130 -c baudrate=115200
 - Find your port with `arduino-cli board list` or `ls /dev/cu.*` (the port number varies with USB topology — `-1130`, `-140`, etc.). The board has two USB ports: the **UART** port (CP2102 bridge) enumerates as `/dev/cu.usbserial-*` and is the one to flash through; the board's **native-USB** port would show up as `/dev/cu.usbmodem*` — but so do unrelated USB devices (hubs, monitors), which is why the `usbserial-*` entry is the unambiguous choice on a busy Mac.
 - `turn_counter` overflows the default 1.25 MB app partition (Wi-Fi + OTA + mDNS), so plain `esp32:esp32:esp32s3` fails to link with "text section exceeds available space". Compile **and upload** it with `--fqbn esp32:esp32:esp32s3:PartitionScheme=min_spiffs` (1.9 MB app slots, keeps the OTA partition). `tap_light` and `strip_test` fit the default scheme fine (~52%).
 - Default board options leave **USB CDC On Boot disabled**, so `Serial` output arrives on the same `usbserial-*` UART port you flash through — no IDE setting to remember. To instead match the IDE configuration above (serial over the native-USB port), compile with `--fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc`.
-- The CLI builds *sketch folders*, not bare `.ino` files. `strip_test/` is already laid out that way; to CLI-build `tap_light` or `turn_counter`, first give each its own folder (e.g. `firmware/tap_light/tap_light.ino`).
+- The CLI builds *sketch folders*, not bare `.ino` files — every sketch under `firmware/` has its own folder.
+
+### Make shortcuts
+
+The `Makefile` wraps the commands above with the port auto-detected from `/dev/cu.usbserial-*` (override with `make <target> PORT=/dev/cu.usbserial-XXXX`):
+
+```bash
+make flash-hello    # compile + upload the connection smoke test
+make flash-strip    # compile + upload the WS2812B strip test
+make flash-tap      # compile + upload the Phase 0 tap light
+make flash-turn     # compile + upload turn_counter (applies the min_spiffs partition)
+make monitor        # serial monitor at 115200 (Ctrl+C to quit — frees the port for uploads)
+make compile-all    # build everything without touching the board
+make ports          # list connected boards
+make pdf            # rebuild both PDFs
+```
+
+Only one program can hold the serial port — quit `make monitor` before any `flash-*` target.
 
 ## Rebuilding the PDF
 
