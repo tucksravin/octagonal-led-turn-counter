@@ -185,10 +185,10 @@ This is identical to the main wiring diagram, just with one piezo channel and no
 - [ ] Multimeter polarity check: with USB unplugged, probe ESP32 5V to GND with continuity — should NOT beep (no shorts)
 - [ ] Plug in USB. The onboard power LED should light (most ESP32-S3-DevKitC boards have one near the USB port). If you smell anything or the board gets warm, unplug immediately and check for shorts
 - [ ] Open Arduino IDE, load `tap_light.ino`, upload
-- [ ] Strip should light up in the first mode (warm orange)
-- [ ] Open Serial Monitor at 115200 baud
-- [ ] Tap the piezo. Mode should advance, and a line should print to serial showing the peak reading
-- [ ] If no response: tap harder, or lower `PIEZO_THRESHOLD` in the code and re-upload. Watch the readings to find a good value — the sketch ships with a deliberately conservative threshold (2000, ≈1.5 V of the ADC's ~3.1 V full scale), so expect to tune down; ~30% of your observed peak is the rule of thumb
+- [ ] Strip should light up in the first mode (warm orange). The onboard RGB pixel mirrors the current mode too, so tap → color cycling is testable even before the strip is wired
+- [ ] Open Serial Monitor at 115200 baud — at boot it prints the piezo baseline (the sketch averages the resting level for ~0.5 s, then keeps tracking it slowly)
+- [ ] Tap the piezo. Mode should advance, and a line should print to serial showing the reading, the baseline, and the delta between them
+- [ ] If no response: tap harder, or lower `TAP_DELTA` in the code and re-upload. Detection is adaptive — a tap fires when a reading jumps `TAP_DELTA` (default 1500) above the tracked baseline, so noise and drift are absorbed automatically; `TAP_DELTA` only sets how hard a hit must be
 - [ ] Cycle through all 6 modes by tapping. Confirm the rainbow mode looks right (each LED a different color)
 - [ ] Unplug USB, plug back in. The strip should resume on whatever mode you left it on (state persists in NVS)
 
@@ -211,7 +211,7 @@ If you can honestly check all of these, you're ready for the main build.
 - [ ] I soldered a piezo without killing it
 - [ ] I know how to test continuity with my multimeter and have done so on real circuits
 - [ ] I successfully uploaded firmware to the ESP32 via USB
-- [ ] I read serial output and used it to tune a parameter (the piezo threshold)
+- [ ] I read serial output and used it to tune a parameter (the piezo tap delta)
 - [ ] I understand the per-piezo input network well enough that I could draw it from memory
 - [ ] My Tap Light works end-to-end and persists state across power cycles
 
