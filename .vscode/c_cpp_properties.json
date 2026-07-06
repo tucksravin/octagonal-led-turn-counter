@@ -1,0 +1,38 @@
+{
+  // IntelliSense config matching the arduino-cli toolchain (esp32 core 3.3.10).
+  // If `arduino-cli core upgrade` bumps the core, update the two version
+  // segments below (hardware/esp32/<ver>, esp32s3-libs/<ver>) and the
+  // esp-x32/<ver> toolchain dir to match ~/Library/Arduino15.
+  "version": 4,
+  "configurations": [
+    {
+      "name": "ESP32-S3 (arduino-cli)",
+      "compilerPath": "${env:HOME}/Library/Arduino15/packages/esp32/tools/esp-x32/2601/bin/xtensa-esp32s3-elf-g++",
+      "cStandard": "gnu17",
+      "cppStandard": "gnu++17",
+      "includePath": [
+        "${workspaceFolder}/firmware/**",
+        "${env:HOME}/Library/Arduino15/packages/esp32/hardware/esp32/3.3.10/cores/esp32",
+        "${env:HOME}/Library/Arduino15/packages/esp32/hardware/esp32/3.3.10/variants/esp32s3",
+        "${env:HOME}/Library/Arduino15/packages/esp32/hardware/esp32/3.3.10/libraries/**",
+        "${env:HOME}/Library/Arduino15/packages/esp32/tools/esp32s3-libs/3.3.10/include/**",
+        "${env:HOME}/Library/Arduino15/packages/esp32/tools/esp32s3-libs/3.3.10/qio_qspi/include",
+        "${env:HOME}/Documents/Arduino/libraries/FastLED/src"
+      ],
+      "forcedInclude": [
+        "${env:HOME}/Library/Arduino15/packages/esp32/hardware/esp32/3.3.10/cores/esp32/Arduino.h"
+      ],
+      "defines": [
+        "ESP32",
+        "ESP_PLATFORM",
+        "ARDUINO=10607",
+        "ARDUINO_ARCH_ESP32",
+        "ARDUINO_ESP32S3_DEV",
+        "CONFIG_IDF_TARGET_ESP32S3=1",
+        "F_CPU=240000000L",
+        "ARDUINO_USB_MODE=1",
+        "ARDUINO_USB_CDC_ON_BOOT=0"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  // Treat Arduino sketches as C++ so the C/C++ extension parses them.
+  "files.associations": {
+    "*.ino": "cpp"
+  }
+}
