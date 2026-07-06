@@ -37,11 +37,11 @@ flash-tap: check-port ## compile + upload tap_light (Phase 0 starter)
 flash-turn: check-port ## compile + upload turn_counter (uses min_spiffs partition)
 	arduino-cli compile $(VERBOSE) -u -p $(PORT) --fqbn $(FQBN_TURN) firmware/turn_counter
 
-compile-all: ## compile every sketch without uploading
-	arduino-cli compile $(VERBOSE) --fqbn $(FQBN) firmware/hello_board
-	arduino-cli compile $(VERBOSE) --fqbn $(FQBN) firmware/strip_test
-	arduino-cli compile $(VERBOSE) --fqbn $(FQBN) firmware/tap_light
-	arduino-cli compile $(VERBOSE) --fqbn $(FQBN_TURN) firmware/turn_counter
+compile-all: ## compile every sketch without uploading (always verbose + all warnings)
+	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/hello_board
+	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/strip_test
+	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/tap_light
+	arduino-cli compile --verbose --warnings all --fqbn $(FQBN_TURN) firmware/turn_counter
 
 pdf: ## rebuild both PDFs from the markdown sources
 	.venv/bin/python3 doc-src/build_pdf.py
