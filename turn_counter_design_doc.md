@@ -233,7 +233,7 @@ The main build splits into seven phases on top of Phase 0. Do them in order.
 | **4. Piezo mounting** | Glue 8 piezos to the underside of the slab, run leads | Cross-talk between sides is inherent to a single slab; firmware filters it, but careful placement helps |
 | **5. Control box** | ESP32 + level shifter + resistors + connectors on protoboard, in an enclosure | Everything terminates here. JST connectors so the table is serviceable |
 | **6. Final assembly** | Mount PSU on the bumper pool frame, wire the Powerpole disconnect, dress wiring on the slab, mate and test | The slab/frame split (§4.6) is most of the work here |
-| **7. Tune & test** | Dial in piezo threshold per side, calibrate brightness, play a real game | Real-world testing always reveals something the bench didn't |
+| **7. Tune & test** | Dial in the piezo tap delta, calibrate brightness, play a real game | Real-world testing always reveals something the bench didn't |
 
 **Estimated time**: ~2–3 hours for the Phase −1 dry run, 4–6 hours for Phase 0, plus 10–14 hours for Phases 1–7 spread over a weekend. Most of the main build is mechanical (channel cutting, mounting), not electronics.
 
@@ -377,11 +377,11 @@ The thin slab + air-gap-below configuration is excellent for piezo coupling. Vib
 
 Because the whole slab is one continuous piece of wood, every tap reaches all 8 piezos to some degree. The piezo directly under the tap reads strongest; piezos on adjacent sections read moderately; piezos on the opposite side read very weakly.
 
-**First-line mitigation**: `readPiezos()` picks only the *strongest* above-threshold side per scan as the accepted hit (the one exception is when the diametrically-opposite side also crosses threshold in the same scan — that's the two-handed slap path). Adjacent cross-talk loses to the real hit automatically.
+**First-line mitigation**: `readPiezos()` picks only the side with the *biggest jump above its own baseline* per scan as the accepted hit (the one exception is when the diametrically-opposite side also spikes in the same scan — that's the two-handed slap path). Adjacent cross-talk loses to the real hit automatically. Detection is adaptive: each side's resting level is averaged at boot and tracked slowly, and a hit fires at baseline + `TAP_DELTA` — so per-side differences in piezo sensitivity and mounting are absorbed rather than fought with one global threshold.
 
 **If you're getting false-side detection** (a tap on side 1 occasionally registers as side 2):
-- Raise `PIEZO_THRESHOLD` so weak cross-talk doesn't even cross the threshold to begin with
-- If that's not enough, edit `readPiezos()` to require the winning reading to be at least 2× the second-strongest above-threshold reading before accepting the hit (you'll need to track the second-best alongside the best inside the scan loop)
+- Raise `TAP_DELTA` so weak cross-talk doesn't reach the fire level to begin with
+- If that's not enough, edit `readPiezos()` to require the winning side's jump to be at least 2× the second-strongest side's jump before accepting the hit (you'll need to track the second-best delta alongside the best inside the scan loop)
 
 **On the on/off gesture specifically**: this configuration is *especially good* for opposite-side detection. Cross-talk falls off with distance through the slab, and opposite sides are physically as far apart as possible. A single hard tap will never produce strong readings on opposite piezos — the slab simply doesn't transmit cross-talk that far at strong amplitudes. So "two strong readings exactly 4 sides apart" is unambiguously a deliberate two-handed slap.
 
@@ -450,7 +450,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 - [ ] Open Serial Monitor at 115200 baud
 - [ ] Add a temporary `int v = analogRead(PIEZO_PINS[0]); if (v > 100) Serial.println(v);` inside `loop()` and tap the piezo — the threshold of 100 keeps the serial output quiet at idle and only prints when something interesting happens (note the single-read pattern: a piezo's voltage decays fast, so reading twice would give two different numbers)
 - [ ] Note the reading at rest (probably 0–50) and the peak when tapped (likely 500–3000+)
-- [ ] Set `PIEZO_THRESHOLD` to ~30% of peak — adjust by feel
+- [ ] Set `TAP_DELTA` to ~30% of the peak reading's jump above the printed baseline — adjust by feel (the boot log prints each side's seeded baseline; a tap fires at baseline + `TAP_DELTA`)
 - [ ] Confirm the LEDs change color/zone on tap before proceeding
 - [ ] Test power-cycle persistence: tap a few times, unplug, replug, verify state restored
 - [ ] If using OTA: configure Wi-Fi credentials in firmware, confirm device appears on the network and can be reached via `ping turn-counter.local`
@@ -530,9 +530,9 @@ The build splits into frame-side and slab-side work — see §4.6 for the archit
 - [ ] Open the Serial Monitor (or for OTA, a network log viewer) and keep it visible while you tap
 - [ ] **For the per-side reading test**: just tap each side firmly while watching the Serial Monitor. The instrumentation prints raw readings independent of the active-side filter, so you don't need to disable it — peaks for all 8 sides should be roughly similar
 - [ ] If any side reads much lower, check the glue contact and lead solder joints
-- [ ] Set `PIEZO_THRESHOLD` to the value that ignores incidental table bumps but catches deliberate taps (typically ~30% of the peak reading)
-- [ ] **Cross-talk test**: tap side 1 hard, look at the serial output. The strongest reading should be side 1; sides 2 and 8 (adjacent) will show smaller readings; side 5 (opposite) should be near-zero. Confirm the firmware identifies the hit as side 1 — the only positive signal is the lit-zone advance (or the absence of an "ignored" log line for that side). If the firmware ever picks a non-adjacent side as the strongest, raise the threshold or add a relative-strength check (see §4.4)
-- [ ] **On/off gesture test**: with two hands, slap two opposite sides simultaneously. Lights should toggle. If no toggle, check that both piezos register above threshold; raise `OPPOSITE_PAIR_WINDOW_MS` if your slap timing isn't quite synchronized
+- [ ] Set `TAP_DELTA` to the value that ignores incidental table bumps but catches deliberate taps (typically ~30% of a deliberate tap's jump above baseline)
+- [ ] **Cross-talk test**: tap side 1 hard, look at the serial output. The strongest reading should be side 1; sides 2 and 8 (adjacent) will show smaller readings; side 5 (opposite) should be near-zero. Confirm the firmware identifies the hit as side 1 — the only positive signal is the lit-zone advance (or the absence of an "ignored" log line for that side). If the firmware ever picks a non-adjacent side as the strongest, raise `TAP_DELTA` or add a relative-strength check (see §4.4)
+- [ ] **On/off gesture test**: with two hands, slap two opposite sides simultaneously. Lights should toggle. If no toggle, check that both piezos spike above their baselines; raise `OPPOSITE_PAIR_WINDOW_MS` if your slap timing isn't quite synchronized
 - [ ] **Setup gesture test**: rapidly tap an **unlit** side 4 times within 2 seconds. Strip should start blinking. Tap once more to cycle player count. Wait 3 seconds; strip resumes normal play at player 1
 - [ ] Set `BRIGHTNESS` to your preferred level (start at 128, adjust)
 - [ ] Play an actual game. Take notes on anything weird
@@ -576,7 +576,7 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 | `NUM_LEDS` | 240 | Actual LED count after corner trim |
 | `LEDS_PER_SIDE` | 30 | `NUM_LEDS / 8` |
 | `BRIGHTNESS` | 128 | Lower if too bright, max 255 |
-| `PIEZO_THRESHOLD` | 400 | Calibrate during Phase 7 |
+| `TAP_DELTA` | 1000 | Calibrate during Phase 7. Adaptive: a tap fires at a side's auto-tracked baseline + this delta |
 | `DEBOUNCE_MS` | 250 | Raise if double-triggers, lower if it feels sluggish |
 | `SETUP_TAP_COUNT` | 4 | Taps required to enter setup mode |
 | `SETUP_TAP_WINDOW_MS` | 2000 | Window in which the taps must occur |
@@ -614,7 +614,7 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 | LEDs flicker or first LED is wrong color | Missing or weak data signal | Confirm 470 Ω resistor + level shifter + common ground |
 | Far-end LEDs tint pink/orange | Voltage drop along strip | Add or check power injection at midpoint and end |
 | Whole strip dark | PSU off, switch off, blown fuse, or reversed polarity | Check switch first, then fuse, then PSU output, then polarity |
-| Tap doesn't register | Threshold too high, bad piezo solder, glue not contacting wood | Lower threshold, reflow joint, re-glue |
+| Tap doesn't register | `TAP_DELTA` too high, bad piezo solder, glue not contacting wood | Lower `TAP_DELTA`, reflow joint, re-glue |
 | Tap on side 1 lights side 3 | Piezo wire mapping wrong | Check `PIEZO_PINS[]` order vs physical wiring |
 | Adjacent sides cross-trigger | Mechanical cross-talk through wood | Foam break, kerf cut, or relative-strength filter in firmware |
 | Weird boot behavior | Strapping pin pulled wrong | Confirm GPIO 0/3/45/46 unused (ESP32-S3 strap pins) |

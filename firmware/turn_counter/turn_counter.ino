@@ -17,14 +17,19 @@
 const char* WIFI_SSID     = "your-network-here";
 const char* WIFI_PASSWORD = "your-password-here";
 const char* OTA_HOSTNAME  = "turn-counter";
-const char* OTA_PASSWORD  = "change-me";
+const char* OTA_PASSWORD  = "letsplayagame";
 
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 5000;
 
 // All 8 piezos on ADC1. GPIO 3 is skipped because it's a JTAG strap pin.
 const uint8_t PIEZO_PINS[NUM_SIDES] = {1, 2, 4, 5, 6, 7, 8, 9};
 
-const uint16_t PIEZO_THRESHOLD          = 400;
+// Adaptive tap detection (same approach as tap_light.ino): each side's resting
+// ADC level is averaged at boot, then tracked with a slow moving average. A tap
+// fires when a reading jumps TAP_DELTA above that side's own baseline. Spike
+// readings never feed the average, so taps don't desensitize a side, while slow
+// drift (temperature, glue aging, ambient vibration) is absorbed automatically.
+const uint16_t TAP_DELTA                = 1000;
 const uint16_t DEBOUNCE_MS              = 250;
 const uint8_t  SETUP_TAP_COUNT          = 4;
 const uint16_t SETUP_TAP_WINDOW_MS      = 2000;
@@ -37,6 +42,7 @@ Preferences prefs;
 uint8_t  playerCount = 4;
 uint8_t  currentPlayer = 0;
 uint32_t lastTapPerSide[NUM_SIDES] = {0};
+uint32_t baselineAcc[NUM_SIDES] = {0};  // fixed-point moving averages of resting levels, scaled by 64
 uint32_t lastAnyTapMs = 0;
 bool     inSetupMode = false;
 bool     isOn = true;
@@ -58,6 +64,8 @@ const CRGB PLAYER_COLORS[8] = {
   CRGB(255, 130, 30),
   CRGB(180, 180, 220)
 };
+
+uint16_t baseline(uint8_t i) { return baselineAcc[i] >> 6; }
 
 bool isOppositeSide(int8_t a, int8_t b) {
   if (a < 0 || b < 0) return false;
@@ -118,24 +126,27 @@ void renderOtaProgress(uint8_t percent) {
 }
 
 // Returns a bitmask of accepted hits in this scan. At most two bits set:
-// the strongest above-threshold side (cross-talk filter — adjacent ghosts
-// lose to the real hit) and, if its diametrically-opposite side is also
-// above threshold this scan, that one too (two-handed slap detected in a
+// the side with the biggest jump above its own baseline (cross-talk filter —
+// adjacent ghosts lose to the real hit) and, if its diametrically-opposite
+// side also spiked this scan, that one too (two-handed slap detected in a
 // single scan, before debounce can lock it out). Cross-scan two-handed
 // slaps still work via pendingTapSide in onTapDetected().
 uint8_t readPiezos(uint32_t now) {
   uint8_t aboveThresholdMask = 0;
   uint8_t maxIdx = 0xFF;
-  uint16_t maxReading = 0;
+  uint16_t maxDelta = 0;
 
   for (uint8_t i = 0; i < NUM_SIDES; i++) {
     uint16_t reading = analogRead(PIEZO_PINS[i]);
-    if (reading > PIEZO_THRESHOLD) {
+    if (reading > baseline(i) + TAP_DELTA) {
       aboveThresholdMask |= (1 << i);
-      if (reading > maxReading) {
-        maxReading = reading;
+      uint16_t delta = reading - baseline(i);
+      if (delta > maxDelta) {
+        maxDelta = delta;
         maxIdx = i;
       }
+    } else {
+      baselineAcc[i] += reading - baseline(i);  // slow average, tau ~0.3 s at 5 ms/loop
     }
   }
 
@@ -323,6 +334,21 @@ void setup() {
   for (uint8_t i = 0; i < NUM_SIDES; i++) {
     pinMode(PIEZO_PINS[i], INPUT);
   }
+
+  // Seed each side's baseline with ~0.5 s of quiet readings before accepting taps.
+  uint32_t sums[NUM_SIDES] = {0};
+  for (uint8_t s = 0; s < 100; s++) {
+    for (uint8_t i = 0; i < NUM_SIDES; i++) {
+      sums[i] += analogRead(PIEZO_PINS[i]);
+    }
+    delay(5);
+  }
+  Serial.print("Piezo baselines:");
+  for (uint8_t i = 0; i < NUM_SIDES; i++) {
+    baselineAcc[i] = (sums[i] / 100) << 6;
+    Serial.printf(" %u", baseline(i));
+  }
+  Serial.printf(" (tap fires at baseline + %u)\n", TAP_DELTA);
 
   setupWiFiAndOta();
 
