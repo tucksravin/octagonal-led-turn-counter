@@ -21,8 +21,8 @@ const uint8_t PIEZO_PIN = 1;
 // TAP_DELTA above that baseline. Spike readings never feed the average, so
 // taps don't desensitize the sensor, while slow drift (temperature, mounting
 // pressure, ambient vibration) is absorbed automatically.
-const uint16_t TAP_DELTA = 1000;
-const uint16_t DEBOUNCE_MS = 500;
+const uint16_t TAP_DELTA = 500;
+const uint16_t DEBOUNCE_MS = 250;
 const uint8_t NUM_MODES = 6;
 
 CRGB leds[NUM_LEDS];
