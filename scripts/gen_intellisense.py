@@ -33,6 +33,16 @@ compiler = props["compiler.path"] + props["compiler.prefix"] + "g++"
 core_dir = f"{core}/cores/{props['build.core']}"
 user_libs = run("arduino-cli", "config", "get", "directories.user").strip() + "/libraries"
 
+# The SDK ships the exact include roots the compiler is invoked with
+# (flags/includes, entries relative to <sdk>/include/). Expanding them here —
+# rather than relying on a recursive glob — makes IntelliSense resolve nested
+# roots like soc/esp32s3/include, which guards e.g. WiFi.h's SOC_WIFI_SUPPORTED.
+sdk_includes = []
+tokens = (Path(sdk) / "flags" / "includes").read_text().split()
+for prev, tok in zip(["", *tokens], tokens):
+    if prev == "-iwithprefixbefore":
+        sdk_includes.append(f"{sdk}/include/{tok}")
+
 home = str(Path.home())
 
 
@@ -52,7 +62,7 @@ config = {
             tidy(core_dir),
             tidy(f"{core}/variants/{props['build.variant']}"),
             tidy(f"{core}/libraries/**"),
-            tidy(f"{sdk}/include/**"),
+            *[tidy(p) for p in sdk_includes],
             tidy(f"{sdk}/{props['build.memory_type']}/include"),
             tidy(f"{user_libs}/**"),
         ],
