@@ -11,7 +11,7 @@ FQBN_TURN := $(FQBN):PartitionScheme=min_spiffs
 # warnings (arduino-cli hides both by default).
 VERBOSE := $(if $(V),--verbose --warnings all,)
 
-.PHONY: help ports monitor flash-hello flash-strip flash-tap flash-turn compile-all pdf check-port
+.PHONY: help ports monitor flash-hello flash-strip flash-tap flash-turn compile-all pdf vscode upgrade check-port
 
 help: ## list available targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -46,3 +46,12 @@ compile-all: ## compile every sketch without uploading (always verbose + all war
 pdf: ## rebuild both PDFs from the markdown sources
 	.venv/bin/python3 doc-src/build_pdf.py
 	.venv/bin/python3 doc-src/build_dry_run_pdf.py
+
+vscode: ## regenerate .vscode IntelliSense config from the installed toolchain
+	python3 scripts/gen_intellisense.py
+
+upgrade: ## upgrade cores + libraries, then refresh IntelliSense config and sanity-compile
+	arduino-cli core upgrade
+	arduino-cli lib upgrade
+	$(MAKE) vscode
+	$(MAKE) compile-all

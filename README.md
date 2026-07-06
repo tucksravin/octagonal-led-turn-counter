@@ -75,9 +75,11 @@ make flash-strip    # compile + upload the WS2812B strip test
 make flash-tap      # compile + upload the Phase 0 tap light
 make flash-turn     # compile + upload turn_counter (applies the min_spiffs partition)
 make monitor        # serial monitor at 115200 (Ctrl+C to quit — frees the port for uploads)
-make compile-all    # build everything without touching the board
+make compile-all    # build everything without touching the board (verbose + all warnings)
 make ports          # list connected boards
 make pdf            # rebuild both PDFs
+make vscode         # regenerate .vscode IntelliSense config from the installed toolchain
+make upgrade        # arduino-cli core+lib upgrade, then vscode regen + compile-all
 ```
 
 Only one program can hold the serial port — quit `make monitor` before any `flash-*` target.
