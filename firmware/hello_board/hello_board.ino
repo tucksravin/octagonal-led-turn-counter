@@ -49,5 +49,5 @@ void loop() {
   FastLED.show();
   Serial.printf("alive %6lu ms  RGB: %s\n", millis(), NAMES[colorStep]);
   colorStep = (colorStep + 1) % 4;
-  delay(500);
+  delay(10000);
 }
