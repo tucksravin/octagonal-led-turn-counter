@@ -49,6 +49,7 @@ compile-all: ## compile every sketch without uploading (always verbose + all war
 
 pdf: ## rebuild all PDFs from the markdown sources
 	.venv/bin/python3 doc-src/build_pdf.py
+	.venv/bin/python3 doc-src/build_simple_pdf.py
 	.venv/bin/python3 doc-src/build_dry_run_pdf.py
 	.venv/bin/python3 doc-src/build_tap_light_pdf.py
 	.venv/bin/python3 doc-src/build_bench_guide_pdf.py

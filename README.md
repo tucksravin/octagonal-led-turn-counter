@@ -2,18 +2,20 @@
 
 LED rim turn counter for a removable octagonal gaming table that sits on top of a bumper pool table. Players tap the lit section in front of them to pass turn; the lit zone advances clockwise to the next player.
 
-The full design — bill of materials, wiring schematics, mechanical drawings, build steps, and firmware reference — is in `turn_counter_design_doc.pdf`.
+**Start with [`design_doc_simple.md`](design_doc_simple.md)** — the current default build: USB-powered, everything on the lid, no mains wiring. The full mains-powered / permanent-install version — complete BOM, wiring schematics, mechanical drawings, and phased checklist — is in `turn_counter_design_doc.pdf` (source: `turn_counter_design_doc.md`), kept as the advanced reference.
 
 ## Repo layout
 
 ```text
 .
 ├── README.md
-├── turn_counter_design_doc.pdf   ← read this first
-├── turn_counter_design_doc.md    ← edit this to change content
+├── design_doc_simple.md          ← the current default build — start here
+├── turn_counter_design_doc.pdf   ← advanced / permanent-install reference (mains PSU, disconnect)
+├── turn_counter_design_doc.md    ← source for the PDF above
 ├── dry_run.pdf                   ← Phase −1 bench checklist, print this for the bench
 ├── dry_run.md                    ← edit this to change the dry-run checklist
 ├── shopping_list.md              ← concrete parts list with PNs and vendors
+├── inventory.md                  ← what was bought + bulk-pack surplus for future projects
 ├── requirements.txt              ← Python deps for the PDF build scripts
 ├── Makefile                      ← bench shortcuts: make flash-tap, make monitor, …
 ├── firmware/                     ← one sketch folder per firmware (arduino-cli/IDE layout)
@@ -79,7 +81,7 @@ make flash-turn     # compile + upload turn_counter (applies the min_spiffs part
 make monitor        # serial monitor at 115200 (Ctrl+C to quit — frees the port for uploads)
 make compile-all    # build everything without touching the board (verbose + all warnings)
 make ports          # list connected boards
-make pdf            # rebuild both PDFs
+make pdf            # rebuild all doc PDFs (design, simple, dry-run, tap-light, bench guide)
 make vscode         # regenerate .vscode IntelliSense config from the installed toolchain
 make upgrade        # arduino-cli core+lib upgrade, then vscode regen + compile-all
 ```

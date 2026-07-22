@@ -46,6 +46,7 @@ Full sourcing, quantities, and manufacturer PNs are in `shopping_list.md`. This 
 | | 1000 µF electrolytic | 1 | across 5V/GND at strip entry, **+ to 5V** |
 | | Half-size Perma-Proto (30-col, Adafruit 571) | 1 | the control board — see `doc-src/protoboard_half_layout.svg` |
 | | JST-XH 3-pin in-line pair | 1 | strip harness service disconnect (a few inches off-board) |
+| | JST-XH 2-pin in-line pair | 8 | one per piezo — inline service disconnect, off-board |
 | | *74AHCT125 + DIP-14 socket* | *(opt)* | *optional level-shifter add-back if pixel 1 glitches (§3) — not built by default* |
 
 *(Off the board by design: the 8× 1 MΩ + 8× Zener are twisted into the pigtails at the discs (§4.3); the optional 10–47 kΩ ADC series resistors were dropped; direct 3.3 V drive means no level shifter.)*
@@ -58,7 +59,7 @@ Full sourcing, quantities, and manufacturer PNs are in `shopping_list.md`. This 
 | | Aluminum LED channel + diffuser | 4–5 m | 22.5° miters at each corner |
 | | 27 mm piezo disc | 8 | one per side, in a rim bore with ~3–5 mm floor (design doc §4.3) |
 | | 1 MΩ 1/4 W + 3.3 V Zener (1N4728A) | 8 + 8 | twisted + soldered into each disc's pigtail, band toward signal |
-| | JST-XH pre-crimped pigtails | 1 pr | strip harness in-line disconnect (piezo pairs solder directly) |
+| | JST-XH pre-crimped pigtails | 9 pr | strip 3-pin + 8× piezo 2-pin in-line disconnects (all off-board) |
 | | WAGO 221 lever connectors | few | branch the slab DC rail |
 | | Project box (Hammond 1591BBK) + M3 standoffs | 1 | control-box enclosure |
 | | Rubber grommet | 1+ | slab cable entry (buy first, drill to match) |
@@ -133,7 +134,7 @@ Power & rails first, then LED data, then the piezo pairs. Columns refer to `doc-
 - [ ] **L2** — black harness lead: bottom GND rail (right end) → strip harness
 - [ ] **L3** — bundle DATA + 5V + GND; fit the **in-line JST-XH 3-pin** a few inches off-board (service disconnect) → strip DIN + start injection
 
-**Piezo pairs (22 AWG twisted; signal lands direct on the ADC hole — no series resistor)**
+**Piezo pairs (22 AWG twisted; signal lands direct on the ADC hole — no series resistor; each pair carries an inline JST-XH 2-pin off-board, labeled S1–S8)**
 
 - [ ] **A1** — S1 (GPIO 1): signal → col 19 row j · GND lead → bottom GND rail
 - [ ] **A2** — S2 (GPIO 2): signal → col 18 row j · GND lead → bottom GND rail
@@ -168,7 +169,7 @@ Power & rails first, then LED data, then the piezo pairs. Columns refer to `doc-
 
 - [ ] Drill 8 rim bores from the underside, one per side near the outer edge, leaving a **~3–5 mm floor** — never through to the laminate (design doc §4.3)
 - [ ] Solder leads to all 8 piezos (red +, black −), under 2 s per pad
-- [ ] Twist each disc's 1 MΩ + Zener legs into the pigtail wires ~1/2" off the disc — one soldered bundle per node, **Zener band toward signal** (check before twisting); heat-shrink each node separately
+- [ ] Twist each disc's 1 MΩ + Zener legs into the pigtail wires ~1/2" off the disc — one soldered bundle per node, **Zener band toward signal** (check before twisting); heat-shrink each node separately. Terminate the disc pigtail in its **inline JST-XH 2-pin**, labeled S1–S8 (signal on pin 1, GND on pin 2 — keep all 8 consistent)
 - [ ] Bench-test each: multimeter on AC volts, tap, expect a brief swing
 - [ ] Glue each piezo into its bore, brass face to the wood floor (CA or thin epoxy); vacuum the dust first; press 30 s
 - [ ] Route the twisted pairs through the underside kerfs to the control box; **label each pair to its side (S1–S8)**
@@ -180,7 +181,7 @@ Power & rails first, then LED data, then the piezo pairs. Columns refer to `doc-
 - [ ] Branch the slab DC cable into a WAGO 221 node → control-box 5V/GND **and** the 3 strip injection points
 - [ ] **Verify polarity at every junction with a multimeter** — reversed 5 V instantly kills the strip
 - [ ] P-clip / cable mount within 4" of the grommet — strain relief hits the clip, not the connector
-- [ ] Land the 8 labeled piezo pairs on the board (per §5.2 A1–A8) and click the strip harness's in-line JST together
+- [ ] Land the 8 labeled piezo pairs on the board (per §5.2 A1–A8), then click the 8 piezo JSTs and the strip harness's in-line JST together
 
 ## 7. Frame side (permanent) — AC mains & PSU
 
@@ -201,7 +202,7 @@ Power & rails first, then LED data, then the piezo pairs. Columns refer to `doc-
 Do all of these with the board **unpowered** and the ESP32 still **out of its socket**, before the first power-up.
 
 - [ ] **+5 V ↔ GND**: probe for shorts. Expect open (the cap may give a brief charge beep, then settle open). A hard short here = find it before you apply power
-- [ ] **Buzz each S column → its GPIO pin** (S1→GPIO1 … S8→GPIO9) — confirms the ADC jumpers A1–A8
+- [ ] **Buzz each S column → its GPIO pin** (S1→GPIO1 … S8→GPIO9), with the piezo JSTs mated — confirms the ADC jumpers A1–A8 through the connectors
 - [ ] **LED DATA → IC pin 3 (1Y)** continuous — confirms D2
 - [ ] **1OE (IC pin 1) → GND** continuous — confirms P9 (or the strip stays Hi-Z / dark)
 - [ ] **IC pin 7 (GND) → GND** and **IC pin 14 (VCC) → +5 V** — confirms P8/P10

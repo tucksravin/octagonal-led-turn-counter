@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Octagonal Turn Counter — Simple Build</title>
+</head>
+<body>
+<h1 id="turn-counter-simple-build">Turn Counter — Simple Build</h1>
+<p>The simplest build of the octagonal LED turn-counter, reflecting all current decisions: <strong>USB-powered, everything on the lid, no mains wiring, no frame work.</strong> Start here.</p>
+<blockquote>
+<p><strong>Want the permanent, mains-powered install?</strong> A frame-mounted 5 V PSU, an AC switch/inlet, a slab↔frame DC disconnect, an optional level shifter, and power injection sized for full-brightness all-on — that's the <a href="turn_counter_design_doc.md">full design doc</a>. This simple build is a strict subset of it: you can upgrade later without redoing the lid.</p>
+</blockquote>
+<hr />
+<h2 id="1-what-it-is">1. What it is</h2>
+<p>A removable octagonal slab that sits on top of a bumper pool table. Eight sides; each side has a <strong>piezo disc</strong> under the rim and a <strong>block of LEDs</strong> on the rim. Tap the lit section in front of you to pass the turn. One ESP32-S3 reads the 8 piezos and drives a single WS2812B strip that rings the octagon.</p>
+<p>The whole thing runs off a <strong>USB powerbank (or a USB wall adapter)</strong> plugged into the board — one cable. Power, board, and strip all live on the lid, so the lid just lifts off as one piece. No disconnect, no AC, nothing on the pool-table frame.</p>
+<hr />
+<h2 id="2-how-you-play">2. How you play</h2>
+<ul>
+<li><strong>Normal play</strong> — only the current player's side is lit, in that side's fixed color. Tap it to pass the turn; the light advances to the next active seat (clockwise by default), skipping empty seats.</li>
+<li><strong>Who's in</strong> — each side is independently in or out. With everyone in, it's an 8-player ring; with 3 people it hops between just those 3.</li>
+<li><strong>Setup</strong> — tap one seat <strong>4 times fast</strong> to enter setup. That seat becomes the <em>mode dial</em> (auto-joined, flashing). Everyone else taps their own seat to join (blinks in their color). After 3 s of no taps, it commits and play starts.</li>
+<li><strong>Game modes</strong> (chosen on the dial: it flashes through 4 colors ~5 s each; tap it to commit — it goes solid):</li>
+<li><strong>Clockwise</strong> (green) · <strong>Counter-clockwise</strong> (blue) · <strong>Arbitrary</strong> (magenta — turn follows the order people joined) · <strong>Ready-or-not</strong> (orange — every seat starts dark, each player taps on; when all are on they flash and reset for the next round).</li>
+<li><strong>On / off</strong> — a two-handed slap on two opposite sides at once toggles the table on/off.</li>
+</ul>
+<p>Per-side LED counts are calibrated once and remembered (the octagon's corners eat 1–2 LEDs per side, so sides aren't uniform).</p>
+<hr />
+<h2 id="3-electronics">3. Electronics</h2>
+<div class="figure"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 244" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+  </defs>
+
+  <!-- the lid boundary: everything is self-contained on the removable slab -->
+  <rect x="8" y="8" width="744" height="228" rx="12" fill="none" stroke="#9a9a9a" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <text x="22" y="27" font-size="12.5" fill="#8a8a8a">The removable lid — self-contained, USB-powered · nothing crosses to the frame</text>
+
+  <!-- power source -->
+  <rect x="26" y="70" width="150" height="64" rx="6" fill="#f7f7f5" stroke="#333" stroke-width="1.5"/>
+  <text x="101" y="98" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">USB powerbank</text>
+  <text x="101" y="116" text-anchor="middle" font-size="11.5" fill="#555">or wall adapter</text>
+
+  <!-- ESP32 -->
+  <rect x="250" y="70" width="152" height="64" rx="6" fill="#eef1f4" stroke="#2f4858" stroke-width="1.8"/>
+  <text x="326" y="98" text-anchor="middle" font-size="14.5" font-weight="bold" fill="#111">ESP32-S3</text>
+  <text x="326" y="116" text-anchor="middle" font-size="11.5" fill="#555">DevKitC-1</text>
+
+  <!-- LED strip -->
+  <rect x="566" y="70" width="178" height="64" rx="6" fill="#f7f7f5" stroke="#333" stroke-width="1.5"/>
+  <text x="655" y="93" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#111">WS2812B strip</text>
+  <text x="655" y="109" text-anchor="middle" font-size="11" fill="#555">221 LEDs · octagon rim</text>
+  <!-- little color hint of the per-side colors -->
+  <g>
+    <rect x="590" y="118" width="14" height="7" fill="#ff2828"/>
+    <rect x="608" y="118" width="14" height="7" fill="#2878ff"/>
+    <rect x="626" y="118" width="14" height="7" fill="#3cdc50"/>
+    <rect x="644" y="118" width="14" height="7" fill="#ffc81e"/>
+    <rect x="662" y="118" width="14" height="7" fill="#dc3cdc"/>
+    <rect x="680" y="118" width="14" height="7" fill="#28e6e6"/>
+    <rect x="698" y="118" width="14" height="7" fill="#ff821e"/>
+    <rect x="716" y="118" width="14" height="7" fill="#b4b4dc"/>
+  </g>
+
+  <!-- power in -->
+  <line x1="176" y1="102" x2="248" y2="102" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="212" y="94" text-anchor="middle" font-size="11" fill="#444" font-style="italic">USB · 5 V</text>
+
+  <!-- 5V to strip -->
+  <line x1="402" y1="88" x2="564" y2="88" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="483" y="80" text-anchor="middle" font-size="11.5" fill="#444" font-style="italic">5 V + GND</text>
+
+  <!-- data to strip -->
+  <line x1="402" y1="116" x2="564" y2="116" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="483" y="131" text-anchor="middle" font-size="11.5" fill="#444" font-style="italic">GPIO 11 → 470 Ω → DIN</text>
+
+  <!-- piezos -->
+  <line x1="256" y1="182" x2="396" y2="182" stroke="#777" stroke-width="1.4"/>
+  <g fill="#ffffff" stroke="#444" stroke-width="1.3">
+    <circle cx="256" cy="196" r="7"/>
+    <circle cx="276" cy="196" r="7"/>
+    <circle cx="296" cy="196" r="7"/>
+    <circle cx="316" cy="196" r="7"/>
+    <circle cx="336" cy="196" r="7"/>
+    <circle cx="356" cy="196" r="7"/>
+    <circle cx="376" cy="196" r="7"/>
+    <circle cx="396" cy="196" r="7"/>
+  </g>
+  <g stroke="#777" stroke-width="1.1">
+    <line x1="256" y1="189" x2="256" y2="182"/>
+    <line x1="276" y1="189" x2="276" y2="182"/>
+    <line x1="296" y1="189" x2="296" y2="182"/>
+    <line x1="316" y1="189" x2="316" y2="182"/>
+    <line x1="336" y1="189" x2="336" y2="182"/>
+    <line x1="356" y1="189" x2="356" y2="182"/>
+    <line x1="376" y1="189" x2="376" y2="182"/>
+    <line x1="396" y1="189" x2="396" y2="182"/>
+  </g>
+  <line x1="326" y1="182" x2="326" y2="136" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="414" y="190" font-size="12" font-weight="bold" fill="#111">8× piezo discs</text>
+  <text x="414" y="206" font-size="11" fill="#555">→ ESP ADC (GPIO 1, 2, 4–9)</text>
+  <text x="414" y="221" font-size="10" fill="#8a8a8a">GPIO 3 skipped (JTAG strap)</text>
+</svg>
+<p class="caption">Figure 1 — the whole system on one lid. A USB powerbank (or wall adapter) feeds the ESP32-S3 over one USB cable; the board passes 5 V to the WS2812B rim and drives its data line through a 470 Ω resistor. Eight piezo discs report to the ADC. Nothing crosses to the pool-table frame. Normal one-side play draws ~0.85 A — within the board's USB path — and <code>MAX_POWER_MA = 1500</code> dims the rare all-on frames to fit.</p></div>
+
+<p><strong>Power — straight through the board's USB.</strong> Normal play lights one side (~0.6 A of LEDs) + the ESP32 (~0.25 A) ≈ <strong>0.85 A</strong>, comfortably inside the board's USB path (~1.5–2 A continuous). The firmware caps LED draw at <code>MAX_POWER_MA = 1500</code>, so the only bright-everything moments (setup blink, ready-or-not, the ready-flash) auto-dim to stay in bounds; one-side play never hits the cap. It's a <strong>current</strong> limit, not a voltage one — 5 V is nominal for both the board and the strip.</p>
+<p><strong>Pin map</strong> (all piezos on ADC1 so they keep working with Wi-Fi/OTA up):</p>
+<table>
+<thead>
+<tr>
+<th>Pin</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPIO 11</td>
+<td>LED data → 470 Ω → strip DIN</td>
+</tr>
+<tr>
+<td>GPIO 1, 2, 4, 5, 6, 7, 8, 9</td>
+<td>piezo ADC inputs, sides 1–8</td>
+</tr>
+<tr>
+<td>5V / GND</td>
+<td>strip power (off the board's <code>5V</code>/<code>GND</code> pins, USB-fed)</td>
+</tr>
+</tbody>
+</table>
+<p><em>GPIO 3 is skipped (JTAG strap pin). Avoid GPIO 0/19/20/35/36/37/45/46.</em></p>
+<p><strong>Per-piezo circuit (×8), built at the disc:</strong></p>
+<pre><code class="language-text">             signal (to ADC pin)
+                    │
+        ┌───────────┼───────────┐
+        │           │           │
+     Piezo(+)     1 MΩ        Zener 3.3 V
+        │           │       (band toward signal)
+     Piezo(–)       │           │
+        └──────────GND─────────GND
+</code></pre>
+<p>The 1 MΩ keeps the ADC line from floating; the Zener (1N4728A) clamps a hard slap's spike to ~3.3 V. Both are twisted into the pigtail <strong>right at the disc</strong> so the spike dies at the source. No series resistor to the ADC (the 1 MΩ + Zener are the real protection).</p>
+<p><strong>Data drive is direct 3.3 V</strong> through the 470 Ω, placed near DIN. Only the first pixel is marginal (it regenerates a clean 5 V signal for the rest) and the run is short, so no level shifter by default. (If pixel 1 ever glitches, a 74AHCT125 is the add-back — see the full doc §3.3.)</p>
+<hr />
+<h2 id="4-control-board">4. Control board</h2>
+<p>A <strong>half-size Perma-Proto</strong> (Adafruit 571) in a small ABS box (Hammond 1591B). It holds only:</p>
+<ul>
+<li>the ESP32-S3 in <strong>female headers</strong> (socketed, not soldered down),</li>
+<li>the <strong>470 Ω</strong> spliced into the GPIO 11 → DIN run (near the strip end),</li>
+<li>a <strong>1000 µF cap</strong> across 5V/GND at the strip feed,</li>
+<li>the 8 piezo signal/GND landings and the strip's 5V/data/GND landings.</li>
+</ul>
+<p>30 columns are enough because the piezo networks live at the discs, not the board.</p>
+<p><strong>Connectors — all inline, off-board (nothing bulky on the board):</strong></p>
+<ul>
+<li><strong>8 piezo pairs</strong> → each disc's twisted pair (signal + GND) has an <strong>inline JST-XH 2-pin</strong> a few inches off the board. Board end solders to the ADC hole + GND rail; disc end solders to the network. Label both halves <strong>S1–S8</strong> (signal on pin 1, GND on pin 2, consistent across all 8).</li>
+<li><strong>1 strip harness</strong> → 5V/data/GND solder to the board; an <strong>inline JST-XH 3-pin</strong> a few inches out is the service disconnect to the strip.</li>
+</ul>
+<p>So the whole control box unplugs as a unit — 8 piezo JSTs + 1 strip JST + the USB cable — with no desoldering. Layout: <code>doc-src/protoboard_half_layout.svg</code>.</p>
+<hr />
+<h2 id="5-mechanical">5. Mechanical</h2>
+<ul>
+<li><strong>LEDs</strong>: WS2812B (60/m) seated in aluminum channel with a frosted diffuser around the rim. At each corner, cut the strip and bridge with a short 3-wire jumper (5V/GND/data); heat-shrink.</li>
+<li><strong>Power feed</strong>: run 5V/GND from the board to the strip at <strong>3 points — start, middle (≈ opposite side), and end</strong> — short jumpers along the lid. This keeps every side bright no matter which one is lit (a single feed would droop on far sides). Data is injected only at the start (DIN).</li>
+<li><strong>Piezos</strong>: one 27 mm disc per side, bonded into a shallow bore under the rim (not through to the laminate). Avoid spots where the slab rests on the frame — a clamped disc can't ring.</li>
+<li><strong>Corners</strong>: the slab gets leaned on its edge for bumper pool, so cap the 8 corners to protect the LEDs/wiring — hardwood scrap caps coated in Plasti Dip, or stick-on 135° corner guards, optionally with 7/8″ rubber bumpers as standoffs. (Full doc §4.2.)</li>
+<li><strong>Box</strong>: control box mounts under the lid on M3 standoffs; cable entries get rubber grommets.</li>
+</ul>
+<hr />
+<h2 id="6-firmware">6. Firmware</h2>
+<p><code>firmware/turn_counter/turn_counter.ino</code> — the game logic above. Key facts:</p>
+<ul>
+<li><strong>FastLED + Preferences (NVS).</strong> <code>MAX_POWER_MA = 1500</code>, <code>BRIGHTNESS = 128</code>.</li>
+<li><strong>Calibration</strong>: flash <code>firmware/tap_light/tap_light.ino</code> first and calibrate per-side LED counts over serial (<code>0</code>–<code>7</code> select a side, <code>+</code>/<code>-</code> adjust, <code>p</code> print). It saves to NVS namespace <code>octagon</code>; turn_counter reads the same table automatically. Current table: <code>{29, 28, 27, 27, 27, 28, 28, 27}</code> = <strong>221 LEDs</strong>.</li>
+<li><strong>Tap detection</strong>: adaptive per-side baseline; a tap fires when a reading jumps <code>TAP_DELTA</code> (1000) above that side's own resting level.</li>
+<li><strong>Setup gesture</strong> = 4 fast taps on the <em>same</em> side (so ready-or-not's rapid multi-player taps don't false-trip it).</li>
+<li><strong>Build/flash</strong>: <code>make flash-turn</code> (needs the <code>min_spiffs</code> partition — the Makefile handles it). Wi-Fi/OTA credentials are at the top of the sketch.</li>
+<li>Bench note: <code>setup()</code> currently forces <code>isOn = true</code> so a stale NVS "off" can't boot dark — <strong>revert that line for real play.</strong></li>
+</ul>
+<hr />
+<h2 id="7-bill-of-materials-simple-build">7. Bill of materials (simple build)</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Qty</th>
+<th>Part</th>
+<th style="text-align: right;">~$</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>ESP32-S3-DevKitC-1, N8R8</td>
+<td style="text-align: right;">15</td>
+<td>(a 2nd makes a nice spare / keeps the tap-light alive)</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>WS2812B strip, 60/m, IP30, 5 m</td>
+<td style="text-align: right;">20</td>
+<td>~4 m used (221 LEDs)</td>
+</tr>
+<tr>
+<td style="text-align: right;">4–5 m</td>
+<td>Aluminum LED channel + frosted cover</td>
+<td style="text-align: right;">30</td>
+<td>rim diffuser</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>27 mm piezo disc</td>
+<td style="text-align: right;">12</td>
+<td>8 used + spares</td>
+</tr>
+<tr>
+<td style="text-align: right;">8 + 1</td>
+<td>1 MΩ resistors + one 470 Ω</td>
+<td style="text-align: right;">3</td>
+<td>from bulk packs</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>1N4728A 3.3 V Zener</td>
+<td style="text-align: right;">3</td>
+<td>one clamp per disc</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>1000 µF cap</td>
+<td style="text-align: right;">2</td>
+<td>strip-feed reservoir</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Half-size Perma-Proto (Adafruit 571)</td>
+<td style="text-align: right;">5</td>
+<td>control board</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Project box (Hammond 1591B)</td>
+<td style="text-align: right;">7</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">9 pr</td>
+<td>JST-XH inline pairs (8× 2-pin + 1× 3-pin)</td>
+<td style="text-align: right;">—</td>
+<td>from the JST kit</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>JST-XH assortment kit (pre-crimped)</td>
+<td style="text-align: right;">18</td>
+<td>covers the 9 pairs many times over</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Female header 1×40 (for the ESP socket)</td>
+<td style="text-align: right;">7</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">—</td>
+<td>22 AWG stranded (signal) + 20 AWG silicone (power runs)</td>
+<td style="text-align: right;">25</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td><strong>USB powerbank w/ always-on / low-current mode</strong>, or a USB wall adapter</td>
+<td style="text-align: right;">20</td>
+<td>+ a USB cable into the board</td>
+</tr>
+<tr>
+<td style="text-align: right;">—</td>
+<td>Corner caps: hardwood scrap + Plasti Dip (± rubber bumpers / corner guards)</td>
+<td style="text-align: right;">15</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align: right;">—</td>
+<td>M3 standoffs, grommets, misc hardware</td>
+<td style="text-align: right;">15</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Not needed</strong> (vs. the full doc): Mean Well PSU, IEC inlet, AC switch, Anderson Powerpoles, DC blade fuse, 14 AWG silicone, PSU mounting block, ferrule crimper. That's ~$60+ of parts and all the mains wiring, gone.</p>
+<p>Plus shared tools (iron, solder, multimeter, etc.) — see <a href="shopping_list.md">shopping_list.md</a>. Surplus/owned parts are tracked in <a href="inventory.md">inventory.md</a>.</p>
+<hr />
+<h2 id="8-build-order">8. Build order</h2>
+<ol start="0">
+<li><em>(optional)</em> <strong>Phase 0 tap-light</strong> on a breadboard — one piezo + a short strip — to shake down soldering and confirm one piezo detects taps.</li>
+<li><strong>Rim</strong>: seat the strip in the channel around the octagon; corner jumpers; solder the 3 power-feed taps + the data feed.</li>
+<li><strong>Calibrate</strong> per-side LED counts with <code>tap_light</code> (§6). Paste the printed array into both sketches' defaults if you want it baked in too.</li>
+<li><strong>Piezo modules</strong> (×8): network + inline JST at each disc, labeled S1–S8.</li>
+<li><strong>Control board</strong>: ESP socket, 470 Ω, cap, piezo A1–A8 landings + inline JSTs, strip harness + JST.</li>
+<li><strong>Bench test</strong> the board: plug the USB source, flash <code>turn_counter</code>, fake taps with a screwdriver on the piezo leads.</li>
+<li><strong>Install on the lid</strong>: bond discs in their bores, mount the box, dress wiring, plug the 9 JSTs + USB.</li>
+<li><strong>Play</strong>: flash <code>turn_counter</code>, confirm calibration, revert the <code>isOn</code> bench line.</li>
+</ol>
+<hr />
+<h2 id="9-what-the-advanced-doc-adds">9. What the advanced doc adds</h2>
+<p>If you later want a permanent, brighter, wire-hidden install, <a href="turn_counter_design_doc.md">turn_counter_design_doc.md</a> covers:</p>
+<ul>
+<li><strong>Mains power</strong>: 5 V / 18 A Mean Well PSU on the frame, AC inlet + switch, internal fusing.</li>
+<li><strong>Slab ↔ frame DC disconnect</strong>: Anderson Powerpole so the lid lifts while the PSU stays put.</li>
+<li><strong>Full-brightness all-on</strong>: feed the strip 5 V <em>directly</em> (bypassing the board), <code>MAX_POWER_MA</code> → 2500+, mid/end injection sized for the READY-all-on case.</li>
+<li><strong>Level shifter</strong>: 74AHCT125 add-back for guaranteed pixel-1 data margin.</li>
+<li>Detailed AC-safety wiring, sourcing (counterfeit avoidance), and the full phased checklist.</li>
+</ul>
+<p>Everything in this simple build carries straight over — the upgrade is additive.</p>
+</body>
+</html>

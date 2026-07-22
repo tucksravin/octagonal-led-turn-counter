@@ -396,6 +396,12 @@
 </tr>
 <tr>
 <td></td>
+<td>JST-XH 2-pin in-line pair</td>
+<td style="text-align: right;">8</td>
+<td>one per piezo — inline service disconnect, off-board</td>
+</tr>
+<tr>
+<td></td>
 <td><em>74AHCT125 + DIP-14 socket</em></td>
 <td style="text-align: right;"><em>(opt)</em></td>
 <td><em>optional level-shifter add-back if pixel 1 glitches (§3) — not built by default</em></td>
@@ -441,8 +447,8 @@
 <tr>
 <td></td>
 <td>JST-XH pre-crimped pigtails</td>
-<td style="text-align: right;">1 pr</td>
-<td>strip harness in-line disconnect (piezo pairs solder directly)</td>
+<td style="text-align: right;">9 pr</td>
+<td>strip 3-pin + 8× piezo 2-pin in-line disconnects (all off-board)</td>
 </tr>
 <tr>
 <td></td>
@@ -1280,7 +1286,7 @@
 <li class="task"><span class="task-box">☐</span> <strong>L2</strong> — black harness lead: bottom GND rail (right end) → strip harness</li>
 <li class="task"><span class="task-box">☐</span> <strong>L3</strong> — bundle DATA + 5V + GND; fit the <strong>in-line JST-XH 3-pin</strong> a few inches off-board (service disconnect) → strip DIN + start injection</li>
 </ul>
-<p><strong>Piezo pairs (22 AWG twisted; signal lands direct on the ADC hole — no series resistor)</strong></p>
+<p><strong>Piezo pairs (22 AWG twisted; signal lands direct on the ADC hole — no series resistor; each pair carries an inline JST-XH 2-pin off-board, labeled S1–S8)</strong></p>
 <ul>
 <li class="task"><span class="task-box">☐</span> <strong>A1</strong> — S1 (GPIO 1): signal → col 19 row j · GND lead → bottom GND rail</li>
 <li class="task"><span class="task-box">☐</span> <strong>A2</strong> — S2 (GPIO 2): signal → col 18 row j · GND lead → bottom GND rail</li>
@@ -1316,7 +1322,7 @@
 <ul>
 <li class="task"><span class="task-box">☐</span> Drill 8 rim bores from the underside, one per side near the outer edge, leaving a <strong>~3–5 mm floor</strong> — never through to the laminate (design doc §4.3)</li>
 <li class="task"><span class="task-box">☐</span> Solder leads to all 8 piezos (red +, black −), under 2 s per pad</li>
-<li class="task"><span class="task-box">☐</span> Twist each disc's 1 MΩ + Zener legs into the pigtail wires ~1/2" off the disc — one soldered bundle per node, <strong>Zener band toward signal</strong> (check before twisting); heat-shrink each node separately</li>
+<li class="task"><span class="task-box">☐</span> Twist each disc's 1 MΩ + Zener legs into the pigtail wires ~1/2" off the disc — one soldered bundle per node, <strong>Zener band toward signal</strong> (check before twisting); heat-shrink each node separately. Terminate the disc pigtail in its <strong>inline JST-XH 2-pin</strong>, labeled S1–S8 (signal on pin 1, GND on pin 2 — keep all 8 consistent)</li>
 <li class="task"><span class="task-box">☐</span> Bench-test each: multimeter on AC volts, tap, expect a brief swing</li>
 <li class="task"><span class="task-box">☐</span> Glue each piezo into its bore, brass face to the wood floor (CA or thin epoxy); vacuum the dust first; press 30 s</li>
 <li class="task"><span class="task-box">☐</span> Route the twisted pairs through the underside kerfs to the control box; <strong>label each pair to its side (S1–S8)</strong></li>
@@ -1328,7 +1334,7 @@
 <li class="task"><span class="task-box">☐</span> Branch the slab DC cable into a WAGO 221 node → control-box 5V/GND <strong>and</strong> the 3 strip injection points</li>
 <li class="task"><span class="task-box">☐</span> <strong>Verify polarity at every junction with a multimeter</strong> — reversed 5 V instantly kills the strip</li>
 <li class="task"><span class="task-box">☐</span> P-clip / cable mount within 4" of the grommet — strain relief hits the clip, not the connector</li>
-<li class="task"><span class="task-box">☐</span> Land the 8 labeled piezo pairs on the board (per §5.2 A1–A8) and click the strip harness's in-line JST together</li>
+<li class="task"><span class="task-box">☐</span> Land the 8 labeled piezo pairs on the board (per §5.2 A1–A8), then click the 8 piezo JSTs and the strip harness's in-line JST together</li>
 </ul>
 <div class="page-break"></div>
 
@@ -1352,7 +1358,7 @@
 <p>Do all of these with the board <strong>unpowered</strong> and the ESP32 still <strong>out of its socket</strong>, before the first power-up.</p>
 <ul>
 <li class="task"><span class="task-box">☐</span> <strong>+5 V ↔ GND</strong>: probe for shorts. Expect open (the cap may give a brief charge beep, then settle open). A hard short here = find it before you apply power</li>
-<li class="task"><span class="task-box">☐</span> <strong>Buzz each S column → its GPIO pin</strong> (S1→GPIO1 … S8→GPIO9) — confirms the ADC jumpers A1–A8</li>
+<li class="task"><span class="task-box">☐</span> <strong>Buzz each S column → its GPIO pin</strong> (S1→GPIO1 … S8→GPIO9), with the piezo JSTs mated — confirms the ADC jumpers A1–A8 through the connectors</li>
 <li class="task"><span class="task-box">☐</span> <strong>LED DATA → IC pin 3 (1Y)</strong> continuous — confirms D2</li>
 <li class="task"><span class="task-box">☐</span> <strong>1OE (IC pin 1) → GND</strong> continuous — confirms P9 (or the strip stays Hi-Z / dark)</li>
 <li class="task"><span class="task-box">☐</span> <strong>IC pin 7 (GND) → GND</strong> and <strong>IC pin 14 (VCC) → +5 V</strong> — confirms P8/P10</li>

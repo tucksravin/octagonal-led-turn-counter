@@ -1,5 +1,7 @@
 # Octagonal Gaming Table Turn Counter — Design Document
 
+> **This is the advanced / permanent-install reference.** It documents the mains-powered version: a 5 V PSU on the pool-table frame, an AC switch/inlet, a slab↔frame DC disconnect, an optional level shifter, and power injection sized for full-brightness all-on. **For the current default build — USB-powered, everything on the lid, no mains wiring — start with [design_doc_simple.md](design_doc_simple.md).** The simple build is a strict subset of this one; everything here is an additive upgrade.
+
 **Project**: LED rim turn counter for an octagonal gaming table
 **Geometry**: 8 sides × 20" each = 160" (~4 m) perimeter
 **Player count**: Variable, 2–8 (configurable in firmware setup mode)
@@ -20,7 +22,7 @@
 
 A perimeter LED rim around an octagonal gaming table shows whose turn it is — one section glows in the active player's color while the rest stays dark. The active player taps their section to pass turn; the lit zone advances clockwise to the next player. Player count is configurable from 2 to 8, and a two-handed slap on opposite sides toggles the whole thing on or off.
 
-The build is a thin octagonal slab that sits on top of an existing bumper pool table. The slab is removable — a single DC connector pops apart so it can lift away, leaving the PSU and AC mains permanently mounted to the pool table frame underneath.
+The build is a thin octagonal slab that sits on top of an existing bumper pool table. The slab is removable — a single DC connector pops apart so it can lift away, leaving the PSU and AC mains permanently mounted to the pool table frame underneath. *(For a simpler, fully-portable build with no frame wiring at all, a USB powerbank on the slab can replace the PSU entirely — see §3.5.)*
 
 This document walks through the build end-to-end: tools and a Phase 0 starter project for first-time soldering, bill of materials, electrical and mechanical design, step-by-step assembly, firmware reference, and troubleshooting.
 
@@ -231,7 +233,7 @@ The main build splits into seven phases on top of Phase 0. Do them in order.
 | **2. Bench prototype** | ESP32 + 1 LED segment + 1 piezo on a breadboard, firmware running | Proves the full firmware works before anything is permanent |
 | **3. LED rim** | Cut, route, and mount the strip into aluminum channel around the octagon | The most visible part of the build. Take your time on the corners |
 | **4. Piezo mounting** | Glue 8 piezos to the underside of the slab, run leads | Cross-talk between sides is inherent to a single slab; firmware filters it, but careful placement helps |
-| **5. Control box** | ESP32 + 470 Ω + 1000 µF cap on a half-size protoboard, in an enclosure (level shifter optional) | Everything terminates here. In-line strip JST so the table is serviceable |
+| **5. Control box** | ESP32 + 470 Ω + 1000 µF cap on a half-size protoboard, in an enclosure (level shifter optional) | Everything terminates here. In-line strip + piezo JSTs so the whole control box unplugs |
 | **6. Final assembly** | Mount PSU on the bumper pool frame, wire the Powerpole disconnect, dress wiring on the slab, mate and test | The slab/frame split (§4.6) is most of the work here |
 | **7. Tune & test** | Dial in the piezo tap delta, calibrate brightness, play a real game | Real-world testing always reveals something the bench didn't |
 
@@ -257,11 +259,11 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 | 1 | Power supply | Mean Well LRS-100-5 (5 V, 18 A) | Don't cheap out here. LRS-50-5 (5 V, 10 A) is the original spec and also fine if you can find it; the -100 was substituted when the -50 went out of stock at DigiKey |
 | 1 | Power switch | Panel-mount rocker rated for your mains (≥125 V AC covers US 120 V; 250 V AC if outside the US), 6 A+ | Or use a switched IEC inlet (safer) |
 | ~ | Hookup wire | 22 AWG stranded for signal, 18 AWG for power | A few colors helps |
-| 12 | JST-XH 2-pin connector pairs | For piezo leads | Makes service easy |
+| 12 | JST-XH 2-pin connector pairs | Inline disconnect in each piezo lead, off-board (8 used + spares) | Any disc — or the whole control box — unplugs without desoldering |
 | 2 | JST-XH 3-pin connector pair | For the LED strip feed (5V + data + ground) | Detachable rim |
 | 1 pk | WAGO 221-415 lever connectors | 5-conductor, 25-pack | Branch nodes for the slab DC rail (control-box feed + 3 strip injection points). Replaces the screw-terminal blocks of earlier drafts |
 | 1 | Project box | ~112×62×31 mm (e.g. Hammond 1591B) | Holds the 81 mm half-size control board — see §4.5 |
-| 2 | Protoboard | 5×7 cm (Phase 0 starter) + half-size Perma-Proto 81×46 mm (main) | 30 columns suffice because the piezo networks live at the discs (§4.3) and pigtails solder directly — see `doc-src/protoboard_half_layout.svg` |
+| 2 | Protoboard | 5×7 cm (Phase 0 starter) + half-size Perma-Proto 81×46 mm (main) | 30 columns suffice because the piezo networks live at the discs (§4.3) and the pigtails land directly on the board — no board-mounted piezo headers (their service JSTs are inline, off-board). See `doc-src/protoboard_half_layout.svg` |
 | 2 | Female header strip, 1×22 | 2.54 mm pitch, cut from 1×40 strips (cut through position 23 — cutting a female header sacrifices one socket) | ESP32 socket on the control board — never solder the DevKit directly |
 | 1 | Inline fuse | 5 A automotive blade fuse + holder | Between PSU 5V output and Powerpole pigtail |
 | 1 | Breadboard | Standard half-size | For prototyping. Useful forever |
@@ -337,10 +339,34 @@ An inline 5 A fuse between PSU 5V output and the rest of the system. If somethin
 ### 3.4 Power budget sanity check
 
 - 240 LEDs × 60 mA worst case (full white) = 14.4 A
-- One side (30 LEDs) lit at 50% brightness, single color = ~0.5 A
+- One side (30 LEDs) lit at 50% brightness, single color = ~0.5 A — this is normal turn_counter play
+- All active seats lit at once (setup blink / READY mode / ready-flash, up to 221 LEDs) = ~3–4 A peak — the firmware's `MAX_POWER_MA` cap (§3.5) holds this down on a current-limited supply
 - Idle (lights off, ESP32-S3 only) = ~30–50 mA without Wi-Fi, ~80–120 mA with Wi-Fi up for OTA
 
 An 18 A PSU (LRS-100-5) is generous — even a 10 A PSU (LRS-50-5) would be comfortable, since we'll never light more than ~30 LEDs at once during normal play. The extra headroom on the -100 means the PSU itself won't enter overcurrent protection even if the firmware ever drives full-brightness white across the full strip (~14.4 A theoretical max), so the **inline 5 A fuse is what protects downstream wiring on a short** — don't skip it.
+
+### 3.5 Alternative power: through the board's USB
+
+The frame-mounted PSU + Powerpole architecture (§4.6) is sized for the ~14 A a full-white strip could pull. But **turn_counter never does that** — normal play lights exactly one side (~27–29 LEDs), so the real draw is **under 1 A** (one side at brightness 128 ≈ 0.5–0.7 A of LEDs, plus ~0.25 A for the ESP32-S3 with Wi-Fi). That's small enough to power the **entire table through the ESP32-S3 dev board's own USB jack** — from a USB powerbank on the slab, a USB wall adapter, or even a laptop. No PSU, no mains work, no frame wiring, no chopped cables: one USB cable into the board, and the strip's 5 V comes off the board's `5V` pin. Everything lives on the slab.
+
+**It's a current limit, not a voltage limit.** 5 V is nominal for both the board and the strip. What's marginal is the *amps* through the board's USB-C connector and the thin 5 V trace to the `5V` pin — good for roughly **1.5–2 A continuous**. Normal one-side play sits at ~0.85 A total, comfortably under that. (It's why bench-powering the strip off a laptop has been fine all along, and why `tap_light`'s own 700 mA cap keeps *it* safe through USB too.)
+
+**The one stress case, handled in firmware.** Three moments light *every* active seat at once — setup (joined seats blinking), READY mode with everyone on, and the ready-flash — which at full brightness would be ~3–4 A, past the board's path. `MAX_POWER_MA` (default **1500**) drives `FastLED.setMaxPowerInVoltsAndMilliamps(5, 1500)`, so FastLED transparently dims *only those all-on frames* (~⅓ brightness) to hold the draw in bounds; one-side play never hits the cap and stays full-bright. 1500 mA of LEDs + ~250 mA ESP ≈ 1.75 A total — sized for the board's USB path.
+
+**Wiring — the whole thing:**
+
+- One USB cable from the source (powerbank / wall adapter / laptop) into the board. The strip's 5 V + GND tap the board's `5V`/`GND` pins; data stays GPIO 11 → 470 Ω → DIN; common ground throughout.
+- Keep the 1000 µF cap at the strip start (§3.3).
+- That's it — nothing crosses to the frame.
+
+**Want full-brightness all-on?** (bright setup / READY) Then don't route that current through the board. Chop a USB cable for its 5 V + GND and **split it: strip injection point(s) on one branch, the board's `5V` pin on the other**, common ground — so the LED current bypasses the board entirely. Add the mid/end injection taps for the READY-all-on case (short jumpers from the same source along the slab). Then raise `MAX_POWER_MA` to ~2500 (a 3 A USB port), or remove it on the Mean Well PSU. This split is the *only* reason to chop a cable; the default one-cable path covers normal play fully.
+
+**If your source is a powerbank, two caveats:**
+
+- **Low-load auto-shutoff.** Idle/off draw drops to ~0.1–0.25 A; many banks read that as "nothing plugged in" and power down after ~15–30 s. Use a bank with an "always-on" / low-current / trickle mode.
+- **Runtime is a non-issue.** A 10,000 mAh bank ≈ ~9 h of normal one-side play.
+
+**Note:** the `tap_light` and `all_white` test firmwares *do* light the whole strip — `all_white` at 2000 mA will exceed the board's USB path, so run it from a stouter supply or lower its cap; `tap_light` at 700 mA is fine through USB.
 
 ---
 
@@ -386,7 +412,7 @@ Don't bore fully through to the laminate: a laminate-only floor is extremely sen
 
 **Mounting**: bore floor clean and dust-free, cyanoacrylate or thin epoxy, brass face to the wood, even pressure for 30 seconds. Hot glue only for temporary tests.
 
-**Wire routing**: one twisted pair (signal + GND) per piezo, 22 AWG stranded, routed in the underside kerfs to the control board — labeled S1–S8. Keep the pairs out of the kerfs carrying 5 V injection runs for their first few inches. No JSTs at either end: the pairs solder directly at the disc and at the board.
+**Wire routing**: one twisted pair (signal + GND) per piezo, 22 AWG stranded, routed in the underside kerfs to the control board — labeled S1–S8. Keep the pairs out of the kerfs carrying 5 V injection runs for their first few inches. Each pair carries an **inline JST-XH 2-pin a few inches off the control board** (same pattern as the strip harness): the disc end solders to the 1 MΩ/Zener network, the board end solders at the ADC hole + GND rail (A1–A8), and the JST midspan lets any disc — or the whole control box — unplug without desoldering. Label both halves of each connector S1–S8; the discs are identical, so a swapped plug just maps a disc to the wrong side (harmless, but confusing).
 
 ### 4.4 Cross-talk mitigation
 
@@ -421,6 +447,8 @@ Whichever you pick:
 ### 4.6 Installation: removable top
 
 The gaming table sits on top of an existing bumper pool table, and the top slab needs to be liftable. The build splits into two parts that connect via a single **DC quick-disconnect**. Mains AC stays put on the frame; only +5V DC crosses the joint.
+
+> **This whole split is optional.** It exists to keep a mains-powered PSU on the frame. If you power the table from a USB powerbank on the slab (§3.5), there is no frame side and no disconnect — everything below is skipped, and the slab is just lifted off as one piece.
 
 [INSTALLATION_ARCH_FIGURE]
 
@@ -490,7 +518,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 
 - [ ] Drill 8 rim bores from the underside, one per side near the outer edge, leaving a ~3–5 mm floor (§4.3) — verify remaining thickness before the first glue-down, and never bore through to the laminate
 - [ ] Solder leads to all 8 piezos (red to +, black to –). Quick — under 2 seconds per pad
-- [ ] Build each disc's network in the pigtail ~1/2" off the disc: twist the 1 MΩ + Zener legs into the wire bundle, one soldered joint per node, Zener band toward signal; heat-shrink each node separately (§4.3)
+- [ ] Build each disc's network in the pigtail ~1/2" off the disc: twist the 1 MΩ + Zener legs into the wire bundle, one soldered joint per node, Zener band toward signal; heat-shrink each node separately (§4.3). Terminate the disc pigtail in its inline JST-XH 2-pin, labeled S1–S8
 - [ ] Test each piezo before mounting: connect to multimeter on AC voltage, tap it, expect a brief swing
 - [ ] Glue each piezo into its bore, brass face against the wood floor — vacuum the drilling dust out first
 - [ ] Route each twisted pair through the underside kerfs toward the control box; secure every 6"; label S1–S8
@@ -498,7 +526,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 ### Phase 5: Control Box
 
 - [ ] Build the protoboard: half-size Perma-Proto — ESP32 socket (use female headers, don't solder the module), 1000 µF cap, and the GPIO 11 → 470 Ω → strip data run (470 Ω spliced in-line, near DIN). Direct 3.3 V drive — **no level shifter** by default (cols 23–30 stay empty; that's where the optional '125 drops in, §3.3). Print `doc-src/protoboard_half_layout.svg` for placement; `doc-src/protoboard_wiring.svg` is the retired full-size map, kept only for the DevKitC-1 v1.1 pin reference. Piezo networks are **not** on this board — they live at the discs (§4.3)
-- [ ] Solder the 8 labeled piezo pairs directly into their row-a/j holes per the layout — signal to the GPIO column, GND to the nearest rail. No series resistor, no JST headers
+- [ ] Solder the 8 labeled piezo pairs into their row-a/j holes per the layout — signal to the GPIO column, GND to the nearest rail. No series resistor, no board-mounted JST headers; instead each pair gets an **inline JST-XH 2-pin a few inches off-board** for service (same pattern as the strip). Label the connectors S1–S8
 - [ ] Solder the 3-wire strip harness (5V / data / ground) directly to the board, with an in-line JST-XH 3-pin a few inches off-board as the service disconnect (the board feeds the strip-start injection point; the mid and end taps stay on the slab rail)
 - [ ] Add a 5V/GND input pigtail (its far end lands in a WAGO 221 lever node on the slab DC rail)
 - [ ] Test before installing: power up with the bench-test pigtail (see §4.6) connected to a 5V supply — either a small bench supply, or a USB-C wall adapter with a USB-C-to-Powerpole adapter cable, or even just the ESP32-S3's USB power if you only need to verify the firmware logic without driving the LED strip — then run firmware and tap piezo leads with a screwdriver to fake hits

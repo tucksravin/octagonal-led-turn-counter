@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 244" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+  </defs>
+
+  <!-- the lid boundary: everything is self-contained on the removable slab -->
+  <rect x="8" y="8" width="744" height="228" rx="12" fill="none" stroke="#9a9a9a" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <text x="22" y="27" font-size="12.5" fill="#8a8a8a">The removable lid — self-contained, USB-powered · nothing crosses to the frame</text>
+
+  <!-- power source -->
+  <rect x="26" y="70" width="150" height="64" rx="6" fill="#f7f7f5" stroke="#333" stroke-width="1.5"/>
+  <text x="101" y="98" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">USB powerbank</text>
+  <text x="101" y="116" text-anchor="middle" font-size="11.5" fill="#555">or wall adapter</text>
+
+  <!-- ESP32 -->
+  <rect x="250" y="70" width="152" height="64" rx="6" fill="#eef1f4" stroke="#2f4858" stroke-width="1.8"/>
+  <text x="326" y="98" text-anchor="middle" font-size="14.5" font-weight="bold" fill="#111">ESP32-S3</text>
+  <text x="326" y="116" text-anchor="middle" font-size="11.5" fill="#555">DevKitC-1</text>
+
+  <!-- LED strip -->
+  <rect x="566" y="70" width="178" height="64" rx="6" fill="#f7f7f5" stroke="#333" stroke-width="1.5"/>
+  <text x="655" y="93" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#111">WS2812B strip</text>
+  <text x="655" y="109" text-anchor="middle" font-size="11" fill="#555">221 LEDs · octagon rim</text>
+  <!-- little color hint of the per-side colors -->
+  <g>
+    <rect x="590" y="118" width="14" height="7" fill="#ff2828"/>
+    <rect x="608" y="118" width="14" height="7" fill="#2878ff"/>
+    <rect x="626" y="118" width="14" height="7" fill="#3cdc50"/>
+    <rect x="644" y="118" width="14" height="7" fill="#ffc81e"/>
+    <rect x="662" y="118" width="14" height="7" fill="#dc3cdc"/>
+    <rect x="680" y="118" width="14" height="7" fill="#28e6e6"/>
+    <rect x="698" y="118" width="14" height="7" fill="#ff821e"/>
+    <rect x="716" y="118" width="14" height="7" fill="#b4b4dc"/>
+  </g>
+
+  <!-- power in -->
+  <line x1="176" y1="102" x2="248" y2="102" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="212" y="94" text-anchor="middle" font-size="11" fill="#444" font-style="italic">USB · 5 V</text>
+
+  <!-- 5V to strip -->
+  <line x1="402" y1="88" x2="564" y2="88" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="483" y="80" text-anchor="middle" font-size="11.5" fill="#444" font-style="italic">5 V + GND</text>
+
+  <!-- data to strip -->
+  <line x1="402" y1="116" x2="564" y2="116" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="483" y="131" text-anchor="middle" font-size="11.5" fill="#444" font-style="italic">GPIO 11 → 470 Ω → DIN</text>
+
+  <!-- piezos -->
+  <line x1="256" y1="182" x2="396" y2="182" stroke="#777" stroke-width="1.4"/>
+  <g fill="#ffffff" stroke="#444" stroke-width="1.3">
+    <circle cx="256" cy="196" r="7"/>
+    <circle cx="276" cy="196" r="7"/>
+    <circle cx="296" cy="196" r="7"/>
+    <circle cx="316" cy="196" r="7"/>
+    <circle cx="336" cy="196" r="7"/>
+    <circle cx="356" cy="196" r="7"/>
+    <circle cx="376" cy="196" r="7"/>
+    <circle cx="396" cy="196" r="7"/>
+  </g>
+  <g stroke="#777" stroke-width="1.1">
+    <line x1="256" y1="189" x2="256" y2="182"/>
+    <line x1="276" y1="189" x2="276" y2="182"/>
+    <line x1="296" y1="189" x2="296" y2="182"/>
+    <line x1="316" y1="189" x2="316" y2="182"/>
+    <line x1="336" y1="189" x2="336" y2="182"/>
+    <line x1="356" y1="189" x2="356" y2="182"/>
+    <line x1="376" y1="189" x2="376" y2="182"/>
+    <line x1="396" y1="189" x2="396" y2="182"/>
+  </g>
+  <line x1="326" y1="182" x2="326" y2="136" stroke="#555" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="414" y="190" font-size="12" font-weight="bold" fill="#111">8× piezo discs</text>
+  <text x="414" y="206" font-size="11" fill="#555">→ ESP ADC (GPIO 1, 2, 4–9)</text>
+  <text x="414" y="221" font-size="10" fill="#8a8a8a">GPIO 3 skipped (JTAG strap)</text>
+</svg>

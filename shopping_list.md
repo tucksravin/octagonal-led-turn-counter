@@ -2,6 +2,8 @@
 
 Concrete parts list for the build. DigiKey-first sourcing for authenticity (especially the ESP32-S3, the Mean Well PSU, and the 74AHCT125 — all of which have counterfeits floating around on Amazon).
 
+**What's left over after the build** — the bulk-pack surplus, spare boards, extra strip — is tracked in [inventory.md](inventory.md), so future projects don't re-buy what you already own.
+
 > **Manufacturer PNs are listed below.** They're stable; DigiKey stock numbers can change. Search DigiKey by the manufacturer PN to find the current stock SKU.
 
 ## Vendor strategy
@@ -38,6 +40,8 @@ DigiKey doesn't bundle parts kits the way Amazon does. Two workarounds:
 > **Discrete-component AC mains approach:** Wall plug → IEC inlet → SPST switch (on Line only) → PSU's Line input. Neutral runs direct from inlet to PSU's N input; Earth runs direct from inlet to PSU's chassis Earth lug. ~2 extra mains splices vs the integrated DG12. SPST matches standard US household wiring — every wall switch in your house works this way. (The inline blade fuse under Mechanical is the **DC-side** fuse — PSU +5 V output → fuse → Powerpole. Automotive blade fuses are 32 V DC parts and don't belong on the AC line; the LRS-100-5 has its own internal input fuse.)
 >
 > **Faston terminal note:** the IEC inlet uses 0.250″ quick-connect tabs (industry standard). Either crimp female faston spade terminals onto your AC wires (DigiKey: `WM4040-ND` or similar 22-18 AWG female spades, ~$0.20 ea — buy 6 for L/N/Earth + spares), or solder wires directly to the tabs with heat-shrink. Soldering works fine if you don't have a spade crimper. The switch's terminals are typically also faston tabs — same handling.
+>
+> **Simpler power alternative — power through the board's USB (design doc §3.5):** because turn_counter lights one side at a time (~0.85 A total), you can run the whole table straight through the ESP32-S3 dev board's USB jack — from a powerbank on the slab or a USB wall adapter — and **skip the PSU, IEC inlet, SPST switch, all three Powerpole pairs, the DC blade fuse, and most of the 14 AWG wire** (~$35 of this order, plus no AC mains work). All you add is the power source and a plain USB cable into the board (no cable-chopping — that's only for the optional full-brightness-all-on split). The firmware's `MAX_POWER_MA` cap (1500) dims just the all-on moments (setup / READY) to fit the board's USB path; normal play stays full-bright. A powerbank source needs an *always-on / low-current* mode.
 
 ### Passives — single-value bulk packs
 
@@ -77,7 +81,7 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 | 1 | Protoboard, half-size Perma-Proto, 81×46 mm, 30 cols (main control board) | Adafruit `571` (or a second board from a `1609` multi-pack) | $5 |
 | 1 | Inline blade-fuse holder + 5 A blade fuse | Littlefuse `0FHM0001ZXJ` + `0287005.PXCN` | $4 |
 
-**Mechanical subtotal: ~$37.** (Both protoboards are half-size now: the main control board fits 30 columns because the piezo networks live at the discs and the pigtails solder directly — no piezo JST headers. See `doc-src/protoboard_half_layout.svg`; the full-size `protoboard_layout.svg` variant is retired.)
+**Mechanical subtotal: ~$37.** (Both protoboards are half-size now: the main control board fits 30 columns because the piezo networks live at the discs and the pigtails land directly on the board — no board-mounted piezo JST *headers* (each pair's service JST is inline, off-board). See `doc-src/protoboard_half_layout.svg`; the full-size `protoboard_layout.svg` variant is retired.)
 
 ### Wire & consumables
 
@@ -119,7 +123,7 @@ Easily clears the $100 free-shipping threshold.
 
 > Female headers don't snap apart cleanly like male ones — cutting destroys one socket position. To get a 1×22, cut through position 23 of a 1×40 (a 10-pack leaves plenty of spares).
 >
-> **Consolidating the Phase 5 round into one Amazon order:** the half-size Perma-Proto and project box from the DigiKey Mechanical table are also on Amazon — search **"Adafruit 571 Perma-Proto half"** and **"Hammond 1591B"** (~$5 and ~$7). Board-side piezo JST headers are no longer needed (pigtails solder directly); the strip harness needs one JST-XH 3-pin **in-line pair** from the MUYI kit as its service disconnect.
+> **Consolidating the Phase 5 round into one Amazon order:** the half-size Perma-Proto and project box from the DigiKey Mechanical table are also on Amazon — search **"Adafruit 571 Perma-Proto half"** and **"Hammond 1591B"** (~$5 and ~$7). Board-side piezo JST *headers* are no longer needed (pigtails land straight on the board); instead each piezo pair gets an **inline JST-XH 2-pin** off-board for service, and the strip harness gets one **inline JST-XH 3-pin** — 9 in-line pairs total, all from the MUYI kit.
 >
 > The USB-C cable is for flashing the ESP32-S3-DevKitC-1, which ships without one. Many USB-C cables you have lying around are charge-only — confirm data support before flash day. The ELEGOO Fun Kit isn't strictly needed (the DigiKey bulk packs cover this build), but at $18 it's the right call if you'll ever do another project — it's the "I need a 10 kΩ at midnight" insurance. Component values in cheap assortment kits are loosely binned; for any precision-critical use, fall back to the DigiKey passives.
 >
