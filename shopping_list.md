@@ -28,7 +28,7 @@ DigiKey doesn't bundle parts kits the way Amazon does. Two workarounds:
 | Qty | Part | Manufacturer PN | ~$ ea | Notes |
 |----:|------|-----------------|------:|-------|
 | 2 | ESP32-S3-DevKitC-1, N8R8 | Espressif `ESP32-S3-DEVKITC-1-N8R8` (PCB antenna — **not** the `-1U-N8R8` external-antenna variant) | $15 | N8 and N8R2 are end-of-life at DigiKey; N8R8 is what's stocked. Octal PSRAM uses GPIOs 35/36/37 internally — fine for this build (the pinout doesn't touch those), just don't reassign anything to those pins. Two boards lets the Phase 0 Tap Light survive as a permanent desk lamp. |
-| 2 | Level shifter, DIP-14 | TI `SN74AHCT125N` | $0.85 | One spare is cheap insurance. |
+| 2 | Level shifter, DIP-14 *(optional)* | TI `SN74AHCT125N` | $0.85 | **Optional** — the build drives the WS2812B directly at 3.3 V (only the first pixel is marginal). Buy it as cheap insurance for the add-back if pixel 1 ever glitches (design doc §3.3), but it isn't populated by default. |
 | 1 | 5V / 18A PSU | Mean Well `LRS-100-5` | $18 | Authentic Mean Well — Amazon is full of counterfeits at this price point. LRS-50-5 was the original spec; substituted to LRS-100-5 when the -50 was out of stock at DigiKey. Same series, bigger footprint (~129×97 mm vs 99×82 mm — wood block is still plenty), more headroom. The 5A inline fuse is *more* important now since the PSU itself won't trip on a downstream short. |
 | 1 | IEC C14 panel-mount inlet (no switch, no fuse) | Schurter `6100.4315` or equivalent — snap-in panel mount with quick-connect 0.250″ faston tabs | $5 | The original BOM spec'd the integrated Schurter DG12 (switch + fuse + inlet in one unit) but those run ~$46 at DigiKey post-COVID; this discrete approach is ~⅓ the price. |
 | 1 | Panel-mount rocker switch, SPST, 20 A @ 125 VAC | E-Switch `RR511D1121` (DigiKey EG4777-ND) | $3 | SPST switches only Line — same approach as every wall switch in your US household. Verify "In Stock" on the listing before ordering (the 13-week lead time only applies if DigiKey is out). 20 A rating is heavy overkill for ~0.5 A AC draw; that's just the smallest part E-Switch makes in this series. 125 V rating works for US 120 V; would not work in 240 V countries. |
@@ -71,12 +71,13 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 | Qty | Part | Manufacturer PN | ~$ |
 |----:|------|-----------------|---:|
 | 10 | 27 mm piezo disc | Murata `7BB-27-4L0` (or PUI Audio `AB2720B-LW100-R`) | $1.20 ea |
-| 1 | Project box, ABS, ~110×60×30 mm | Hammond `1591BSBK` | $9 |
+| 1 | Project box, ABS, ~112×62×31 mm | Hammond `1591BBK` | $7 |
 | 1 | Half-size breadboard, 400 tie-point | BPS `BB400` (or Twin Industries `400-pt`) | $5 |
-| 2 | Protoboard, ~5×7 cm, 0.1" pitch | Adafruit `1609` (Perma-Proto) or generic | $4 ea |
+| 1 | Protoboard, ~5×7 cm, 0.1" pitch (Phase 0 starter) | Adafruit `1609` (half-size Perma-Proto) or generic | $4 |
+| 1 | Protoboard, half-size Perma-Proto, 81×46 mm, 30 cols (main control board) | Adafruit `571` (or a second board from a `1609` multi-pack) | $5 |
 | 1 | Inline blade-fuse holder + 5 A blade fuse | Littlefuse `0FHM0001ZXJ` + `0287005.PXCN` | $4 |
 
-**Mechanical subtotal: ~$38.** (BOM only needs 2 protoboards — one for starter, one for main; earlier draft had 5.)
+**Mechanical subtotal: ~$37.** (Both protoboards are half-size now: the main control board fits 30 columns because the piezo networks live at the discs and the pigtails solder directly — no piezo JST headers. See `doc-src/protoboard_half_layout.svg`; the full-size `protoboard_layout.svg` variant is retired.)
 
 ### Wire & consumables
 
@@ -88,7 +89,7 @@ JST-XH connectors come from the Amazon kit. Powerpoles + terminal blocks from Di
 
 ---
 
-### **DigiKey total: ~$136**
+### **DigiKey total: ~$146**
 
 Easily clears the $100 free-shipping threshold.
 
@@ -105,9 +106,21 @@ Easily clears the $100 free-shipping threshold.
 | 1 | **"Anker PowerLine USB-C to USB-A 3ft data cable"** (or any known-good USB-C *data* cable) | $10 |
 | 1 | **"ELEGOO Electronic Component Fun Kit"** (assorted resistors, caps, LEDs, transistors, diodes) | $18 |
 | 1 | **"WAGO 221-415 5-conductor lever connector"** (25-pack) — for branching the slab DC rail into 4 nodes | $10 |
+| 1 | **"2.54 mm female pin header 1x40 straight 10 pack"** — cut two 1×22 strips for the ESP32 socket on the control protoboard | $7 |
+| 1 | **"M3 nylon standoff assortment kit"** (spacers + screws + nuts) — mounts the control protoboard in the 1591B box | $10 |
+| 1 ea | **"BNTECHGO 20 AWG silicone wire 10 ft red"** + **"...black"** — control-board 5V/GND pigtail + rail bridges (14 AWG won't fit protoboard holes; 22 AWG is under the layout's ≥20 AWG spec) | $9 |
+| 1 | **"rubber grommet assortment kit"** — control-box cable entries (8 piezo cables + strip harness + power pigtail), plus spares for the slab entry | $8 |
+| 1 (optional) | **"DIP-14 IC socket"** (smallest lot) — only needed with the optional 74AHCT125 level shifter (§3.3); skip it for the default direct-drive build | $5 |
+| 1 | **"Plasti Dip 14.5 oz can black"** (hardware stores carry it too) — rubber-skin coating for the 8 hardwood corner caps, 3 coats each (§4.2 of the design doc); one can is far more than enough | $9 |
+| 2 (optional) | **"Shepherd 7/8 inch screw-on rubber bumpers 4 pack"** (8 total) — mid-side standoffs if the slab flexes when edge-leaned (§4.2) | $8 |
+| 1 (optional) | **"135 degree corner guard 4ft"** (Lexan or vinyl, from TheCornerGuardStore / Wallguard / McMaster) — cut into 1"-tall pieces for 8 corner caps, if not making hardwood caps from scrap | $25 |
 
-**Amazon subtotal: ~$120-127.**
+**Amazon subtotal: ~$163-170 (+ optional rows above as needed — the DIP-14 socket, corner-guard, and bumper rows are all skip-by-default).**
 
+> Female headers don't snap apart cleanly like male ones — cutting destroys one socket position. To get a 1×22, cut through position 23 of a 1×40 (a 10-pack leaves plenty of spares).
+>
+> **Consolidating the Phase 5 round into one Amazon order:** the half-size Perma-Proto and project box from the DigiKey Mechanical table are also on Amazon — search **"Adafruit 571 Perma-Proto half"** and **"Hammond 1591B"** (~$5 and ~$7). Board-side piezo JST headers are no longer needed (pigtails solder directly); the strip harness needs one JST-XH 3-pin **in-line pair** from the MUYI kit as its service disconnect.
+>
 > The USB-C cable is for flashing the ESP32-S3-DevKitC-1, which ships without one. Many USB-C cables you have lying around are charge-only — confirm data support before flash day. The ELEGOO Fun Kit isn't strictly needed (the DigiKey bulk packs cover this build), but at $18 it's the right call if you'll ever do another project — it's the "I need a 10 kΩ at midnight" insurance. Component values in cheap assortment kits are loosely binned; for any precision-critical use, fall back to the DigiKey passives.
 >
 > Order 4 sections of channel if your perimeter is exactly 4 m and you're confident in the corner cuts; 5 if you want one spare meter for mistakes (recommended for first build).
@@ -205,15 +218,15 @@ Rolling tool chests, smart-app parts management systems, anything calling itself
 
 | Category | Cost |
 |----------|-----:|
-| DigiKey (parts) | ~$136 |
-| Amazon (LED strip + channel + JST + silicone wire + USB-C cable + ELEGOO kit + WAGOs) | ~$120-127 |
+| DigiKey (parts) | ~$146 |
+| Amazon (LED strip + channel + JST + silicone wire + USB-C cable + ELEGOO kit + WAGOs + control-box hardware) | ~$159-166 |
 | Hardware store | ~$15-18 |
-| **Parts subtotal** | **~$271-281** |
+| **Parts subtotal** | **~$320-330** |
 | Tools (skip if owned) | ~$213 |
 | Bench organization (recommended) | ~$100-105 |
-| **Project total** | **~$584-599** |
+| **Project total** | **~$633-648** |
 
-**The numbers honestly:** early drafts estimated "$80-120 parts" based on Amazon-everything sourcing with mystery-source kits. Authenticated parts from DigiKey + a real LED channel + spares comes to ~$271-281 (the design doc §2 now carries the same figure). There isn't much more to trim without compromising safety (the IEC inlet) or the build (the LED channel diffuser is what makes the rim look professional vs janky).
+**The numbers honestly:** early drafts estimated "$80-120 parts" based on Amazon-everything sourcing with mystery-source kits. Authenticated parts from DigiKey + a real LED channel + spares comes to ~$320-330 (the design doc §2 now carries the same figure). There isn't much more to trim without compromising safety (the IEC inlet) or the build (the LED channel diffuser is what makes the rim look professional vs janky).
 
 If you already own any tools, deduct directly from the ~$213 total — they're all standard bench items. Bench organization is genuinely optional for one project (cardboard boxes work) but pays back fast if this becomes a recurring hobby.
 

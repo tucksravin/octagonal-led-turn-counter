@@ -11,7 +11,7 @@ FQBN_TURN := $(FQBN):PartitionScheme=min_spiffs
 # warnings (arduino-cli hides both by default).
 VERBOSE := $(if $(V),--verbose --warnings all,)
 
-.PHONY: help ports monitor flash-hello flash-strip flash-tap flash-turn compile-all pdf vscode upgrade check-port
+.PHONY: help ports monitor flash-hello flash-strip flash-white flash-tap flash-turn compile-all pdf vscode upgrade check-port
 
 help: ## list available targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -31,6 +31,9 @@ flash-hello: check-port ## compile + upload hello_board (connection smoke test)
 flash-strip: check-port ## compile + upload strip_test (WS2812B smoke test)
 	arduino-cli compile $(VERBOSE) -u -p $(PORT) --fqbn $(FQBN) firmware/strip_test
 
+flash-white: check-port ## compile + upload all_white (every LED solid white — connection check)
+	arduino-cli compile $(VERBOSE) -u -p $(PORT) --fqbn $(FQBN) firmware/all_white
+
 flash-tap: check-port ## compile + upload tap_light (Phase 0 starter)
 	arduino-cli compile $(VERBOSE) -u -p $(PORT) --fqbn $(FQBN) firmware/tap_light
 
@@ -40,12 +43,15 @@ flash-turn: check-port ## compile + upload turn_counter (uses min_spiffs partiti
 compile-all: ## compile every sketch without uploading (always verbose + all warnings)
 	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/hello_board
 	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/strip_test
+	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/all_white
 	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/tap_light
 	arduino-cli compile --verbose --warnings all --fqbn $(FQBN_TURN) firmware/turn_counter
 
-pdf: ## rebuild both PDFs from the markdown sources
+pdf: ## rebuild all PDFs from the markdown sources
 	.venv/bin/python3 doc-src/build_pdf.py
 	.venv/bin/python3 doc-src/build_dry_run_pdf.py
+	.venv/bin/python3 doc-src/build_tap_light_pdf.py
+	.venv/bin/python3 doc-src/build_bench_guide_pdf.py
 
 vscode: ## regenerate .vscode IntelliSense config from the installed toolchain
 	python3 scripts/gen_intellisense.py

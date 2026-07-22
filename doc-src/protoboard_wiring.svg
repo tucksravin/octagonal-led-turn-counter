@@ -1,0 +1,526 @@
+<svg viewBox="0 0 1300 782" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .title { font-size: 21px; font-weight: bold; fill: #111; }
+    .sub   { font-size: 12px; fill: #555; }
+    .subtitle { font-size: 13px; font-weight: bold; fill: #111; }
+    .pin   { font-size: 9.5px; fill: #111; }
+    .small { font-size: 9px; fill: #555; }
+    .tiny  { font-size: 8px; fill: #111; }
+    .tinyg { font-size: 8px; fill: #999; }
+    .note  { font-size: 10px; fill: #444; font-style: italic; }
+    .rowlt { font-size: 10px; fill: #888; }
+    .colnum{ font-size: 9px; fill: #888; }
+    .th    { font-size: 10px; font-weight: bold; fill: #111; }
+    .pwr  { stroke: #c0392b; stroke-width: 2.2; fill: none; }
+    .gnd  { stroke: #111;    stroke-width: 2.2; fill: none; }
+    .data { stroke: #2563eb; stroke-width: 2;   fill: none; }
+    .analog { stroke: #15803d; stroke-width: 1.8; fill: none; }
+    .node { stroke: #b9c6d6; stroke-width: 5; fill: none; stroke-linecap: round; }
+    .rail { stroke-width: 2.2; fill: none; }
+    .grid { stroke: #e4e4e4; stroke-width: 1; }
+    .comp { fill: #fafafa; stroke: #111; stroke-width: 1.4; }
+    .ic   { fill: #ececec; stroke: #111; stroke-width: 1.4; }
+    .esp  { fill: #e3e3e3; stroke: #333; stroke-width: 1.6; }
+    .jst  { fill: #fff8e1; stroke: #111; stroke-width: 1.4; }
+    .j    { fill: #111; }
+    .ja   { fill: #15803d; }
+  </style>
+  <rect x="0" y="0" width="1300" height="782" fill="#ffffff"/>
+  <text x="650" y="26" text-anchor="middle" class="title">Control-Box Protoboard — Wiring (Phase 5)</text>
+  <text x="650" y="43" text-anchor="middle" class="sub">point-to-point companion to the placement insert (protoboard_layout.svg) · pin map = ESP32-S3-DevKitC-1 v1.1, USB ports left · every wire in the list below</text>
+<g transform="translate(70,60)">
+<line x1="0" y1="0" x2="20" y2="0" class="pwr"/><text x="26" y="4" class="small">+5 V</text>
+<line x1="70" y1="0" x2="90" y2="0" class="gnd"/><text x="96" y="4" class="small">GND</text>
+<line x1="150" y1="0" x2="170" y2="0" class="data"/><text x="176" y="4" class="small">LED data</text>
+<line x1="245" y1="0" x2="265" y2="0" class="analog"/><text x="271" y="4" class="small">piezo ADC</text>
+<line x1="345" y1="0" x2="365" y2="0" class="node"/><text x="371" y="4" class="small">column node</text>
+<circle cx="465" cy="0" r="2.6" class="j"/><text x="473" y="4" class="small">● = solder joint · crossing without a dot = NOT connected · grey pins = reserved, leave alone</text>
+</g>
+<text x="1163" y="86" text-anchor="end" class="pin">3-wire harness → strip DIN (chain start) — JST-XH 3-pin, row a, cols 34/35/36 ▶</text>
+<text x="40" y="120" fill="#c0392b" class="small">+5V</text>
+<line x1="70" y1="116" x2="1170" y2="116" class="rail" stroke="#c0392b"/>
+<text x="40" y="136" class="small">GND</text>
+<line x1="70" y1="132" x2="1170" y2="132" class="rail" stroke="#111"/>
+<text x="40" y="396" fill="#c0392b" class="small">+5V</text>
+<line x1="70" y1="400" x2="1170" y2="400" class="rail" stroke="#c0392b"/>
+<text x="40" y="412" class="small">GND</text>
+<line x1="70" y1="416" x2="1170" y2="416" class="rail" stroke="#111"/>
+<line x1="90" y1="116" x2="90" y2="400" class="pwr"/>
+<line x1="98" y1="132" x2="98" y2="416" class="gnd"/>
+<circle cx="90" cy="116" r="2.6" class="j"/>
+<circle cx="90" cy="400" r="2.6" class="j"/>
+<circle cx="98" cy="132" r="2.6" class="j"/>
+<circle cx="98" cy="416" r="2.6" class="j"/>
+<line x1="28" y1="400" x2="70" y2="400" class="pwr"/>
+<line x1="28" y1="416" x2="70" y2="416" class="gnd"/>
+<circle cx="70" cy="400" r="2.6" class="j"/>
+<circle cx="70" cy="416" r="2.6" class="j"/>
+<text x="28" y="438" class="pin">5V/GND pigtail (20 AWG) → WAGO 221 on the slab DC rail</text>
+<line x1="150" y1="400" x2="150" y2="405" class="pwr"/>
+<line x1="138" y1="405" x2="162" y2="405" stroke="#c0392b" stroke-width="2.4"/>
+<line x1="142" y1="410" x2="158" y2="410" stroke="#111" stroke-width="2"/>
+<line x1="150" y1="410" x2="150" y2="416" class="gnd"/>
+<circle cx="150" cy="400" r="2.6" class="j"/>
+<circle cx="150" cy="416" r="2.6" class="j"/>
+<text x="168" y="411" class="pin">1000 µF (+ to 5V)</text>
+<rect x="70" y="150" width="1100" height="220" rx="5" fill="#f7f7f4" stroke="#ccc" stroke-width="1"/>
+<rect x="70" y="251" width="1100" height="18" fill="#e9e9e9"/>
+<line x1="70" y1="260" x2="1170" y2="260" stroke="#bdbdbd" stroke-width="1" stroke-dasharray="6,4"/>
+<g stroke="#ededed" stroke-width="1">
+<line x1="75" y1="168" x2="1165" y2="168" class=""/>
+<line x1="75" y1="186" x2="1165" y2="186" class=""/>
+<line x1="75" y1="204" x2="1165" y2="204" class=""/>
+<line x1="75" y1="222" x2="1165" y2="222" class=""/>
+<line x1="75" y1="240" x2="1165" y2="240" class=""/>
+<line x1="75" y1="280" x2="1165" y2="280" class=""/>
+<line x1="75" y1="298" x2="1165" y2="298" class=""/>
+<line x1="75" y1="316" x2="1165" y2="316" class=""/>
+<line x1="75" y1="334" x2="1165" y2="334" class=""/>
+<line x1="75" y1="352" x2="1165" y2="352" class=""/>
+</g>
+<text x="58" y="171" class="rowlt">a</text>
+<text x="1180" y="171" class="rowlt">a</text>
+<text x="58" y="189" class="rowlt">b</text>
+<text x="1180" y="189" class="rowlt">b</text>
+<text x="58" y="207" class="rowlt">c</text>
+<text x="1180" y="207" class="rowlt">c</text>
+<text x="58" y="225" class="rowlt">d</text>
+<text x="1180" y="225" class="rowlt">d</text>
+<text x="58" y="243" class="rowlt">e</text>
+<text x="1180" y="243" class="rowlt">e</text>
+<text x="58" y="283" class="rowlt">f</text>
+<text x="1180" y="283" class="rowlt">f</text>
+<text x="58" y="301" class="rowlt">g</text>
+<text x="1180" y="301" class="rowlt">g</text>
+<text x="58" y="319" class="rowlt">h</text>
+<text x="1180" y="319" class="rowlt">h</text>
+<text x="58" y="337" class="rowlt">i</text>
+<text x="1180" y="337" class="rowlt">i</text>
+<text x="58" y="355" class="rowlt">j</text>
+<text x="1180" y="355" class="rowlt">j</text>
+<line x1="85" y1="158" x2="85" y2="362" class="grid"/>
+<text x="85" y="147" text-anchor="middle" class="colnum">1</text>
+<line x1="157" y1="158" x2="157" y2="362" class="grid"/>
+<text x="157" y="147" text-anchor="middle" class="colnum">5</text>
+<line x1="337" y1="158" x2="337" y2="362" class="grid"/>
+<text x="337" y="147" text-anchor="middle" class="colnum">15</text>
+<line x1="607" y1="158" x2="607" y2="362" class="grid"/>
+<text x="607" y="147" text-anchor="middle" class="colnum">30</text>
+<line x1="787" y1="158" x2="787" y2="362" class="grid"/>
+<text x="787" y="147" text-anchor="middle" class="colnum">40</text>
+<line x1="877" y1="158" x2="877" y2="362" class="grid"/>
+<text x="877" y="147" text-anchor="middle" class="colnum">45</text>
+<line x1="967" y1="158" x2="967" y2="362" class="grid"/>
+<text x="967" y="147" text-anchor="middle" class="colnum">50</text>
+<line x1="1057" y1="158" x2="1057" y2="362" class="grid"/>
+<text x="1057" y="147" text-anchor="middle" class="colnum">55</text>
+<line x1="1147" y1="158" x2="1147" y2="362" class="grid"/>
+<text x="1147" y="147" text-anchor="middle" class="colnum">60</text>
+<line x1="247" y1="158" x2="247" y2="362" class="grid"/>
+<line x1="427" y1="158" x2="427" y2="362" class="grid"/>
+<line x1="517" y1="158" x2="517" y2="362" class="grid"/>
+<line x1="697" y1="158" x2="697" y2="362" class="grid"/>
+<line x1="517" y1="280" x2="517" y2="352" class="node"/>
+<line x1="535" y1="168" x2="535" y2="240" class="node"/>
+<line x1="535" y1="280" x2="535" y2="352" class="node"/>
+<line x1="553" y1="168" x2="553" y2="240" class="node"/>
+<line x1="553" y1="280" x2="553" y2="352" class="node"/>
+<line x1="571" y1="168" x2="571" y2="240" class="node"/>
+<line x1="571" y1="280" x2="571" y2="352" class="node"/>
+<line x1="589" y1="280" x2="589" y2="352" class="node"/>
+<line x1="607" y1="168" x2="607" y2="240" class="node"/>
+<line x1="607" y1="280" x2="607" y2="352" class="node"/>
+<line x1="625" y1="168" x2="625" y2="240" class="node"/>
+<line x1="643" y1="280" x2="643" y2="352" class="node"/>
+<line x1="679" y1="168" x2="679" y2="240" class="node"/>
+<line x1="697" y1="168" x2="697" y2="240" class="node"/>
+<line x1="715" y1="168" x2="715" y2="240" class="node"/>
+<polyline points="769,280 1155,280 1155,416" class="gnd"/>
+<circle cx="1155" cy="416" r="2.6" class="j"/>
+<text x="1149" y="277" text-anchor="end" class="tiny">GND chain (row f) — insulated, stripped at G cols</text>
+<rect x="112" y="158" width="396" height="204" rx="6" class="esp"/>
+<text x="310" y="252" text-anchor="middle" fill="#222" class="subtitle">ESP32-S3 DevKitC-1</text>
+<text x="310" y="268" text-anchor="middle" fill="#444" class="small">socket rows b &amp; i, cols 3–24 · ◀ USB ports face left</text>
+<text x="310" y="284" text-anchor="middle" fill="#444" class="small">pin map below = v1.1 silkscreen — verify on your board before soldering</text>
+<line x1="121" y1="183" x2="121" y2="189" stroke="#555" stroke-width="1"/>
+<text x="124" y="214" transform="rotate(-90 124 214)" class="tiny">G</text>
+<line x1="139" y1="183" x2="139" y2="189" stroke="#555" stroke-width="1"/>
+<text x="142" y="214" fill="#c0392b" transform="rotate(-90 142 214)" class="tiny">5V</text>
+<line x1="157" y1="183" x2="157" y2="189" stroke="#555" stroke-width="1"/>
+<text x="160" y="214" transform="rotate(-90 160 214)" class="tiny">14</text>
+<line x1="175" y1="183" x2="175" y2="189" stroke="#555" stroke-width="1"/>
+<text x="178" y="214" transform="rotate(-90 178 214)" class="tiny">13</text>
+<line x1="193" y1="183" x2="193" y2="189" stroke="#555" stroke-width="1"/>
+<text x="196" y="214" transform="rotate(-90 196 214)" class="tiny">12</text>
+<line x1="211" y1="183" x2="211" y2="189" stroke="#555" stroke-width="1"/>
+<text x="214" y="214" fill="#2563eb" transform="rotate(-90 214 214)" class="tiny">11</text>
+<line x1="229" y1="183" x2="229" y2="189" stroke="#555" stroke-width="1"/>
+<text x="232" y="214" transform="rotate(-90 232 214)" class="tiny">10</text>
+<line x1="247" y1="183" x2="247" y2="189" stroke="#555" stroke-width="1"/>
+<text x="250" y="214" fill="#15803d" transform="rotate(-90 250 214)" class="tiny">9</text>
+<line x1="265" y1="183" x2="265" y2="189" stroke="#555" stroke-width="1"/>
+<text x="268" y="214" transform="rotate(-90 268 214)" class="tinyg">46</text>
+<line x1="283" y1="183" x2="283" y2="189" stroke="#555" stroke-width="1"/>
+<text x="286" y="214" transform="rotate(-90 286 214)" class="tinyg">3</text>
+<line x1="301" y1="183" x2="301" y2="189" stroke="#555" stroke-width="1"/>
+<text x="304" y="214" fill="#15803d" transform="rotate(-90 304 214)" class="tiny">8</text>
+<line x1="319" y1="183" x2="319" y2="189" stroke="#555" stroke-width="1"/>
+<text x="322" y="214" transform="rotate(-90 322 214)" class="tiny">18</text>
+<line x1="337" y1="183" x2="337" y2="189" stroke="#555" stroke-width="1"/>
+<text x="340" y="214" transform="rotate(-90 340 214)" class="tiny">17</text>
+<line x1="355" y1="183" x2="355" y2="189" stroke="#555" stroke-width="1"/>
+<text x="358" y="214" transform="rotate(-90 358 214)" class="tiny">16</text>
+<line x1="373" y1="183" x2="373" y2="189" stroke="#555" stroke-width="1"/>
+<text x="376" y="214" transform="rotate(-90 376 214)" class="tiny">15</text>
+<line x1="391" y1="183" x2="391" y2="189" stroke="#555" stroke-width="1"/>
+<text x="394" y="214" fill="#15803d" transform="rotate(-90 394 214)" class="tiny">7</text>
+<line x1="409" y1="183" x2="409" y2="189" stroke="#555" stroke-width="1"/>
+<text x="412" y="214" fill="#15803d" transform="rotate(-90 412 214)" class="tiny">6</text>
+<line x1="427" y1="183" x2="427" y2="189" stroke="#555" stroke-width="1"/>
+<text x="430" y="214" fill="#15803d" transform="rotate(-90 430 214)" class="tiny">5</text>
+<line x1="445" y1="183" x2="445" y2="189" stroke="#555" stroke-width="1"/>
+<text x="448" y="214" fill="#15803d" transform="rotate(-90 448 214)" class="tiny">4</text>
+<line x1="463" y1="183" x2="463" y2="189" stroke="#555" stroke-width="1"/>
+<text x="466" y="214" transform="rotate(-90 466 214)" class="tinyg">RST</text>
+<line x1="481" y1="183" x2="481" y2="189" stroke="#555" stroke-width="1"/>
+<text x="484" y="214" transform="rotate(-90 484 214)" class="tiny">3V3</text>
+<line x1="499" y1="183" x2="499" y2="189" stroke="#555" stroke-width="1"/>
+<text x="502" y="214" transform="rotate(-90 502 214)" class="tiny">3V3</text>
+<line x1="121" y1="331" x2="121" y2="337" stroke="#555" stroke-width="1"/>
+<text x="124" y="330" transform="rotate(-90 124 330)" class="tiny">G</text>
+<line x1="139" y1="331" x2="139" y2="337" stroke="#555" stroke-width="1"/>
+<text x="142" y="330" transform="rotate(-90 142 330)" class="tiny">G</text>
+<line x1="157" y1="331" x2="157" y2="337" stroke="#555" stroke-width="1"/>
+<text x="160" y="330" transform="rotate(-90 160 330)" class="tinyg">19</text>
+<line x1="175" y1="331" x2="175" y2="337" stroke="#555" stroke-width="1"/>
+<text x="178" y="330" transform="rotate(-90 178 330)" class="tinyg">20</text>
+<line x1="193" y1="331" x2="193" y2="337" stroke="#555" stroke-width="1"/>
+<text x="196" y="330" transform="rotate(-90 196 330)" class="tiny">21</text>
+<line x1="211" y1="331" x2="211" y2="337" stroke="#555" stroke-width="1"/>
+<text x="214" y="330" transform="rotate(-90 214 330)" class="tiny">47</text>
+<line x1="229" y1="331" x2="229" y2="337" stroke="#555" stroke-width="1"/>
+<text x="232" y="330" transform="rotate(-90 232 330)" class="tiny">48</text>
+<line x1="247" y1="331" x2="247" y2="337" stroke="#555" stroke-width="1"/>
+<text x="250" y="330" transform="rotate(-90 250 330)" class="tinyg">45</text>
+<line x1="265" y1="331" x2="265" y2="337" stroke="#555" stroke-width="1"/>
+<text x="268" y="330" transform="rotate(-90 268 330)" class="tinyg">0</text>
+<line x1="283" y1="331" x2="283" y2="337" stroke="#555" stroke-width="1"/>
+<text x="286" y="330" transform="rotate(-90 286 330)" class="tinyg">35</text>
+<line x1="301" y1="331" x2="301" y2="337" stroke="#555" stroke-width="1"/>
+<text x="304" y="330" transform="rotate(-90 304 330)" class="tinyg">36</text>
+<line x1="319" y1="331" x2="319" y2="337" stroke="#555" stroke-width="1"/>
+<text x="322" y="330" transform="rotate(-90 322 330)" class="tinyg">37</text>
+<line x1="337" y1="331" x2="337" y2="337" stroke="#555" stroke-width="1"/>
+<text x="340" y="330" transform="rotate(-90 340 330)" class="tiny">38</text>
+<line x1="355" y1="331" x2="355" y2="337" stroke="#555" stroke-width="1"/>
+<text x="358" y="330" transform="rotate(-90 358 330)" class="tiny">39</text>
+<line x1="373" y1="331" x2="373" y2="337" stroke="#555" stroke-width="1"/>
+<text x="376" y="330" transform="rotate(-90 376 330)" class="tiny">40</text>
+<line x1="391" y1="331" x2="391" y2="337" stroke="#555" stroke-width="1"/>
+<text x="394" y="330" transform="rotate(-90 394 330)" class="tiny">41</text>
+<line x1="409" y1="331" x2="409" y2="337" stroke="#555" stroke-width="1"/>
+<text x="412" y="330" transform="rotate(-90 412 330)" class="tiny">42</text>
+<line x1="427" y1="331" x2="427" y2="337" stroke="#555" stroke-width="1"/>
+<text x="430" y="330" fill="#15803d" transform="rotate(-90 430 330)" class="tiny">2</text>
+<line x1="445" y1="331" x2="445" y2="337" stroke="#555" stroke-width="1"/>
+<text x="448" y="330" fill="#15803d" transform="rotate(-90 448 330)" class="tiny">1</text>
+<line x1="463" y1="331" x2="463" y2="337" stroke="#555" stroke-width="1"/>
+<text x="466" y="330" transform="rotate(-90 466 330)" class="tinyg">RX</text>
+<line x1="481" y1="331" x2="481" y2="337" stroke="#555" stroke-width="1"/>
+<text x="484" y="330" transform="rotate(-90 484 330)" class="tinyg">TX</text>
+<line x1="499" y1="331" x2="499" y2="337" stroke="#555" stroke-width="1"/>
+<text x="502" y="330" transform="rotate(-90 502 330)" class="tiny">G</text>
+<line x1="121" y1="168" x2="121" y2="132" class="gnd"/>
+<circle cx="121" cy="132" r="2.6" class="j"/>
+<circle cx="121" cy="168" r="2.6" class="j"/>
+<line x1="139" y1="168" x2="139" y2="116" class="pwr"/>
+<circle cx="139" cy="116" r="2.6" class="j"/>
+<circle cx="139" cy="168" r="2.6" class="j"/>
+<text x="108" y="108" fill="#833" class="small">cols 3/4 = GND/5V (USB end)</text>
+<polyline points="211,168 211,146 517,146 517,298" class="data"/>
+<circle cx="211" cy="168" r="2.6" class="j"/>
+<circle cx="517" cy="298" r="2.6" class="j"/>
+<text x="216" y="164" fill="#2563eb" class="tiny">GPIO 11</text>
+<line x1="517" y1="316" x2="553" y2="316" stroke="#2563eb" stroke-width="2"/>
+<rect x="523" y="310" width="24" height="12" class="comp"/>
+<text x="535" y="332" text-anchor="middle" class="pin">470 Ω</text>
+<circle cx="517" cy="316" r="2.6" class="j"/>
+<circle cx="553" cy="316" r="2.6" class="j"/>
+<rect x="527" y="246" width="124" height="28" rx="2" class="ic"/>
+<circle cx="527" cy="260" r="5" fill="#f7f7f4" stroke="#111" stroke-width="1"/>
+<text x="589" y="264" text-anchor="middle" class="pin">74AHCT125</text>
+<g stroke="#111" stroke-width="1">
+<line x1="535" y1="246" x2="535" y2="240" class=""/>
+<line x1="535" y1="274" x2="535" y2="280" class=""/>
+<line x1="553" y1="246" x2="553" y2="240" class=""/>
+<line x1="553" y1="274" x2="553" y2="280" class=""/>
+<line x1="571" y1="246" x2="571" y2="240" class=""/>
+<line x1="571" y1="274" x2="571" y2="280" class=""/>
+<line x1="589" y1="246" x2="589" y2="240" class=""/>
+<line x1="589" y1="274" x2="589" y2="280" class=""/>
+<line x1="607" y1="246" x2="607" y2="240" class=""/>
+<line x1="607" y1="274" x2="607" y2="280" class=""/>
+<line x1="625" y1="246" x2="625" y2="240" class=""/>
+<line x1="625" y1="274" x2="625" y2="280" class=""/>
+<line x1="643" y1="246" x2="643" y2="240" class=""/>
+<line x1="643" y1="274" x2="643" y2="280" class=""/>
+</g>
+<text x="541" y="237" fill="#c0392b" class="pin">14 VCC</text>
+<text x="533" y="291" text-anchor="end" class="tiny">1OE</text>
+<text x="553" y="302" text-anchor="middle" fill="#2563eb" class="tiny">2·1A</text>
+<text x="573" y="291" fill="#2563eb" class="tiny">3·1Y</text>
+<text x="645" y="291" class="tiny">7·GND</text>
+<line x1="535" y1="240" x2="535" y2="116" class="pwr"/>
+<circle cx="535" cy="116" r="2.6" class="j"/>
+<line x1="535" y1="280" x2="535" y2="416" class="gnd"/>
+<circle cx="535" cy="416" r="2.6" class="j"/>
+<text x="427" y="432" fill="#b00" class="pin">pin 1 (1OE) → GND — or no data output!</text>
+<line x1="643" y1="280" x2="643" y2="416" class="gnd"/>
+<circle cx="643" cy="416" r="2.6" class="j"/>
+<polyline points="553,168 625,168" class="gnd"/>
+<circle cx="553" cy="168" r="2.4" class="j"/>
+<circle cx="571" cy="168" r="2.4" class="j"/>
+<circle cx="607" cy="168" r="2.4" class="j"/>
+<circle cx="625" cy="168" r="2.4" class="j"/>
+<line x1="553" y1="168" x2="553" y2="132" class="gnd"/>
+<circle cx="553" cy="132" r="2.6" class="j"/>
+<text x="660" y="176" text-anchor="end" class="tiny">pins 13·12·10·9 → GND</text>
+<line x1="589" y1="298" x2="607" y2="298" class="gnd"/>
+<circle cx="589" cy="298" r="2.4" class="j"/>
+<circle cx="607" cy="298" r="2.4" class="j"/>
+<line x1="607" y1="316" x2="643" y2="316" class="gnd"/>
+<circle cx="607" cy="316" r="2.4" class="j"/>
+<circle cx="643" cy="316" r="2.4" class="j"/>
+<polyline points="571,280 571,344 661,344 661,204 697,204" class="data"/>
+<circle cx="571" cy="280" r="2.6" class="j"/>
+<circle cx="697" cy="204" r="2.6" class="j"/>
+<rect x="667" y="138" width="60" height="24" rx="2" class="jst"/>
+<g stroke="#111" stroke-width="1">
+<line x1="679" y1="162" x2="679" y2="168" class=""/>
+<line x1="697" y1="162" x2="697" y2="168" class=""/>
+<line x1="715" y1="162" x2="715" y2="168" class=""/>
+</g>
+<circle cx="679" cy="168" r="2.6" class="j"/>
+<circle cx="697" cy="168" r="2.6" class="j"/>
+<circle cx="715" cy="168" r="2.6" class="j"/>
+<text x="679" y="180" text-anchor="middle" fill="#c0392b" class="tiny">5V</text>
+<text x="697" y="180" text-anchor="middle" fill="#2563eb" class="tiny">DATA</text>
+<text x="715" y="197" text-anchor="middle" class="tiny">GND</text>
+<polyline points="679,186 670,186 670,116" class="pwr"/>
+<circle cx="679" cy="186" r="2.6" class="j"/>
+<circle cx="670" cy="116" r="2.6" class="j"/>
+<polyline points="715,186 724,186 724,132" class="gnd"/>
+<circle cx="715" cy="186" r="2.6" class="j"/>
+<circle cx="724" cy="132" r="2.6" class="j"/>
+<line x1="751" y1="280" x2="751" y2="352" class="node"/>
+<line x1="769" y1="280" x2="769" y2="352" class="node"/>
+<line x1="751" y1="298" x2="769" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="755" y="292" width="10" height="12" class="comp"/>
+<text x="760" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="751" y1="316" x2="769" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="765,311 765,321 757,316" class="comp"/>
+<line x1="755" y1="310" x2="755" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="751" cy="298" r="2.4" class="j"/>
+<circle cx="769" cy="298" r="2.4" class="j"/>
+<circle cx="751" cy="316" r="2.4" class="j"/>
+<circle cx="769" cy="316" r="2.4" class="j"/>
+<circle cx="769" cy="280" r="2.6" class="j"/>
+<rect x="743" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="760" y="359" text-anchor="middle" class="pin">S1</text>
+<text x="760" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 1</text>
+<line x1="805" y1="280" x2="805" y2="352" class="node"/>
+<line x1="823" y1="280" x2="823" y2="352" class="node"/>
+<line x1="805" y1="298" x2="823" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="809" y="292" width="10" height="12" class="comp"/>
+<text x="814" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="805" y1="316" x2="823" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="819,311 819,321 811,316" class="comp"/>
+<line x1="809" y1="310" x2="809" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="805" cy="298" r="2.4" class="j"/>
+<circle cx="823" cy="298" r="2.4" class="j"/>
+<circle cx="805" cy="316" r="2.4" class="j"/>
+<circle cx="823" cy="316" r="2.4" class="j"/>
+<circle cx="823" cy="280" r="2.6" class="j"/>
+<rect x="797" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="814" y="359" text-anchor="middle" class="pin">S2</text>
+<text x="814" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 2</text>
+<line x1="859" y1="280" x2="859" y2="352" class="node"/>
+<line x1="877" y1="280" x2="877" y2="352" class="node"/>
+<line x1="859" y1="298" x2="877" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="863" y="292" width="10" height="12" class="comp"/>
+<text x="868" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="859" y1="316" x2="877" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="873,311 873,321 865,316" class="comp"/>
+<line x1="863" y1="310" x2="863" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="859" cy="298" r="2.4" class="j"/>
+<circle cx="877" cy="298" r="2.4" class="j"/>
+<circle cx="859" cy="316" r="2.4" class="j"/>
+<circle cx="877" cy="316" r="2.4" class="j"/>
+<circle cx="877" cy="280" r="2.6" class="j"/>
+<rect x="851" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="868" y="359" text-anchor="middle" class="pin">S3</text>
+<text x="868" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 4</text>
+<line x1="913" y1="280" x2="913" y2="352" class="node"/>
+<line x1="931" y1="280" x2="931" y2="352" class="node"/>
+<line x1="913" y1="298" x2="931" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="917" y="292" width="10" height="12" class="comp"/>
+<text x="922" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="913" y1="316" x2="931" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="927,311 927,321 919,316" class="comp"/>
+<line x1="917" y1="310" x2="917" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="913" cy="298" r="2.4" class="j"/>
+<circle cx="931" cy="298" r="2.4" class="j"/>
+<circle cx="913" cy="316" r="2.4" class="j"/>
+<circle cx="931" cy="316" r="2.4" class="j"/>
+<circle cx="931" cy="280" r="2.6" class="j"/>
+<rect x="905" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="922" y="359" text-anchor="middle" class="pin">S4</text>
+<text x="922" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 5</text>
+<line x1="967" y1="280" x2="967" y2="352" class="node"/>
+<line x1="985" y1="280" x2="985" y2="352" class="node"/>
+<line x1="967" y1="298" x2="985" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="971" y="292" width="10" height="12" class="comp"/>
+<text x="976" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="967" y1="316" x2="985" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="981,311 981,321 973,316" class="comp"/>
+<line x1="971" y1="310" x2="971" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="967" cy="298" r="2.4" class="j"/>
+<circle cx="985" cy="298" r="2.4" class="j"/>
+<circle cx="967" cy="316" r="2.4" class="j"/>
+<circle cx="985" cy="316" r="2.4" class="j"/>
+<circle cx="985" cy="280" r="2.6" class="j"/>
+<rect x="959" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="976" y="359" text-anchor="middle" class="pin">S5</text>
+<text x="976" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 6</text>
+<line x1="1021" y1="280" x2="1021" y2="352" class="node"/>
+<line x1="1039" y1="280" x2="1039" y2="352" class="node"/>
+<line x1="1021" y1="298" x2="1039" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="1025" y="292" width="10" height="12" class="comp"/>
+<text x="1030" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="1021" y1="316" x2="1039" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="1035,311 1035,321 1027,316" class="comp"/>
+<line x1="1025" y1="310" x2="1025" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="1021" cy="298" r="2.4" class="j"/>
+<circle cx="1039" cy="298" r="2.4" class="j"/>
+<circle cx="1021" cy="316" r="2.4" class="j"/>
+<circle cx="1039" cy="316" r="2.4" class="j"/>
+<circle cx="1039" cy="280" r="2.6" class="j"/>
+<rect x="1013" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="1030" y="359" text-anchor="middle" class="pin">S6</text>
+<text x="1030" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 7</text>
+<line x1="1075" y1="280" x2="1075" y2="352" class="node"/>
+<line x1="1093" y1="280" x2="1093" y2="352" class="node"/>
+<line x1="1075" y1="298" x2="1093" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="1079" y="292" width="10" height="12" class="comp"/>
+<text x="1084" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="1075" y1="316" x2="1093" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="1089,311 1089,321 1081,316" class="comp"/>
+<line x1="1079" y1="310" x2="1079" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="1075" cy="298" r="2.4" class="j"/>
+<circle cx="1093" cy="298" r="2.4" class="j"/>
+<circle cx="1075" cy="316" r="2.4" class="j"/>
+<circle cx="1093" cy="316" r="2.4" class="j"/>
+<circle cx="1093" cy="280" r="2.6" class="j"/>
+<rect x="1067" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="1084" y="359" text-anchor="middle" class="pin">S7</text>
+<text x="1084" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 8</text>
+<line x1="1129" y1="280" x2="1129" y2="352" class="node"/>
+<line x1="1147" y1="280" x2="1147" y2="352" class="node"/>
+<line x1="1129" y1="298" x2="1147" y2="298" stroke="#111" stroke-width="1.4"/>
+<rect x="1133" y="292" width="10" height="12" class="comp"/>
+<text x="1138" y="289" text-anchor="middle" class="tiny">1M</text>
+<line x1="1129" y1="316" x2="1147" y2="316" stroke="#111" stroke-width="1.6"/>
+<polygon points="1143,311 1143,321 1135,316" class="comp"/>
+<line x1="1133" y1="310" x2="1133" y2="322" stroke="#111" stroke-width="1.8"/>
+<circle cx="1129" cy="298" r="2.4" class="j"/>
+<circle cx="1147" cy="298" r="2.4" class="j"/>
+<circle cx="1129" cy="316" r="2.4" class="j"/>
+<circle cx="1147" cy="316" r="2.4" class="j"/>
+<circle cx="1147" cy="280" r="2.6" class="j"/>
+<rect x="1121" y="344" width="34" height="24" rx="2" class="jst"/>
+<text x="1138" y="359" text-anchor="middle" class="pin">S8</text>
+<text x="1138" y="392" text-anchor="middle" fill="#15803d" class="pin">GPIO 9</text>
+<polyline points="445,352 445,374 737,374 737,334 751,334" class="analog"/>
+<circle cx="445" cy="352" r="2.6" class="ja"/>
+<circle cx="751" cy="334" r="2.6" class="ja"/>
+<text x="560" y="371" fill="#15803d" class="tiny">GPIO 1 → S1 (row j)</text>
+<polyline points="427,352 427,380 791,380 791,334 805,334" class="analog"/>
+<circle cx="427" cy="352" r="2.6" class="ja"/>
+<circle cx="805" cy="334" r="2.6" class="ja"/>
+<text x="560" y="391" fill="#15803d" class="tiny">GPIO 2 → S2 (row j)</text>
+<polyline points="445,168 445,114 845,114 845,334 859,334" class="analog"/>
+<circle cx="445" cy="168" r="2.6" class="ja"/>
+<circle cx="859" cy="334" r="2.6" class="ja"/>
+<polyline points="427,168 427,110 899,110 899,334 913,334" class="analog"/>
+<circle cx="427" cy="168" r="2.6" class="ja"/>
+<circle cx="913" cy="334" r="2.6" class="ja"/>
+<polyline points="409,168 409,106 953,106 953,334 967,334" class="analog"/>
+<circle cx="409" cy="168" r="2.6" class="ja"/>
+<circle cx="967" cy="334" r="2.6" class="ja"/>
+<polyline points="391,168 391,102 1007,102 1007,334 1021,334" class="analog"/>
+<circle cx="391" cy="168" r="2.6" class="ja"/>
+<circle cx="1021" cy="334" r="2.6" class="ja"/>
+<polyline points="301,168 301,98 1061,98 1061,334 1075,334" class="analog"/>
+<circle cx="301" cy="168" r="2.6" class="ja"/>
+<circle cx="1075" cy="334" r="2.6" class="ja"/>
+<polyline points="247,168 247,94 1115,94 1115,334 1129,334" class="analog"/>
+<circle cx="247" cy="168" r="2.6" class="ja"/>
+<circle cx="1129" cy="334" r="2.6" class="ja"/>
+<text x="70" y="470" class="th">WIRE LIST — solder in this order (components are placed per the insert)</text>
+<text x="70" y="490" class="pin" fill="#c0392b" font-weight="bold">P1</text>
+<text x="100" y="490" class="pin">pigtail red 20 AWG: WAGO +5V → bottom +5V rail (left end)</text>
+<text x="70" y="506" class="pin" fill="#111" font-weight="bold">P2</text>
+<text x="100" y="506" class="pin">pigtail black 20 AWG: WAGO GND → bottom GND rail (left end)</text>
+<text x="70" y="522" class="pin" fill="#c0392b" font-weight="bold">P3</text>
+<text x="100" y="522" class="pin">bridge 20 AWG: bottom +5V rail ↔ top +5V rail (before col 1)</text>
+<text x="70" y="538" class="pin" fill="#111" font-weight="bold">P4</text>
+<text x="100" y="538" class="pin">bridge 20 AWG: bottom GND rail ↔ top GND rail (before col 1)</text>
+<text x="70" y="554" class="pin" fill="#111" font-weight="bold">P5</text>
+<text x="100" y="554" class="pin">1000 µF: + → bottom +5V rail, − → bottom GND rail (at entry)</text>
+<text x="70" y="570" class="pin" fill="#111" font-weight="bold">P6</text>
+<text x="100" y="570" class="pin">col 3 row a (DevKit GND, USB end) → top GND rail</text>
+<text x="70" y="586" class="pin" fill="#c0392b" font-weight="bold">P7</text>
+<text x="100" y="586" class="pin">col 4 row a (DevKit 5V, USB end) → top +5V rail</text>
+<text x="70" y="602" class="pin" fill="#c0392b" font-weight="bold">P8</text>
+<text x="100" y="602" class="pin">col 26 row a (IC pin 14, VCC) → top +5V rail</text>
+<text x="70" y="618" class="pin" fill="#111" font-weight="bold">P9</text>
+<text x="100" y="618" class="pin">col 26 row j (IC pin 1, 1OE) → bottom GND rail</text>
+<text x="70" y="634" class="pin" fill="#111" font-weight="bold">P10</text>
+<text x="100" y="634" class="pin">col 32 row j (IC pin 7, GND) → bottom GND rail</text>
+<text x="70" y="650" class="pin" fill="#111" font-weight="bold">P11</text>
+<text x="100" y="650" class="pin">row a: chain cols 27·28·30·31 (IC pins 13/12/10/9), col 27 → top GND rail</text>
+<text x="70" y="666" class="pin" fill="#111" font-weight="bold">P12</text>
+<text x="100" y="666" class="pin">row g: col 29 ↔ col 30 (pins 4/5) · row h: col 30 ↔ col 32 (to GND)</text>
+<text x="70" y="682" class="pin" fill="#c0392b" font-weight="bold">L1</text>
+<text x="100" y="682" class="pin">col 34 row b (LED 5V) → top +5V rail, around the JST body</text>
+<text x="70" y="698" class="pin" fill="#111" font-weight="bold">L2</text>
+<text x="100" y="698" class="pin">col 36 row b (LED GND) → top GND rail, around the JST body</text>
+<text x="620" y="490" class="pin" fill="#2563eb" font-weight="bold">D1</text>
+<text x="650" y="490" class="pin">col 8 row a (GPIO 11) → col 25 row g · 470 Ω sits col 25→27 row h</text>
+<text x="620" y="506" class="pin" fill="#2563eb" font-weight="bold">D2</text>
+<text x="650" y="506" class="pin">col 28 row g (IC pin 3, 1Y) → col 35 row c (LED DATA), around the IC</text>
+<text x="620" y="522" class="pin" fill="#15803d" font-weight="bold">A1</text>
+<text x="650" y="522" class="pin">S1: col 21 row j (GPIO 1) → col 38 row i</text>
+<text x="620" y="538" class="pin" fill="#15803d" font-weight="bold">A2</text>
+<text x="650" y="538" class="pin">S2: col 20 row j (GPIO 2) → col 41 row i</text>
+<text x="620" y="554" class="pin" fill="#15803d" font-weight="bold">A3</text>
+<text x="650" y="554" class="pin">S3: col 21 row a (GPIO 4) → col 44 row i</text>
+<text x="620" y="570" class="pin" fill="#15803d" font-weight="bold">A4</text>
+<text x="650" y="570" class="pin">S4: col 20 row a (GPIO 5) → col 47 row i</text>
+<text x="620" y="586" class="pin" fill="#15803d" font-weight="bold">A5</text>
+<text x="650" y="586" class="pin">S5: col 19 row a (GPIO 6) → col 50 row i</text>
+<text x="620" y="602" class="pin" fill="#15803d" font-weight="bold">A6</text>
+<text x="650" y="602" class="pin">S6: col 18 row a (GPIO 7) → col 53 row i</text>
+<text x="620" y="618" class="pin" fill="#15803d" font-weight="bold">A7</text>
+<text x="650" y="618" class="pin">S7: col 13 row a (GPIO 8) → col 56 row i</text>
+<text x="620" y="634" class="pin" fill="#15803d" font-weight="bold">A8</text>
+<text x="650" y="634" class="pin">S8: col 10 row a (GPIO 9) → col 59 row i</text>
+<text x="620" y="650" class="pin" fill="#111" font-weight="bold">G1</text>
+<text x="650" y="650" class="pin">insulated GND chain, row f: G cols 39·42·45·48·51·54·57·60 → bottom GND rail (right end)</text>
+<text x="620" y="666" class="pin" fill="#666" font-weight="bold">O1</text>
+<text x="650" y="666" class="pin">off-board: LED JST → strip DIN (chain start) · S1–S8 JSTs → their wedge piezos (label the cables!)</text>
+<text x="620" y="682" class="pin" fill="#666" font-weight="bold">O2</text>
+<text x="650" y="682" class="pin">off-board: pigtail lands in the WAGO 221 node on the slab DC rail · leave a USB service loop reachable</text>
+<text x="70" y="718" class="note">All signal wires 22 AWG stranded (insulated); power runs 20 AWG. Row a/j holes are the free holes above/below the socket pins — every other hole in those columns is hidden under the DevKit.</text>
+<text x="70" y="733" class="note">Wire colors follow the legend. Before first power-up: continuity-check +5V↔GND for shorts, then buzz each S column to its GPIO pin and the LED DATA pin to IC pin 3.</text>
+</svg>

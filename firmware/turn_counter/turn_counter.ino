@@ -7,8 +7,7 @@
 // Targets ESP32-S3 (e.g. ESP32-S3-DevKitC-1 N8R8). Piezos live on ADC1
 // (GPIO 1-10) so they keep working while Wi-Fi/BLE are active.
 #define LED_PIN          11
-#define NUM_LEDS         240
-#define LEDS_PER_SIDE    30
+#define NUM_LEDS         240   // buffer ceiling; the lit total is sideStarts[NUM_SIDES]
 #define NUM_SIDES        8
 #define BRIGHTNESS       128
 #define LED_TYPE         WS2812B
@@ -36,11 +35,20 @@ const uint16_t SETUP_TAP_WINDOW_MS      = 2000;
 const uint16_t SETUP_EXIT_IDLE_MS       = 3000;
 const uint16_t OPPOSITE_PAIR_WINDOW_MS  = 150;
 
-CRGB leds[NUM_LEDS];
-Preferences prefs;
+// Per-side LED counts. Corner cuts eat 1-2 LEDs unpredictably, so the octagon's
+// sides aren't uniform — this table is the source of truth for where each side
+// starts. Defaults are overridden at boot by a table calibrated from the
+// tap_light firmware (NVS namespace "octagon", serial commands 0-7/+/-/p).
+uint8_t sideLedCounts[NUM_SIDES] = {29, 28, 27, 27, 27, 28, 28, 27};  // calibrated 2026-07-21, 221 LEDs total
+uint16_t sideStarts[NUM_SIDES + 1];  // prefix sums; sideStarts[NUM_SIDES] = lit total
 
-uint8_t  playerCount = 4;
-uint8_t  currentPlayer = 0;
+CRGB leds[NUM_LEDS];
+Preferences prefs;      // "turntable": game state
+Preferences sidePrefs;  // "octagon": calibrated side table
+
+bool     sideActive[NUM_SIDES] = {true, true, true, true, true, true, true, true};  // roster: which seats are "in"
+int8_t   currentSide = 0;        // the active seat whose turn it is (index into sideActive)
+uint8_t  prevRosterMask = 0xFF;  // roster snapshot taken on setup entry; restored if you exit with 0 seats joined
 uint32_t lastTapPerSide[NUM_SIDES] = {0};
 uint32_t baselineAcc[NUM_SIDES] = {0};  // fixed-point moving averages of resting levels, scaled by 64
 uint32_t lastAnyTapMs = 0;
@@ -67,28 +75,78 @@ const CRGB PLAYER_COLORS[8] = {
 
 uint16_t baseline(uint8_t i) { return baselineAcc[i] >> 6; }
 
+void rebuildSideStarts() {
+  sideStarts[0] = 0;
+  for (uint8_t s = 0; s < NUM_SIDES; s++) {
+    sideStarts[s + 1] = sideStarts[s] + sideLedCounts[s];
+  }
+}
+
+uint16_t totalLeds() { return sideStarts[NUM_SIDES]; }
+
+bool validSideTable(const uint8_t *t) {
+  uint16_t total = 0;
+  for (uint8_t s = 0; s < NUM_SIDES; s++) {
+    if (t[s] < 1 || t[s] > 60) return false;
+    total += t[s];
+  }
+  return total <= NUM_LEDS;
+}
+
+void loadSideTable() {
+  uint8_t stored[NUM_SIDES];
+  if (sidePrefs.getBytes("sides", stored, NUM_SIDES) == NUM_SIDES && validSideTable(stored)) {
+    memcpy(sideLedCounts, stored, NUM_SIDES);
+    Serial.println("Loaded calibrated side table from NVS");
+  }
+  rebuildSideStarts();
+  Serial.print("Side LED counts:");
+  for (uint8_t s = 0; s < NUM_SIDES; s++) Serial.printf(" %u", sideLedCounts[s]);
+  Serial.printf(" (total %u)\n", totalLeds());
+}
+
 bool isOppositeSide(int8_t a, int8_t b) {
   if (a < 0 || b < 0) return false;
   return ((a + NUM_SIDES / 2) % NUM_SIDES) == b;
 }
 
+uint8_t rosterMask() {
+  uint8_t m = 0;
+  for (uint8_t s = 0; s < NUM_SIDES; s++) if (sideActive[s]) m |= (1 << s);
+  return m;
+}
+
+void applyRosterMask(uint8_t m) {
+  for (uint8_t s = 0; s < NUM_SIDES; s++) sideActive[s] = (m >> s) & 1;
+}
+
+uint8_t activeCount() {
+  uint8_t n = 0;
+  for (uint8_t s = 0; s < NUM_SIDES; s++) if (sideActive[s]) n++;
+  return n;
+}
+
+int8_t firstActiveSide() {
+  for (uint8_t s = 0; s < NUM_SIDES; s++) if (sideActive[s]) return s;
+  return 0;
+}
+
+// Next active seat clockwise from `from`, skipping empty seats and wrapping.
+// Returns `from` unchanged if it's the only active seat.
+int8_t nextActiveSide(int8_t from) {
+  for (uint8_t k = 1; k <= NUM_SIDES; k++) {
+    uint8_t s = (from + k) % NUM_SIDES;
+    if (sideActive[s]) return s;
+  }
+  return from;
+}
+
+// Only the current seat lights, in that side's fixed color; every other seat dark.
 void renderTurn() {
   FastLED.clear();
-
-  uint8_t sidesPerPlayer = NUM_SIDES / playerCount;
-  uint8_t leftover = NUM_SIDES % playerCount;
-
-  uint8_t sideCursor = 0;
-  for (uint8_t p = 0; p < playerCount; p++) {
-    uint8_t sidesForThisPlayer = sidesPerPlayer + (p < leftover ? 1 : 0);
-    if (p == currentPlayer) {
-      uint16_t startLed = sideCursor * LEDS_PER_SIDE;
-      uint16_t ledCount = sidesForThisPlayer * LEDS_PER_SIDE;
-      fill_solid(&leds[startLed], ledCount, PLAYER_COLORS[p]);
-    }
-    sideCursor += sidesForThisPlayer;
+  if (currentSide >= 0 && sideActive[currentSide]) {
+    fill_solid(&leds[sideStarts[currentSide]], sideLedCounts[currentSide], PLAYER_COLORS[currentSide]);
   }
-
   FastLED.show();
 }
 
@@ -103,9 +161,10 @@ void renderSetup() {
 
   FastLED.clear();
   if (blinkState) {
-    for (uint8_t i = 0; i < playerCount; i++) {
-      uint16_t startLed = (i * NUM_SIDES / playerCount) * LEDS_PER_SIDE;
-      fill_solid(&leds[startLed], LEDS_PER_SIDE, PLAYER_COLORS[i]);
+    for (uint8_t s = 0; s < NUM_SIDES; s++) {
+      if (sideActive[s]) {
+        fill_solid(&leds[sideStarts[s]], sideLedCounts[s], PLAYER_COLORS[s]);
+      }
     }
   }
   FastLED.show();
@@ -118,7 +177,7 @@ void renderOff() {
 
 void renderOtaProgress(uint8_t percent) {
   FastLED.clear();
-  uint16_t lit = (uint32_t)NUM_LEDS * percent / 100;
+  uint16_t lit = (uint32_t)totalLeds() * percent / 100;
   for (uint16_t i = 0; i < lit; i++) {
     leds[i] = CRGB(0, 80, 255);
   }
@@ -167,23 +226,9 @@ uint8_t readPiezos(uint32_t now) {
   return resultMask;
 }
 
-uint8_t playerForSide(int8_t side) {
-  uint8_t sidesPerPlayer = NUM_SIDES / playerCount;
-  uint8_t leftover = NUM_SIDES % playerCount;
-  uint8_t sideCursor = 0;
-  for (uint8_t p = 0; p < playerCount; p++) {
-    uint8_t sidesForThisPlayer = sidesPerPlayer + (p < leftover ? 1 : 0);
-    if (side >= sideCursor && side < sideCursor + sidesForThisPlayer) {
-      return p;
-    }
-    sideCursor += sidesForThisPlayer;
-  }
-  return 0;
-}
-
 void advanceTurn() {
-  currentPlayer = (currentPlayer + 1) % playerCount;
-  prefs.putUChar("current", currentPlayer);
+  currentSide = nextActiveSide(currentSide);
+  prefs.putUChar("curside", currentSide);
 }
 
 bool registerTapForSetupGesture(uint32_t now) {
@@ -200,15 +245,22 @@ void enterSetupMode() {
   inSetupMode = true;
   firstTapInBurstMs = 0;
   tapsInBurst = 0;
-  Serial.println("Entering setup mode");
+  prevRosterMask = rosterMask();  // remember the roster so an empty exit can restore it
+  for (uint8_t s = 0; s < NUM_SIDES; s++) sideActive[s] = false;  // clear — each player taps their own seat in
+  Serial.println("Entering setup - roster cleared, tap each seat to join");
 }
 
 void exitSetupMode() {
   inSetupMode = false;
-  currentPlayer = 0;
-  prefs.putUChar("players", playerCount);
-  prefs.putUChar("current", currentPlayer);
-  Serial.printf("Exiting setup. Players: %d\n", playerCount);
+  if (activeCount() == 0) {
+    applyRosterMask(prevRosterMask);                 // nobody joined — restore the previous roster, don't brick
+    if (activeCount() == 0) applyRosterMask(0xFF);   // previous was empty too — fall back to all seats in
+    Serial.println("Setup exit: no seats joined, roster restored");
+  }
+  currentSide = firstActiveSide();                   // start the turn at the lowest-numbered active seat
+  prefs.putUChar("roster", rosterMask());
+  prefs.putUChar("curside", currentSide);
+  Serial.printf("Setup done. %d seats active, starting at side %d\n", activeCount(), currentSide);
 }
 
 void toggleOnOff() {
@@ -232,24 +284,23 @@ void commitTap(int8_t side, uint32_t whenMs) {
   if (!isOn) return;
 
   if (inSetupMode) {
-    playerCount++;
-    if (playerCount > 8) playerCount = 2;
-    Serial.printf("Player count: %d\n", playerCount);
+    sideActive[side] = !sideActive[side];  // toggle this seat in/out of the roster
+    Serial.printf("Setup: side %d %s\n", side, sideActive[side] ? "IN" : "out");
     return;
   }
 
-  if (playerForSide(side) == currentPlayer) {
+  if (side == currentSide) {
     advanceTurn();
     renderTurn();
   } else {
-    // Setup gesture only counts taps on a non-active (unlit) side. Turn-passes
-    // always land on the active side, so brisk normal play can never accumulate
-    // toward the gesture and trip setup mode by accident.
+    // Setup gesture only counts taps on a non-current side. Turn-passes always
+    // land on the current seat, so brisk normal play can never accumulate toward
+    // the gesture and trip setup mode by accident.
     if (registerTapForSetupGesture(whenMs)) {
       enterSetupMode();
       return;
     }
-    Serial.printf("Tap on side %d ignored - not active player's side\n", side);
+    Serial.printf("Tap on side %d ignored - not the current seat\n", side);
   }
 }
 
@@ -300,13 +351,13 @@ void setupWiFiAndOta() {
   });
 
   ArduinoOTA.onEnd([]() {
-    fill_solid(leds, NUM_LEDS, CRGB(0, 200, 0));
+    fill_solid(leds, totalLeds(), CRGB(0, 200, 0));
     FastLED.show();
     delay(500);
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
-    fill_solid(leds, NUM_LEDS, CRGB(255, 0, 0));
+    fill_solid(leds, totalLeds(), CRGB(255, 0, 0));
     FastLED.show();
     delay(2000);
     otaActive = false;
@@ -321,12 +372,16 @@ void setup() {
   delay(200);
 
   prefs.begin("turntable", false);
-  playerCount   = prefs.getUChar("players", 4);
-  currentPlayer = prefs.getUChar("current", 0);
-  isOn          = prefs.getUChar("ison", 1) ? true : false;
-  if (playerCount < 2) playerCount = 2;
-  if (playerCount > 8) playerCount = 8;
-  if (currentPlayer >= playerCount) currentPlayer = 0;
+  applyRosterMask(prefs.getUChar("roster", 0xFF));   // default: all 8 seats in
+  currentSide = prefs.getUChar("curside", 0);
+  isOn        = prefs.getUChar("ison", 1) ? true : false;
+  if (activeCount() == 0) applyRosterMask(0xFF);
+  if (currentSide < 0 || currentSide >= NUM_SIDES || !sideActive[currentSide]) currentSide = firstActiveSide();
+
+  isOn = true;  // TEMP bench: force always-on so a stale NVS "off" doesn't boot dark — REVERT for real play
+
+  sidePrefs.begin("octagon", false);
+  loadSideTable();
 
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);

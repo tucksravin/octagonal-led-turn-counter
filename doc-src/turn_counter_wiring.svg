@@ -116,6 +116,9 @@
   </g>
 
   <g id="level-shifter">
+    <rect x="716" y="258" width="168" height="200" rx="6" fill="none" stroke="#999" stroke-width="1.4" stroke-dasharray="6,3"/>
+    <text x="800" y="274" text-anchor="middle" class="subtitle" fill="#777">OPTIONAL</text>
+    <text x="800" y="286" text-anchor="middle" class="small" fill="#777">default: direct 3.3V drive</text>
     <rect x="730" y="290" width="140" height="120" rx="4" class="ic"/>
     <text x="800" y="312" text-anchor="middle" class="subtitle">74AHCT125</text>
     <text x="800" y="328" text-anchor="middle" class="small">level shifter</text>
@@ -224,7 +227,7 @@
     <line x1="0" y1="20" x2="480" y2="20" stroke="#999" stroke-width="0.8"/>
 
     <text x="0" y="38" class="pin">GPIO 11</text>
-    <text x="120" y="38" class="pin">LED data out → 470 Ω → 74AHCT125</text>
+    <text x="120" y="38" class="pin">LED data out → 470 Ω → strip DIN (direct 3.3 V; '125 optional)</text>
 
     <text x="0" y="56" class="pin">GPIO 1</text>
     <text x="120" y="56" class="pin">Piezo side 1 (ADC1_CH0)</text>

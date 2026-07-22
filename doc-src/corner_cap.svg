@@ -1,0 +1,126 @@
+<svg viewBox="0 0 600 640" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .label { font-size: 12px; fill: #111; }
+    .label-bold { font-size: 12px; font-weight: bold; fill: #111; }
+    .title { font-size: 16px; font-weight: bold; fill: #111; }
+    .small { font-size: 10px; fill: #555; }
+    .note { font-size: 11px; fill: #444; font-style: italic; }
+    .wood { fill: #c8a878; stroke: #6b4d28; stroke-width: 1.5; }
+    .wood-grain { stroke: #8a6f3c; stroke-width: 0.5; fill: none; opacity: 0.5; }
+    .channel { fill: #d8d8d8; stroke: #555; stroke-width: 1.2; }
+    .diffuser { fill: #fff8c4; stroke: #b8a838; stroke-width: 1; opacity: 0.85; }
+    .cap { fill: #3f3f3f; stroke: #111; stroke-width: 1.5; fill-opacity: 0.72; }
+    .screw { fill: #b8b8b8; stroke: #333; stroke-width: 1; }
+    .leader { stroke: #555; stroke-width: 0.8; fill: none; }
+    .impact { stroke: #c0392b; stroke-width: 1.5; fill: none; }
+    .dim { stroke: #2563eb; stroke-width: 1; fill: none; }
+  </style>
+
+  <rect x="0" y="0" width="600" height="640" fill="#ffffff"/>
+
+  <text x="300" y="28" text-anchor="middle" class="title">Corner Caps — Geometry and Load Path</text>
+  <text x="300" y="46" text-anchor="middle" class="note">~5 mm proud of the diffuser, screwed not glued, Plasti-Dip rubber skin</text>
+
+  <!-- ===================== Panel A: top view of one corner ===================== -->
+  <text x="300" y="70" text-anchor="middle" class="label-bold">Top view — one of 8 corners</text>
+
+  <!-- slab body: two outer faces meeting at the 135-degree corner, apex at (300,170) -->
+  <polygon points="300,170 526,264 526,375 74,375 74,264" class="wood"/>
+  <line x1="120" y1="315" x2="480" y2="315" class="wood-grain"/>
+  <line x1="105" y1="345" x2="495" y2="345" class="wood-grain"/>
+  <text x="300" y="360" text-anchor="middle" class="label">slab (top view)</text>
+  <text x="300" y="212" text-anchor="middle" class="small">135°</text>
+
+  <!-- right channel + diffuser (mitred, stops short of the corner) -->
+  <polygon points="333.3,183.8 517.1,259.9 523.2,245.2 339.4,169.0" class="channel"/>
+  <polygon points="339.4,169.0 523.2,245.2 525.9,238.7 342.1,162.5" class="diffuser"/>
+  <!-- left channel + diffuser (mirror) -->
+  <polygon points="266.7,183.8 82.9,259.9 76.8,245.2 260.6,169.0" class="channel"/>
+  <polygon points="260.6,169.0 76.8,245.2 74.1,238.7 257.9,162.5" class="diffuser"/>
+
+  <!-- corner jumper bridge crossing the miter gap (drawn before the cap: cap is translucent) -->
+  <path d="M 337.4,179.0 Q 300,157 262.6,179.0" stroke="#c0392b" stroke-width="1.6" fill="none"/>
+  <path d="M 339.3,174.3 Q 300,151 260.7,174.3" stroke="#111111" stroke-width="1.6" fill="none"/>
+  <path d="M 341.2,169.7 Q 300,145 258.8,169.7" stroke="#2563eb" stroke-width="1.6" fill="none"/>
+
+  <!-- the cap: wraps the corner, faces parallel to the slab faces, rounded proud apex -->
+  <path d="M 242.7,193.7 L 300,170 L 357.3,193.7 L 369.2,165.1 Q 300,128 230.8,165.1 Z" class="cap"/>
+  <!-- screws, one per cap face -->
+  <circle cx="350" cy="174.5" r="4" class="screw"/>
+  <line x1="347" y1="172" x2="353" y2="177" class="leader"/>
+  <circle cx="250" cy="174.5" r="4" class="screw"/>
+  <line x1="253" y1="172" x2="247" y2="177" class="leader"/>
+
+  <!-- labels, panel A -->
+  <text x="58" y="92" class="label">hardwood cap,</text>
+  <text x="58" y="106" class="label">Plasti-Dip skin</text>
+  <text x="58" y="120" class="small">(shown translucent)</text>
+  <line x1="128" y1="110" x2="252" y2="150" class="leader"/>
+
+  <text x="415" y="88" class="label">corner jumper bridge</text>
+  <text x="415" y="102" class="label">(5V / GND / data)</text>
+  <text x="415" y="116" class="small">protected under the cap</text>
+  <line x1="413" y1="100" x2="310" y2="152" class="leader"/>
+
+  <text x="512" y="150" class="label">diffuser</text>
+  <line x1="510" y1="153" x2="440" y2="198" class="leader"/>
+
+  <text x="500" y="308" class="label" text-anchor="end">aluminum channel</text>
+  <line x1="480" y1="296" x2="465" y2="248" class="leader"/>
+
+  <text x="430" y="340" class="label">cap face stands ~5 mm</text>
+  <text x="430" y="354" class="label">proud of the diffuser</text>
+  <line x1="428" y1="342" x2="368" y2="172" class="leader"/>
+
+  <line x1="40" y1="418" x2="560" y2="418" stroke="#cccccc" stroke-width="1"/>
+
+  <!-- ===================== Panel B: leaned on its side ===================== -->
+  <text x="300" y="445" text-anchor="middle" class="label-bold">Leaned on its side — the caps carry the weight, not the LEDs</text>
+
+  <!-- lower part of the leaned slab, seen face-on: bottom side + two 45-degree neighbors -->
+  <polygon points="102,492 170,560 430,560 498,492 498,472 102,472" class="wood"/>
+  <line x1="102" y1="472" x2="498" y2="472" stroke="#6b4d28" stroke-width="1" stroke-dasharray="5,4"/>
+  <text x="300" y="465" text-anchor="middle" class="small">…rest of slab…</text>
+
+  <!-- channel + diffuser on the bottom face -->
+  <rect x="178" y="560" width="244" height="14" class="channel"/>
+  <rect x="180" y="574" width="240" height="6" class="diffuser"/>
+  <!-- channel stubs on the two 45-degree faces -->
+  <g transform="rotate(-45 430 560)">
+    <rect x="438" y="560" width="62" height="14" class="channel"/>
+    <rect x="440" y="574" width="58" height="6" class="diffuser"/>
+  </g>
+  <g transform="rotate(45 170 560)">
+    <rect x="100" y="560" width="62" height="14" class="channel"/>
+    <rect x="102" y="574" width="58" height="6" class="diffuser"/>
+  </g>
+
+  <!-- corner caps wrapping the two floor-side corners -->
+  <path d="M 398,560 L 430,560 L 452.6,537.4 L 472.4,557.2 Q 444,596 398,588 Z" class="cap"/>
+  <path d="M 202,560 L 170,560 L 147.4,537.4 L 127.6,557.2 Q 156,596 202,588 Z" class="cap"/>
+
+  <!-- floor -->
+  <line x1="60" y1="588" x2="540" y2="588" stroke="#333" stroke-width="1.5"/>
+  <g class="leader">
+    <line x1="90" y1="588" x2="82" y2="597"/><line x1="140" y1="588" x2="132" y2="597"/>
+    <line x1="240" y1="588" x2="232" y2="597"/><line x1="300" y1="588" x2="292" y2="597"/>
+    <line x1="360" y1="588" x2="352" y2="597"/><line x1="470" y1="588" x2="462" y2="597"/>
+    <line x1="520" y1="588" x2="512" y2="597"/>
+  </g>
+
+  <!-- clearance callout, in the clear space right of the strip end -->
+  <line x1="422" y1="580" x2="490" y2="580" class="leader" stroke-dasharray="2,2"/>
+  <line x1="486" y1="580" x2="486" y2="588" class="dim"/>
+  <polygon points="486,580 483,584 489,584" fill="#2563eb"/>
+  <polygon points="486,588 483,584 489,584" fill="#2563eb"/>
+  <text x="494" y="586" class="small" fill="#2563eb">≈5 mm</text>
+
+  <!-- weight arrows into the caps -->
+  <line x1="186" y1="502" x2="186" y2="546" class="impact" stroke-dasharray="3,2"/>
+  <polygon points="186,552 182,544 190,544" fill="#c0392b"/>
+  <line x1="414" y1="502" x2="414" y2="546" class="impact" stroke-dasharray="3,2"/>
+  <polygon points="414,552 410,544 418,544" fill="#c0392b"/>
+  <text x="300" y="520" text-anchor="middle" class="note">slab weight</text>
+
+  <text x="300" y="620" text-anchor="middle" class="note">leaned against the wall for bumper pool: floor contact is only the two rubber-skinned caps — the diffuser floats clear</text>
+</svg>

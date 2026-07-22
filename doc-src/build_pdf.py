@@ -17,6 +17,8 @@ with open(doc_dir / 'turn_counter_wiring.svg') as f:
     wiring_svg = f.read()
 with open(doc_dir / 'installation_arch.svg') as f:
     install_svg = f.read()
+with open(doc_dir / 'corner_cap.svg') as f:
+    cap_svg = f.read()
 
 
 def strip_xml_decl(svg):
@@ -26,6 +28,7 @@ table_svg = strip_xml_decl(table_svg)
 rim_svg = strip_xml_decl(rim_svg)
 wiring_svg = strip_xml_decl(wiring_svg)
 install_svg = strip_xml_decl(install_svg)
+cap_svg = strip_xml_decl(cap_svg)
 
 
 title_block_md = """**Project**: LED rim turn counter for an octagonal gaming table
@@ -130,6 +133,11 @@ md_text = md_text.replace(
 rim_figure = f'<div class="figure">{rim_svg}<p class="caption">Figure 4.1 — edge cross-section. The aluminum LED channel mounts to the outer edge of the slab; the piezo glues to the underside, centered on each player\'s wedge of the octagon. Air space below means the slab vibrates freely, so a tap anywhere on the bare top surface couples efficiently into the piezo underneath.</p></div>'
 
 md_text = md_text.replace('[RIM_SECTION_FIGURE]', rim_figure)
+
+
+cap_figure = f'<div class="figure">{cap_svg}<p class="caption">Figure 4.2 — corner caps. Top: one of the 8 corners seen from above — the cap wraps the 135° corner, covers the jumper bridge in the channel miter gap, and stands ~5 mm proud of the diffuser. Bottom: the slab leaned on its side for bumper pool rests only on the two rubber-skinned caps; the channel and diffuser never touch the floor.</p></div>'
+
+md_text = md_text.replace('[CORNER_CAP_FIGURE]', cap_figure)
 
 
 install_figure = f'<div class="figure">{install_svg}<p class="caption">Figure 4.6 — slab/frame architecture. Everything turn-counter-related lives on the removable top slab; the PSU and AC mains live permanently on the bumper pool frame. A single Anderson Powerpole DC connector is the only thing you disconnect when lifting the top.</p></div>'

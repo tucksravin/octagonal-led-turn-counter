@@ -1,0 +1,282 @@
+<svg viewBox="0 0 1300 612" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .title { font-size: 21px; font-weight: bold; fill: #111; }
+    .sub   { font-size: 12px; fill: #555; }
+    .subtitle { font-size: 13px; font-weight: bold; fill: #111; }
+    .lab   { font-size: 11px; fill: #111; }
+    .pin   { font-size: 9.5px; fill: #111; }
+    .small { font-size: 9px; fill: #555; }
+    .tiny  { font-size: 8px; fill: #555; }
+    .note  { font-size: 10px; fill: #444; font-style: italic; }
+    .rowlt { font-size: 10px; fill: #888; }
+    .colnum{ font-size: 9px; fill: #888; }
+    .pwr  { stroke: #c0392b; stroke-width: 2.2; fill: none; }
+    .gnd  { stroke: #111;    stroke-width: 2.2; fill: none; }
+    .data { stroke: #2563eb; stroke-width: 2;   fill: none; }
+    .analog { stroke: #15803d; stroke-width: 2; fill: none; }
+    .harn { stroke: #666; stroke-width: 1.6; fill: none; }
+    .node { stroke: #b9c6d6; stroke-width: 5; fill: none; stroke-linecap: round; }
+    .rail { stroke-width: 2.2; fill: none; }
+    .grid { stroke: #e4e4e4; stroke-width: 1; }
+    .comp { fill: #fafafa; stroke: #111; stroke-width: 1.4; }
+    .ic   { fill: #ececec; stroke: #111; stroke-width: 1.4; }
+    .esp  { fill: #d9d9d9; stroke: #333; stroke-width: 1.6; }
+    .jst  { fill: #fff8e1; stroke: #111; stroke-width: 1.4; }
+    .j    { fill: #111; }
+    .ja   { fill: #15803d; }
+  </style>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="#666"/>
+    </marker>
+    <!-- one piezo input network: S col at local x=751 (col 38), G col at x=769 -->
+    <g id="pznet">
+      <line x1="751" y1="280" x2="751" y2="352" class="node"/>
+      <line x1="769" y1="280" x2="769" y2="352" class="node"/>
+      <!-- 1 MΩ, row g, S→G -->
+      <line x1="751" y1="298" x2="769" y2="298" stroke="#111" stroke-width="1.4"/>
+      <rect x="755" y="292" width="10" height="12" class="comp"/>
+      <text x="760" y="289" text-anchor="middle" class="tiny">1M</text>
+      <!-- Zener, row h, band (cathode) toward S -->
+      <line x1="751" y1="316" x2="769" y2="316" stroke="#111" stroke-width="1.6"/>
+      <polygon points="765,311 765,321 757,316" class="comp"/>
+      <line x1="755" y1="310" x2="755" y2="322" stroke="#111" stroke-width="1.8"/>
+      <!-- joints -->
+      <circle cx="751" cy="298" r="2.4" class="j"/><circle cx="769" cy="298" r="2.4" class="j"/>
+      <circle cx="751" cy="316" r="2.4" class="j"/><circle cx="769" cy="316" r="2.4" class="j"/>
+      <circle cx="769" cy="280" r="2.6" class="j"/>
+      <!-- ADC jumper lands row i of S column -->
+      <circle cx="751" cy="334" r="2.6" class="ja"/>
+      <!-- JST-XH 2-pin body over row j (pins in row j: S = signal, S+1 = GND) -->
+      <rect x="743" y="344" width="34" height="24" rx="2" class="jst"/>
+      <line x1="760" y1="368" x2="760" y2="379" class="harn" marker-end="url(#arr)"/>
+    </g>
+  </defs>
+
+  <rect x="0" y="0" width="1300" height="612" fill="#ffffff"/>
+
+  <text x="650" y="28" text-anchor="middle" class="title">Control-Box Protoboard Layout (Phase 5)</text>
+  <text x="650" y="46" text-anchor="middle" class="sub">full-size Perma-Proto (60 columns, rows a–j, breadboard topology) · ESP32-S3 socketed · 74AHCT125 · 8× piezo JST-XH · 3-pin LED strip JST · fed from the slab 5V rail</text>
+
+  <!-- legend -->
+  <g transform="translate(70,62)">
+    <line x1="0" y1="0" x2="20" y2="0" class="pwr"/>      <text x="26" y="4" class="small">+5 V</text>
+    <line x1="70" y1="0" x2="90" y2="0" class="gnd"/>     <text x="96" y="4" class="small">GND</text>
+    <line x1="150" y1="0" x2="170" y2="0" class="data"/>  <text x="176" y="4" class="small">LED data</text>
+    <line x1="245" y1="0" x2="265" y2="0" class="analog"/><text x="271" y="4" class="small">piezo signal</text>
+    <line x1="365" y1="0" x2="385" y2="0" class="node"/>  <text x="391" y="4" class="small">column node (5 holes, common)</text>
+    <circle cx="580" cy="0" r="2.6" class="j"/>           <text x="588" y="4" class="small">● = solder joint · a line crossing without a dot is NOT connected</text>
+  </g>
+
+  <!-- ===================== POWER RAILS ===================== -->
+  <text x="40" y="120" class="small" fill="#c0392b">+5V</text>
+  <line x1="70" y1="116" x2="1170" y2="116" class="rail" stroke="#c0392b"/>
+  <text x="40" y="136" class="small">GND</text>
+  <line x1="70" y1="132" x2="1170" y2="132" class="rail" stroke="#111"/>
+
+  <text x="40" y="396" class="small" fill="#c0392b">+5V</text>
+  <line x1="70" y1="400" x2="1170" y2="400" class="rail" stroke="#c0392b"/>
+  <text x="40" y="412" class="small">GND</text>
+  <line x1="70" y1="416" x2="1170" y2="416" class="rail" stroke="#111"/>
+
+  <!-- rail bridge jumpers (far left, between cols 1 and 2) -->
+  <line x1="90" y1="116" x2="90" y2="400" class="pwr"/>
+  <line x1="98" y1="132" x2="98" y2="416" class="gnd"/>
+  <circle cx="90" cy="116" r="2.6" class="j"/><circle cx="90" cy="400" r="2.6" class="j"/>
+  <circle cx="98" cy="132" r="2.6" class="j"/><circle cx="98" cy="416" r="2.6" class="j"/>
+
+  <!-- power pigtail entry (bottom-left) -->
+  <line x1="28" y1="400" x2="70" y2="400" class="pwr"/>
+  <line x1="28" y1="416" x2="70" y2="416" class="gnd"/>
+  <circle cx="70" cy="400" r="2.6" class="j"/><circle cx="70" cy="416" r="2.6" class="j"/>
+  <text x="28" y="438" class="pin">5V/GND pigtail (18–20 AWG) → WAGO 221 node on the slab DC rail</text>
+  <text x="28" y="450" class="small">strain-relieve at the enclosure gland · the two vertical jumpers at left bridge top ↔ bottom rails</text>
+
+  <!-- 1000 µF cap across bottom rails -->
+  <line x1="150" y1="400" x2="150" y2="405" class="pwr"/>
+  <line x1="138" y1="405" x2="162" y2="405" stroke="#c0392b" stroke-width="2.4"/>
+  <line x1="142" y1="410" x2="158" y2="410" stroke="#111" stroke-width="2"/>
+  <line x1="150" y1="410" x2="150" y2="416" class="gnd"/>
+  <circle cx="150" cy="400" r="2.6" class="j"/><circle cx="150" cy="416" r="2.6" class="j"/>
+  <text x="168" y="411" class="pin">1000 µF (+ to 5V)</text>
+
+  <!-- ===================== BOARD BODY ===================== -->
+  <rect x="70" y="150" width="1100" height="220" rx="5" fill="#f7f7f4" stroke="#ccc" stroke-width="1"/>
+  <rect x="70" y="251" width="1100" height="18" fill="#e9e9e9"/>
+  <line x1="70" y1="260" x2="1170" y2="260" stroke="#bdbdbd" stroke-width="1" stroke-dasharray="6,4"/>
+
+  <!-- row guide lines -->
+  <g stroke="#ededed" stroke-width="1">
+    <line x1="75" y1="168" x2="1165" y2="168"/><line x1="75" y1="186" x2="1165" y2="186"/>
+    <line x1="75" y1="204" x2="1165" y2="204"/><line x1="75" y1="222" x2="1165" y2="222"/>
+    <line x1="75" y1="240" x2="1165" y2="240"/><line x1="75" y1="280" x2="1165" y2="280"/>
+    <line x1="75" y1="298" x2="1165" y2="298"/><line x1="75" y1="316" x2="1165" y2="316"/>
+    <line x1="75" y1="334" x2="1165" y2="334"/><line x1="75" y1="352" x2="1165" y2="352"/>
+  </g>
+
+  <!-- row letters -->
+  <text x="58" y="171" class="rowlt">a</text><text x="1180" y="171" class="rowlt">a</text>
+  <text x="58" y="189" class="rowlt">b</text><text x="1180" y="189" class="rowlt">b</text>
+  <text x="58" y="207" class="rowlt">c</text><text x="1180" y="207" class="rowlt">c</text>
+  <text x="58" y="225" class="rowlt">d</text><text x="1180" y="225" class="rowlt">d</text>
+  <text x="58" y="243" class="rowlt">e</text><text x="1180" y="243" class="rowlt">e</text>
+  <text x="58" y="283" class="rowlt">f</text><text x="1180" y="283" class="rowlt">f</text>
+  <text x="58" y="301" class="rowlt">g</text><text x="1180" y="301" class="rowlt">g</text>
+  <text x="58" y="319" class="rowlt">h</text><text x="1180" y="319" class="rowlt">h</text>
+  <text x="58" y="337" class="rowlt">i</text><text x="1180" y="337" class="rowlt">i</text>
+  <text x="58" y="355" class="rowlt">j</text><text x="1180" y="355" class="rowlt">j</text>
+
+  <!-- column guides every 5th (top all, bottom only left of piezo bank) -->
+  <g>
+    <line x1="85"   y1="158" x2="85"   y2="362" class="grid"/><text x="85"   y="147" text-anchor="middle" class="colnum">1</text>
+    <line x1="157"  y1="158" x2="157"  y2="362" class="grid"/><text x="157"  y="147" text-anchor="middle" class="colnum">5</text>
+    <line x1="247"  y1="158" x2="247"  y2="362" class="grid"/><text x="247"  y="147" text-anchor="middle" class="colnum">10</text>
+    <line x1="337"  y1="158" x2="337"  y2="362" class="grid"/><text x="337"  y="147" text-anchor="middle" class="colnum">15</text>
+    <line x1="427"  y1="158" x2="427"  y2="362" class="grid"/><text x="427"  y="147" text-anchor="middle" class="colnum">20</text>
+    <line x1="517"  y1="158" x2="517"  y2="362" class="grid"/>
+    <line x1="607"  y1="158" x2="607"  y2="362" class="grid"/><text x="607"  y="147" text-anchor="middle" class="colnum">30</text>
+    <line x1="697"  y1="158" x2="697"  y2="362" class="grid"/>
+    <line x1="787"  y1="158" x2="787"  y2="362" class="grid"/><text x="787"  y="147" text-anchor="middle" class="colnum">40</text>
+    <line x1="877"  y1="158" x2="877"  y2="362" class="grid"/><text x="877"  y="147" text-anchor="middle" class="colnum">45</text>
+    <line x1="967"  y1="158" x2="967"  y2="362" class="grid"/><text x="967"  y="147" text-anchor="middle" class="colnum">50</text>
+    <line x1="1057" y1="158" x2="1057" y2="362" class="grid"/><text x="1057" y="147" text-anchor="middle" class="colnum">55</text>
+    <line x1="1147" y1="158" x2="1147" y2="362" class="grid"/><text x="1147" y="147" text-anchor="middle" class="colnum">60</text>
+  </g>
+
+  <!-- ===================== NODE BARS (used columns, non-piezo) ===================== -->
+  <line x1="517" y1="280" x2="517" y2="352" class="node"/>   <!-- col25 bottom: GPIO11 jumper + 470Ω -->
+  <line x1="535" y1="168" x2="535" y2="240" class="node"/>   <!-- col26 top: VCC -->
+  <line x1="535" y1="280" x2="535" y2="352" class="node"/>   <!-- col26 bottom: 1OE -->
+  <line x1="553" y1="280" x2="553" y2="352" class="node"/>   <!-- col27 bottom: 1A -->
+  <line x1="571" y1="280" x2="571" y2="352" class="node"/>   <!-- col28 bottom: 1Y -->
+  <line x1="643" y1="280" x2="643" y2="352" class="node"/>   <!-- col32 bottom: IC GND -->
+  <line x1="679" y1="168" x2="679" y2="240" class="node"/>   <!-- col34 top: LED 5V -->
+  <line x1="697" y1="168" x2="697" y2="240" class="node"/>   <!-- col35 top: LED DATA -->
+  <line x1="715" y1="168" x2="715" y2="240" class="node"/>   <!-- col36 top: LED GND -->
+
+  <!-- ===================== GND CHAIN (row f, G columns, to GND rail) ===================== -->
+  <polyline points="769,280 1155,280 1155,416" class="gnd"/>
+  <circle cx="1155" cy="416" r="2.6" class="j"/>
+  <text x="1149" y="277" text-anchor="end" class="tiny">GND chain (row f)</text>
+
+  <!-- ===================== ESP32-S3 ===================== -->
+  <rect x="112" y="158" width="396" height="204" rx="6" class="esp"/>
+  <text x="310" y="236" text-anchor="middle" class="subtitle" fill="#222">ESP32-S3  DevKitC-1</text>
+  <text x="310" y="254" text-anchor="middle" class="small" fill="#444">on two 1×22 female headers — pins in rows b &amp; i, cols 3–24</text>
+  <text x="310" y="270" text-anchor="middle" class="small" fill="#444">◀ both USB ports face this edge (enclosure service side)</text>
+  <text x="310" y="286" text-anchor="middle" class="small" fill="#444">pin map = v1.1 silkscreen (USB left) — see protoboard_wiring.svg</text>
+  <text x="155" y="178" class="small" fill="#333">col 3 (row a): GND → GND rail · col 4: 5V → +5V rail</text>
+  <text x="155" y="192" class="small" fill="#2563eb">col 8 (row a): GPIO 11 (data out) ↑</text>
+
+  <!-- ESP GND → GND rail (col 3, USB end) -->
+  <line x1="121" y1="158" x2="121" y2="132" class="gnd"/>
+  <circle cx="121" cy="132" r="2.6" class="j"/>
+  <!-- ESP 5V → +5V rail (col 4, USB end) -->
+  <line x1="139" y1="158" x2="139" y2="116" class="pwr"/>
+  <circle cx="139" cy="116" r="2.6" class="j"/>
+
+  <!-- GPIO11 (col 8, row a) → col 25 bottom -->
+  <polyline points="211,158 211,146 517,146 517,298" class="data"/>
+  <circle cx="517" cy="298" r="2.6" class="j"/>
+
+  <!-- one representative ADC jumper: GPIO 1 (col 21, row j) → S1 row i -->
+  <polyline points="445,362 445,374 739,374 739,334 751,334" class="analog"/>
+  <text x="150" y="390" class="pin" fill="#15803d">8× ADC jumpers: GPIO col (free hole, row a/j) → S col, row i — map below, exact runs in protoboard_wiring.svg</text>
+
+  <!-- ===================== 470 Ω (row h, cols 25→27) ===================== -->
+  <line x1="517" y1="316" x2="553" y2="316" stroke="#2563eb" stroke-width="2"/>
+  <rect x="523" y="310" width="24" height="12" class="comp"/>
+  <text x="535" y="332" text-anchor="middle" class="pin">470 Ω</text>
+  <circle cx="517" cy="316" r="2.6" class="j"/>
+  <circle cx="553" cy="316" r="2.6" class="j"/>
+
+  <!-- ===================== 74AHCT125 (cols 26–32, straddling trench) ===================== -->
+  <rect x="527" y="246" width="124" height="28" rx="2" class="ic"/>
+  <circle cx="527" cy="260" r="5" fill="#f7f7f4" stroke="#111" stroke-width="1"/>
+  <text x="589" y="264" text-anchor="middle" class="pin">74AHCT125</text>
+  <g stroke="#111" stroke-width="1">
+    <line x1="535" y1="246" x2="535" y2="240"/><line x1="535" y1="274" x2="535" y2="280"/>
+    <line x1="553" y1="246" x2="553" y2="240"/><line x1="553" y1="274" x2="553" y2="280"/>
+    <line x1="571" y1="246" x2="571" y2="240"/><line x1="571" y1="274" x2="571" y2="280"/>
+    <line x1="589" y1="246" x2="589" y2="240"/><line x1="589" y1="274" x2="589" y2="280"/>
+    <line x1="607" y1="246" x2="607" y2="240"/><line x1="607" y1="274" x2="607" y2="280"/>
+    <line x1="625" y1="246" x2="625" y2="240"/><line x1="625" y1="274" x2="625" y2="280"/>
+    <line x1="643" y1="246" x2="643" y2="240"/><line x1="643" y1="274" x2="643" y2="280"/>
+  </g>
+  <text x="541" y="237" class="pin" fill="#c0392b">14 VCC</text>
+  <text x="533" y="291" text-anchor="end" class="tiny">1OE</text>
+  <text x="553" y="302" text-anchor="middle" class="tiny" fill="#2563eb">2·1A</text>
+  <text x="573" y="291" class="tiny" fill="#2563eb">3·1Y</text>
+  <text x="645" y="291" class="tiny">7·GND</text>
+
+  <!-- VCC (pin 14, col 26 top) → +5V rail -->
+  <line x1="535" y1="240" x2="535" y2="116" class="pwr"/>
+  <circle cx="535" cy="116" r="2.6" class="j"/>
+  <!-- 1OE (pin 1, col 26 bottom) → GND rail -->
+  <line x1="535" y1="280" x2="535" y2="416" class="gnd"/>
+  <circle cx="535" cy="416" r="2.6" class="j"/>
+  <text x="427" y="432" class="pin" fill="#b00">pin 1 (1OE) → GND — or no data output!</text>
+  <!-- pin 7 GND (col 32 bottom) → GND rail -->
+  <line x1="643" y1="280" x2="643" y2="416" class="gnd"/>
+  <circle cx="643" cy="416" r="2.6" class="j"/>
+  <!-- 1Y (pin 3, col 28 bottom) → LED DATA column (col 35 top) -->
+  <polyline points="571,280 571,344 661,344 661,204 697,204" class="data"/>
+  <circle cx="571" cy="280" r="2.6" class="j"/>
+  <circle cx="697" cy="204" r="2.6" class="j"/>
+
+  <!-- ===================== LED STRIP FEED JST (3-pin, cols 34–36) ===================== -->
+  <rect x="667" y="138" width="60" height="24" rx="2" class="jst"/>
+  <g stroke="#111" stroke-width="1">
+    <line x1="679" y1="162" x2="679" y2="168"/>
+    <line x1="697" y1="162" x2="697" y2="168"/>
+    <line x1="715" y1="162" x2="715" y2="168"/>
+  </g>
+  <circle cx="679" cy="168" r="2.6" class="j"/><circle cx="697" cy="168" r="2.6" class="j"/><circle cx="715" cy="168" r="2.6" class="j"/>
+  <text x="679" y="180" text-anchor="middle" class="tiny" fill="#c0392b">5V</text>
+  <text x="697" y="180" text-anchor="middle" class="tiny" fill="#2563eb">DATA</text>
+  <text x="715" y="197" text-anchor="middle" class="tiny">GND</text>
+  <text x="734" y="129" class="pin">◀ 3-wire harness to strip DIN (start of chain) — JST-XH 3-pin, pins in row a, cols 34/35/36</text>
+  <!-- 5V pin → +5V rail (around body, via the col 33/34 gap) -->
+  <polyline points="679,186 670,186 670,116" class="pwr"/>
+  <circle cx="679" cy="186" r="2.6" class="j"/><circle cx="670" cy="116" r="2.6" class="j"/>
+  <!-- GND pin → GND rail (around body, via the col 36/37 gap) -->
+  <polyline points="715,186 724,186 724,132" class="gnd"/>
+  <circle cx="715" cy="186" r="2.6" class="j"/><circle cx="724" cy="132" r="2.6" class="j"/>
+
+  <!-- ===================== PIEZO INPUT BANK (×8, cols 40–62) ===================== -->
+  <use xlink:href="#pznet"/>
+  <use xlink:href="#pznet" x="54"/>
+  <use xlink:href="#pznet" x="108"/>
+  <use xlink:href="#pznet" x="162"/>
+  <use xlink:href="#pznet" x="216"/>
+  <use xlink:href="#pznet" x="270"/>
+  <use xlink:href="#pznet" x="324"/>
+  <use xlink:href="#pznet" x="378"/>
+  <text x="760"  y="359" text-anchor="middle" class="pin">S1</text>
+  <text x="814"  y="359" text-anchor="middle" class="pin">S2</text>
+  <text x="868"  y="359" text-anchor="middle" class="pin">S3</text>
+  <text x="922"  y="359" text-anchor="middle" class="pin">S4</text>
+  <text x="976"  y="359" text-anchor="middle" class="pin">S5</text>
+  <text x="1030" y="359" text-anchor="middle" class="pin">S6</text>
+  <text x="1084" y="359" text-anchor="middle" class="pin">S7</text>
+  <text x="1138" y="359" text-anchor="middle" class="pin">S8</text>
+  <text x="760"  y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 1</text>
+  <text x="814"  y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 2</text>
+  <text x="868"  y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 4</text>
+  <text x="922"  y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 5</text>
+  <text x="976"  y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 6</text>
+  <text x="1030" y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 7</text>
+  <text x="1084" y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 8</text>
+  <text x="1138" y="392" text-anchor="middle" class="pin" fill="#15803d">GPIO 9</text>
+
+  <!-- ===================== NOTES ===================== -->
+  <text x="70" y="470" class="note">Board: full-size Perma-Proto (Adafruit 1606 — 157×51 mm, 60 columns) or a similar solderable breadboard-pattern PCB — the BOM's 5×7 cm half-size board is too small once the DevKitC-1 socket + 9 JST headers land.</text>
+  <text x="70" y="485" class="note">Same topology as the Phase 2 breadboard: transfer the working bench circuit column-for-column; the power rails are pre-traced. JST-XH is 2.5 mm pitch on the 2.54 mm grid — no issue at 2–3 pins.</text>
+  <text x="70" y="500" class="note">Enclosure: the board is 157 mm long — the BOM's ~110×60×30 mm box can't hold it. Use a ~190×110×60 mm box (e.g. Hammond 1591E); mount on standoffs via the board's mounting holes, USB end toward the service opening.</text>
+  <text x="70" y="515" class="note">Piezo network per side: JST-XH 2-pin in row j (S col = signal, S+1 = GND) · 1 MΩ row g · Zener row h, band (cathode) toward the S column. Run the row-f GND chain in insulated wire, stripped only at the G columns —</text>
+  <text x="70" y="530" class="note">a bare bus wire would short the signal pads it crosses. The eight plugs sit shoulder-to-shoulder: label the piezo cables S1–S8 before connecting.</text>
+  <text x="70" y="545" class="note">LED feed: all three JST pins are wired (5V / DATA / GND) to match the strip harness, so the board feeds the strip's start — that share (≤ ~2 A worst case) flows through the pigtail, rail bridges, and rails: use ≥20 AWG there.</text>
+  <text x="70" y="560" class="note">Keep the mid- and end-of-strip injection taps wired straight to the slab DC rail. Match JST pin order to your harness — buzz it out with a multimeter before first plug-in.</text>
+  <text x="70" y="575" class="note">Ground the 74AHCT125's unused OE pins 4, 10, 13 and inputs 5, 9, 12. Golden rule: ESP32, shifter, strip, and all 8 piezos share one GND. Solder order: passives → IC → JST headers → female headers last (DevKit as jig; never solder it).</text>
+  <text x="70" y="590" class="note">USB and PSU 5V may coexist (the DevKitC-1 has a protection diode), but unplug the LED-strip JST when flashing on USB-only power — USB can't feed the strip. Bench-test per the Phase 5 checklist before boxing.</text>
+</svg>

@@ -33,7 +33,9 @@ The full design — bill of materials, wiring schematics, mechanical drawings, b
     ├── breadboard_layout.svg     ← Phase 2 bench-prototype breadboard placement (bench printout)
     ├── rim_section.svg           ← Figure 4.1 (edge cross-section)
     ├── installation_arch.svg     ← Figure 4.6 (slab/frame architecture)
-    └── turn_counter_wiring.svg   ← Figure 3.1 (wiring schematic, also good as a bench printout)
+    ├── turn_counter_wiring.svg   ← Figure 3.1 (wiring schematic, also good as a bench printout)
+    ├── protoboard_layout.svg     ← Phase 5 control-box protoboard placement (bench printout)
+    └── protoboard_wiring.svg     ← Phase 5 point-to-point wiring + numbered wire list (bench printout)
 ```
 
 ## Firmware

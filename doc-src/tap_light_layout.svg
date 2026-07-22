@@ -1,0 +1,192 @@
+<svg viewBox="0 0 1200 565" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .title { font-size: 21px; font-weight: bold; fill: #111; }
+    .sub   { font-size: 12px; fill: #555; }
+    .subtitle { font-size: 13px; font-weight: bold; fill: #111; }
+    .pin   { font-size: 9.5px; fill: #111; }
+    .small { font-size: 9px; fill: #555; }
+    .note  { font-size: 10px; fill: #444; font-style: italic; }
+    .rowlt { font-size: 10px; fill: #888; }
+    .colnum{ font-size: 9px; fill: #888; }
+    .pwr  { stroke: #c0392b; stroke-width: 2.2; fill: none; }
+    .gnd  { stroke: #111;    stroke-width: 2.2; fill: none; }
+    .data { stroke: #2563eb; stroke-width: 2;   fill: none; }
+    .analog { stroke: #15803d; stroke-width: 2; fill: none; }
+    .node { stroke: #b9c6d6; stroke-width: 5; fill: none; stroke-linecap: round; }
+    .rail { stroke-width: 2.2; fill: none; }
+    .grid { stroke: #e4e4e4; stroke-width: 1; }
+    .rowln{ stroke: #ededed; stroke-width: 1; }
+    .comp { fill: #fafafa; stroke: #111; stroke-width: 1.4; }
+    .esp  { fill: #d9d9d9; stroke: #333; stroke-width: 1.6; }
+    .led  { fill: #fff8e1; stroke: #111; stroke-width: 1.4; }
+    .dash { fill: none; stroke: #999; stroke-width: 1; stroke-dasharray: 4,3; }
+    .j    { fill: #111; }
+  </style>
+
+  <rect x="0" y="0" width="1200" height="565" fill="#ffffff"/>
+
+  <text x="600" y="28" text-anchor="middle" class="title">Tap Light — Breadboard Layout (Phase 0)</text>
+  <text x="600" y="46" text-anchor="middle" class="sub">ESP32-S3 · GPIO 11 → 470 Ω → WS2812B strip · GPIO 1 piezo network (1 MΩ + 3.3 V Zener) · 5 V + two grounds · no level shifter</text>
+
+  <!-- legend -->
+  <g transform="translate(70,58)">
+    <line x1="0" y1="0" x2="20" y2="0" class="pwr"/>      <text x="26" y="4" class="small">+5 V</text>
+    <line x1="70" y1="0" x2="90" y2="0" class="gnd"/>     <text x="96" y="4" class="small">GND</text>
+    <line x1="150" y1="0" x2="170" y2="0" class="data"/>  <text x="176" y="4" class="small">LED data</text>
+    <line x1="245" y1="0" x2="265" y2="0" class="analog"/><text x="271" y="4" class="small">piezo signal</text>
+    <line x1="365" y1="0" x2="385" y2="0" class="node"/>  <text x="391" y="4" class="small">column node (5 holes, common)</text>
+  </g>
+
+  <!-- ===================== POWER RAILS ===================== -->
+  <text x="40" y="120" class="small" fill="#c0392b">+5V</text>
+  <line x1="70" y1="116" x2="1160" y2="116" class="rail" stroke="#c0392b"/>
+  <text x="40" y="136" class="small">GND</text>
+  <line x1="70" y1="132" x2="1160" y2="132" class="rail" stroke="#111"/>
+
+  <text x="40" y="392" class="small" fill="#c0392b">+5V</text>
+  <line x1="70" y1="388" x2="1160" y2="388" class="rail" stroke="#c0392b"/>
+  <text x="40" y="408" class="small">GND</text>
+  <line x1="70" y1="404" x2="1160" y2="404" class="rail" stroke="#111"/>
+
+  <!-- rail bridge jumpers (far left) — makes top & bottom rails one net -->
+  <line x1="90" y1="116" x2="90" y2="388" class="pwr"/>
+  <line x1="98" y1="132" x2="98" y2="404" class="gnd"/>
+  <text x="105" y="262" class="small">bridge top ↔ bottom rails</text>
+
+  <!-- ===================== BREADBOARD BODY ===================== -->
+  <rect x="70" y="150" width="1090" height="220" rx="5" fill="#f7f7f4" stroke="#ccc" stroke-width="1"/>
+  <rect x="70" y="251" width="1090" height="18" fill="#e9e9e9"/>
+  <line x1="70" y1="260" x2="1160" y2="260" stroke="#bdbdbd" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="610" y="264" text-anchor="middle" class="small" fill="#999">center trench (separates a–e from f–j)</text>
+
+  <!-- row guide lines + letters -->
+  <line x1="75" y1="168" x2="1155" y2="168" class="rowln"/><text x="58" y="171" class="rowlt">a</text><text x="1167" y="171" class="rowlt">a</text>
+  <line x1="75" y1="186" x2="1155" y2="186" class="rowln"/><text x="58" y="189" class="rowlt">b</text><text x="1167" y="189" class="rowlt">b</text>
+  <line x1="75" y1="204" x2="1155" y2="204" class="rowln"/><text x="58" y="207" class="rowlt">c</text><text x="1167" y="207" class="rowlt">c</text>
+  <line x1="75" y1="222" x2="1155" y2="222" class="rowln"/><text x="58" y="225" class="rowlt">d</text><text x="1167" y="225" class="rowlt">d</text>
+  <line x1="75" y1="240" x2="1155" y2="240" class="rowln"/><text x="58" y="243" class="rowlt">e</text><text x="1167" y="243" class="rowlt">e</text>
+  <line x1="75" y1="280" x2="1155" y2="280" class="rowln"/><text x="58" y="283" class="rowlt">f</text><text x="1167" y="283" class="rowlt">f</text>
+  <line x1="75" y1="298" x2="1155" y2="298" class="rowln"/><text x="58" y="301" class="rowlt">g</text><text x="1167" y="301" class="rowlt">g</text>
+  <line x1="75" y1="316" x2="1155" y2="316" class="rowln"/><text x="58" y="319" class="rowlt">h</text><text x="1167" y="319" class="rowlt">h</text>
+  <line x1="75" y1="334" x2="1155" y2="334" class="rowln"/><text x="58" y="337" class="rowlt">i</text><text x="1167" y="337" class="rowlt">i</text>
+  <line x1="75" y1="352" x2="1155" y2="352" class="rowln"/><text x="58" y="355" class="rowlt">j</text><text x="1167" y="355" class="rowlt">j</text>
+
+  <!-- column number guides (every 5th): x = 80 + (c-1)*29 -->
+  <g>
+    <line x1="80"   y1="158" x2="80"   y2="362" class="grid"/><text x="80"   y="147" text-anchor="middle" class="colnum">1</text><text x="80"   y="382" text-anchor="middle" class="colnum">1</text>
+    <line x1="196"  y1="158" x2="196"  y2="362" class="grid"/><text x="196"  y="147" text-anchor="middle" class="colnum">5</text><text x="196"  y="382" text-anchor="middle" class="colnum">5</text>
+    <line x1="341"  y1="158" x2="341"  y2="362" class="grid"/><text x="341"  y="147" text-anchor="middle" class="colnum">10</text><text x="341" y="382" text-anchor="middle" class="colnum">10</text>
+    <line x1="486"  y1="158" x2="486"  y2="362" class="grid"/><text x="486"  y="147" text-anchor="middle" class="colnum">15</text><text x="486" y="382" text-anchor="middle" class="colnum">15</text>
+    <line x1="631"  y1="158" x2="631"  y2="362" class="grid"/><text x="631"  y="147" text-anchor="middle" class="colnum">20</text><text x="631" y="382" text-anchor="middle" class="colnum">20</text>
+    <line x1="776"  y1="158" x2="776"  y2="362" class="grid"/><text x="776"  y="147" text-anchor="middle" class="colnum">25</text><text x="776" y="382" text-anchor="middle" class="colnum">25</text>
+    <line x1="921"  y1="158" x2="921"  y2="362" class="grid"/><text x="921"  y="147" text-anchor="middle" class="colnum">30</text><text x="921" y="382" text-anchor="middle" class="colnum">30</text>
+    <line x1="1066" y1="158" x2="1066" y2="362" class="grid"/><text x="1066" y="147" text-anchor="middle" class="colnum">35</text><text x="1066" y="382" text-anchor="middle" class="colnum">35</text>
+  </g>
+
+  <!-- ===================== NODE BARS (used columns) ===================== -->
+  <!-- 470 ohm: col30 (in) / col31 (out), top half -->
+  <line x1="921" y1="168" x2="921" y2="240" class="node"/>
+  <line x1="950" y1="168" x2="950" y2="240" class="node"/>
+  <!-- piezo network, bottom half: sense col24, 1M-gnd col25, zener-gnd col26 -->
+  <line x1="747" y1="280" x2="747" y2="352" class="node"/>
+  <line x1="776" y1="280" x2="776" y2="352" class="node"/>
+  <line x1="805" y1="280" x2="805" y2="352" class="node"/>
+
+  <!-- ===================== ESP32-S3 ===================== -->
+  <rect x="115" y="158" width="490" height="204" rx="6" class="esp"/>
+  <text x="360" y="250" text-anchor="middle" class="subtitle" fill="#222">ESP32-S3  DevKitC-1</text>
+  <text x="360" y="268" text-anchor="middle" class="small" fill="#444">straddles the center trench · powered via USB</text>
+
+  <!-- 5V col3 x138 top -> +5V rail -->
+  <line x1="138" y1="158" x2="138" y2="116" class="pwr"/>
+  <circle cx="138" cy="116" r="2.6" class="j"/>
+  <text x="138" y="173" text-anchor="middle" class="pin" fill="#fff">5V</text>
+  <text x="150" y="145" class="pin" fill="#c0392b">5V → +5V rail</text>
+  <!-- GND #1 col4 x167 top -> GND rail -->
+  <line x1="167" y1="158" x2="167" y2="132" class="gnd"/>
+  <circle cx="167" cy="132" r="2.6" class="j"/>
+  <text x="255" y="145" class="pin">GND #1 → GND rail</text>
+  <!-- GPIO11 col16 x515 top -> 470 ohm input col30 -->
+  <line x1="515" y1="158" x2="515" y2="150" class="data"/>
+  <polyline points="515,150 921,150 921,168" class="data"/>
+  <circle cx="921" cy="168" r="2.6" class="j"/>
+  <text x="430" y="146" class="pin" fill="#2563eb">GPIO11 (data out)</text>
+  <!-- GPIO1 col17 x544 bottom -> piezo sense col24 -->
+  <line x1="544" y1="362" x2="544" y2="374" class="analog"/>
+  <polyline points="544,374 747,374 747,352" class="analog"/>
+  <circle cx="747" cy="352" r="2.6" class="j"/>
+  <text x="600" y="390" class="pin" fill="#15803d">GPIO1 (piezo in)</text>
+  <!-- GND #2 col13 x428 bottom -> GND rail -->
+  <line x1="428" y1="362" x2="428" y2="404" class="gnd"/>
+  <circle cx="428" cy="404" r="2.6" class="j"/>
+  <text x="310" y="390" class="pin">GND #2 → GND rail</text>
+
+  <!-- ===================== 470 ohm data resistor ===================== -->
+  <rect x="923" y="198" width="25" height="12" class="comp"/>
+  <text x="935" y="194" text-anchor="middle" class="pin">470Ω</text>
+  <line x1="921" y1="204" x2="923" y2="204" stroke="#111" stroke-width="1"/>
+  <line x1="948" y1="204" x2="950" y2="204" stroke="#111" stroke-width="1"/>
+  <text x="905" y="230" text-anchor="middle" class="small">col30→col31</text>
+
+  <!-- ===================== WS2812B STRIP ===================== -->
+  <rect x="985" y="158" width="165" height="70" rx="4" class="led"/>
+  <text x="1067" y="182" text-anchor="middle" class="subtitle">WS2812B strip</text>
+  <text x="1067" y="198" text-anchor="middle" class="small">30 LEDs (live)</text>
+  <text x="997" y="220" class="pin">DIN ← 470 Ω (col31)</text>
+  <!-- DIN from 470 ohm output col31 -> strip left edge -->
+  <line x1="950" y1="172" x2="985" y2="172" class="data"/>
+  <!-- +5V feed: straight up to +5V rail (crosses GND rail, no connection) -->
+  <line x1="1000" y1="158" x2="1000" y2="116" class="pwr"/>
+  <circle cx="1000" cy="116" r="2.6" class="j"/>
+  <text x="982" y="152" class="pin" fill="#c0392b">+5V</text>
+  <!-- GND feed: straight up to GND rail -->
+  <line x1="1035" y1="158" x2="1035" y2="132" class="gnd"/>
+  <circle cx="1035" cy="132" r="2.6" class="j"/>
+  <text x="1042" y="152" class="pin">GND</text>
+
+  <!-- ===================== PIEZO NETWORK ===================== -->
+  <rect x="728" y="272" width="112" height="150" class="dash"/>
+  <text x="784" y="266" text-anchor="middle" class="small" fill="#555">Piezo input network</text>
+
+  <!-- 1 MOhm: sense col24 -> col25 -> GND -->
+  <rect x="749" y="292" width="25" height="12" class="comp"/>
+  <text x="761" y="288" text-anchor="middle" class="pin">1MΩ</text>
+  <line x1="747" y1="298" x2="749" y2="298" stroke="#111" stroke-width="1"/>
+  <line x1="774" y1="298" x2="776" y2="298" stroke="#111" stroke-width="1"/>
+  <line x1="776" y1="352" x2="776" y2="404" class="gnd"/>
+  <circle cx="776" cy="404" r="2.6" class="j"/>
+
+  <!-- 3.3V Zener: cathode(band) at sense col24, anode -> col26 -> GND -->
+  <line x1="805" y1="318" x2="785" y2="318" stroke="#111" stroke-width="1.6"/>
+  <polygon points="785,312 785,324 768,318" class="comp"/>
+  <line x1="766" y1="311" x2="766" y2="325" stroke="#111" stroke-width="1.8"/>
+  <line x1="766" y1="318" x2="747" y2="318" stroke="#111" stroke-width="1.6"/>
+  <line x1="805" y1="352" x2="805" y2="404" class="gnd"/>
+  <circle cx="805" cy="404" r="2.6" class="j"/>
+  <text x="812" y="315" class="pin">3.3 V Zener</text>
+  <text x="812" y="327" class="small">band (cathode) → sense</text>
+
+  <!-- piezo disc (below the rails) -->
+  <circle cx="747" cy="458" r="16" class="comp"/>
+  <text x="747" y="462" text-anchor="middle" class="pin">PZ</text>
+  <line x1="747" y1="442" x2="747" y2="352" class="analog"/>
+  <polyline points="761,455 793,455 793,404" class="gnd"/>
+  <circle cx="793" cy="404" r="2.6" class="j"/>
+  <text x="690" y="462" text-anchor="end" class="small">piezo disc</text>
+
+  <!-- ===================== 1000uF bulk cap ===================== -->
+  <line x1="1105" y1="388" x2="1105" y2="394" class="pwr"/>
+  <line x1="1093" y1="394" x2="1117" y2="394" stroke="#c0392b" stroke-width="2.4"/>
+  <line x1="1097" y1="399" x2="1113" y2="399" stroke="#111" stroke-width="2"/>
+  <line x1="1105" y1="399" x2="1105" y2="404" class="gnd"/>
+  <circle cx="1105" cy="388" r="2.6" class="j"/>
+  <circle cx="1105" cy="404" r="2.6" class="j"/>
+  <text x="1123" y="392" class="pin">1000µF</text>
+  <text x="1123" y="404" class="small">(+ to 5V)</text>
+
+  <!-- ===================== NOTES ===================== -->
+  <text x="70" y="505" class="note">USB into the ESP32 powers the whole board; the 5V pin feeds the +5V rail. Fine for one short strip — a full install runs the strip off its own PSU.</text>
+  <text x="70" y="521" class="note">Two ground pins share the return: GND #1 anchors the piezo's sense ground, GND #2 carries the LED strip current — both land on the one common GND rail (bridged top↔bottom). One common ground is what gives the data line a valid reference.</text>
+  <text x="70" y="537" class="note">Piezo network: the 1 MΩ bleeds charge and sets the resting level (the ADC's ground reference); the 3.3 V Zener clamps each tap so a tens-of-volts spike can't exceed the pin's safe range.</text>
+  <text x="70" y="553" class="note">No level shifter — GPIO 11 → 470 Ω → strip DIN directly (3.3 V data is reliable for one short run). ESP32 pin positions are schematic; check your board's silkscreen.</text>
+</svg>

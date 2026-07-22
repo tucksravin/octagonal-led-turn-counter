@@ -10,7 +10,7 @@
 > **Companion files**:
 > - `dry_run.md` — Phase −1 bench & skills shakedown on penny parts; do this first
 > - `turn_counter_wiring.svg` — full schematic, print and keep at the bench
-> - `doc-src/breadboard_layout.svg` — hole-by-hole breadboard placement for the **Phase 2 bench prototype** (it includes the level shifter — the Phase 0 Tap Light deliberately skips it)
+> - `doc-src/breadboard_layout.svg` — hole-by-hole breadboard placement for the **Phase 2 bench prototype** (it includes the level shifter for learning; the Phase 0 Tap Light and the default main build both drive direct at 3.3 V — the shifter is optional, see §3.3)
 > - `turn_counter.ino` — main project firmware
 > - `tap_light.ino` — Phase 0 starter project firmware
 >
@@ -131,7 +131,7 @@ This is essentially **one zone of the main project**. Every skill you exercise h
 | 1 | Breadboard (~$5, get one anyway, useful for life) |
 | 1 | USB cable for the ESP32 |
 
-Skip the level shifter for the starter. WS2812B at short lengths often works fine on 3.3 V data directly — and if it doesn't, that's a teaching moment about why we add the level shifter for the main build.
+Skip the level shifter for the starter. WS2812B often works fine on 3.3 V data directly — the main build relies on this too (direct 3.3 V drive is the default; the level shifter is an optional add-back if the first pixel ever misbehaves — see §3.3).
 
 #### Wiring
 
@@ -231,7 +231,7 @@ The main build splits into seven phases on top of Phase 0. Do them in order.
 | **2. Bench prototype** | ESP32 + 1 LED segment + 1 piezo on a breadboard, firmware running | Proves the full firmware works before anything is permanent |
 | **3. LED rim** | Cut, route, and mount the strip into aluminum channel around the octagon | The most visible part of the build. Take your time on the corners |
 | **4. Piezo mounting** | Glue 8 piezos to the underside of the slab, run leads | Cross-talk between sides is inherent to a single slab; firmware filters it, but careful placement helps |
-| **5. Control box** | ESP32 + level shifter + resistors + connectors on protoboard, in an enclosure | Everything terminates here. JST connectors so the table is serviceable |
+| **5. Control box** | ESP32 + 470 Ω + 1000 µF cap on a half-size protoboard, in an enclosure (level shifter optional) | Everything terminates here. In-line strip JST so the table is serviceable |
 | **6. Final assembly** | Mount PSU on the bumper pool frame, wire the Powerpole disconnect, dress wiring on the slab, mate and test | The slab/frame split (§4.6) is most of the work here |
 | **7. Tune & test** | Dial in the piezo tap delta, calibrate brightness, play a real game | Real-world testing always reveals something the bench didn't |
 
@@ -253,15 +253,16 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 | 12 | Zener diode | 3.3 V, 1 W (1N4728A) | ADC overvoltage clamp |
 | 5 | Resistor | 470 Ω, 1/4 W | Series resistor on data line |
 | 3 | Capacitor | 1000 µF, 10 V or higher, electrolytic | Across 5V/GND at strip start |
-| 2 | Level shifter | 74AHCT125 (DIP-14) | 3.3 V → 5 V data line |
+| 2 | Level shifter *(optional)* | 74AHCT125 (DIP-14) | 3.3 V → 5 V data line — optional robustness add-back (§3.3); default build drives direct |
 | 1 | Power supply | Mean Well LRS-100-5 (5 V, 18 A) | Don't cheap out here. LRS-50-5 (5 V, 10 A) is the original spec and also fine if you can find it; the -100 was substituted when the -50 went out of stock at DigiKey |
 | 1 | Power switch | Panel-mount rocker rated for your mains (≥125 V AC covers US 120 V; 250 V AC if outside the US), 6 A+ | Or use a switched IEC inlet (safer) |
 | ~ | Hookup wire | 22 AWG stranded for signal, 18 AWG for power | A few colors helps |
 | 12 | JST-XH 2-pin connector pairs | For piezo leads | Makes service easy |
-| 2 | JST-XH 3-pin connector pair | For LED strip data + ground | Detachable rim |
+| 2 | JST-XH 3-pin connector pair | For the LED strip feed (5V + data + ground) | Detachable rim |
 | 1 pk | WAGO 221-415 lever connectors | 5-conductor, 25-pack | Branch nodes for the slab DC rail (control-box feed + 3 strip injection points). Replaces the screw-terminal blocks of earlier drafts |
-| 1 | Project box | ~110×60×30 mm | See §4 for mounting options |
-| 2 | Protoboard | 5×7 cm or similar | One for starter, one for main |
+| 1 | Project box | ~112×62×31 mm (e.g. Hammond 1591B) | Holds the 81 mm half-size control board — see §4.5 |
+| 2 | Protoboard | 5×7 cm (Phase 0 starter) + half-size Perma-Proto 81×46 mm (main) | 30 columns suffice because the piezo networks live at the discs (§4.3) and pigtails solder directly — see `doc-src/protoboard_half_layout.svg` |
+| 2 | Female header strip, 1×22 | 2.54 mm pitch, cut from 1×40 strips (cut through position 23 — cutting a female header sacrifices one socket) | ESP32 socket on the control board — never solder the DevKit directly |
 | 1 | Inline fuse | 5 A automotive blade fuse + holder | Between PSU 5V output and Powerpole pigtail |
 | 1 | Breadboard | Standard half-size | For prototyping. Useful forever |
 | | | | |
@@ -273,7 +274,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 | 1 | Pine block or scrap | ~4×6×1" | PSU mounting platform on frame |
 | ~ | #8 wood screws | 3/4" and 1.5" lengths | Mount block to frame and PSU to block |
 
-**Total cost**: ~$271–281 for parts, plus ~$213 for tools if you own none — `shopping_list.md` has the vendor-priced, per-part accounting. Tools are a one-time investment that'll serve every future project.
+**Total cost**: ~$320–330 for parts, plus ~$213 for tools if you own none — `shopping_list.md` has the vendor-priced, per-part accounting. Tools are a one-time investment that'll serve every future project.
 
 **Where to source**: Strip and channel from BTF-Lighting or Adafruit. Piezos, resistors, Zeners, level shifter from any electronics supplier (DigiKey/Mouser if you want quality, Amazon if you want speed). PSU from Mean Well's authorized resellers — there are a lot of fakes on Amazon.
 
@@ -289,7 +290,7 @@ Quantities below cover the **main project**. The starter project (Phase 0) uses 
 
 | ESP32-S3 GPIO | Function | Notes |
 |--------------:|----------|-------|
-| 11 | LED data out (→ 470 Ω → level shifter → strip) | |
+| 11 | LED data out (→ 470 Ω → strip DIN, direct 3.3 V) | |
 | 1 | Piezo side 1 ADC | ADC1_CH0 |
 | 2 | Piezo side 2 ADC | ADC1_CH1 |
 | 4 | Piezo side 3 ADC | ADC1_CH3 |
@@ -325,7 +326,9 @@ The 1 MΩ resistor pulls the ADC line down so it doesn't float. The Zener clamps
 
 Three injection points along the strip — start, middle, and end — each tapping the +5V and GND rails on the slab. This prevents voltage droop along the 4 m run. Note that those rails on the slab come from the PSU on the bumper pool frame via the Powerpole DC disconnect; see §4.6 for the full slab/frame architecture. The schematic shows the electrical connections; the disconnect itself is a physical break in the +5V/GND wiring between PSU and slab.
 
-The 74AHCT125 level shifter takes the ESP32-S3's 3.3 V data signal and bumps it to 5 V. Tie its OE pin (and any unused channel OE pins) to GND. Power VCC from +5V rail.
+**Data line — direct 3.3 V drive (default).** GPIO 11 drives the strip's DIN through a 470 Ω series resistor, placed close to DIN. WS2812B specifies a data "high" of ~0.7 × VDD = 3.5 V at a 5 V supply, so the ESP32's 3.3 V is just under spec — but only the **first pixel** is at risk of not latching (it regenerates a clean 5 V signal for all 239 downstream), and with the strip start sitting right by the control box the data run is short and reliable. This is the default build: simplest, and adding protection later is trivial.
+
+**Optional robustness upgrade — 74AHCT125 level shifter.** If the first pixel ever glitches (a cold room, a replacement strip from a different batch, marginal timing), splice a 74AHCT125 into the data path: GPIO 11 → '125 input → '125 output → 470 Ω → DIN. Power VCC from the +5V rail and tie 1OE (and any unused channel OE pins) to GND, or the output stays Hi-Z. It bumps the 3.3 V logic to a clean 5 V swing with full margin. The board layout (`doc-src/protoboard_half_layout.svg`) marks where it drops in; everything stays accessible so it's an add-back, not a rebuild.
 
 A 1000 µF cap across the 5V/GND rails right where the strip starts. Acts as a local energy reservoir for sudden current draw.
 
@@ -361,17 +364,29 @@ Alternative: if you prefer a recessed look, route a 1/2"-wide × 1/4"-deep rabbe
 - **Cut the LED strip** between LED pads at the corner. Solder short jumper wires (3-conductor: 5V, GND, Data) to bridge across the corner gap. Heat-shrink the joints.
 - **LED count per side**: at 60 LEDs/m, a 20" (508 mm) side fits ~30 LEDs. Cut cleanly between pads, you'll lose maybe 1–2 LEDs in the corner gaps.
 
+**Corner caps & edge-resting protection.** The slab gets stored leaning on its side (that's how the bumper pool underneath gets played). With the channel on the outer edge, that would rest the slab's weight directly on the diffuser and the LEDs behind it — and eventually pop the channel off. The fix is corner caps standing **~5 mm proud of the diffuser face** at all 8 corners: leaned on any side, the slab lands on the two caps flanking that side and the channel never touches the floor. The caps also round off the sharp 135° wood corners and shield the corner jumper bridges — the most fragile joints in the build. Design rules regardless of which option below you pick: **screw, don't glue** (you'll want the cap off to service the joint behind it), and give the landing surfaces a grippy rubber skin so the leaned slab grips the floor instead of skating.
+
+[CORNER_CAP_FIGURE]
+
+Three ways to make them:
+
+- **Plasti-Dipped hardwood caps (recommended)**: cut 8 blocks from scrap with the same 22.5° miter settings used for the channel, so each cap wraps its corner with two faces meeting at 135°. Ease all exposed edges with a 3/8" roundover, then dip or brush **3 coats of Plasti Dip** (dry ~30 min between coats, cure 4 h) before mounting — a soft, grippy, floor-safe rubber skin that adds impact absorption without changing the cap's geometry. Countersink two screws per cap into the slab edge, driven before dipping is easier: dip with the screws parked in their holes so the recesses stay open. Nearly free, matches the slab, fully covers the corner wiring.
+- **Off-the-shelf**: wall-protection suppliers sell **135° corner guards** (Lexan or vinyl, sold as ~4 ft wall strips, ~$20–30) — one strip cut into 1"-tall pieces yields all 8 caps. These are thin profiles, so they cover the corner and the wiring but don't provide standoff; pair them with **7/8" screw-on rubber dome bumpers** (hardware-store item, ~$4 per 4-pack) — two per corner, one on each adjacent facet, supplying the actual proudness.
+- **3D-printed**: custom 135° caps profiled around the exact channel cross-section, PETG (or TPU for built-in grip). Best fit if you have printer access.
+
+If the slab is thin enough to flex when leaned, add one more rubber bumper at the midpoint of each side, same proudness as the caps — six contact points per resting edge instead of two.
+
 ### 4.3 Piezo placement
 
-One piezo glued centered on the **underside of the slab**, one for each player's section (8 total). Brass face against the wood, leads soldered before mounting.
+One piezo per player's section (8 total), mounted near the **outer edge of its side** in a shallow bore drilled from the underside. Boring to within ~3–5 mm of the top surface leaves a thin "drumhead" of wood that flexes far more than the full slab thickness — a large sensitivity win — and puts the sensor directly under where players actually slap. The larger radius also spreads the sensors farther apart, which sharpens the firmware's biggest-jump-wins side discrimination. (Earlier revisions placed the discs at each wedge's centroid on the full-thickness slab; the rim bores replaced that after bench testing showed marginal sensitivity.)
 
-Layout: divide the underside of the octagonal slab into 8 wedge-shaped sections matching the 8 sides above. Place each piezo at roughly the centroid of its wedge — about 3–4" inward from the outer edge. Avoid placing them where the slab rests on the bumper pool frame; a piezo at a clamped point won't vibrate freely.
+Don't bore fully through to the laminate: a laminate-only floor is extremely sensitive but flexes enough to risk cracking the ceramic or de-bonding the disc over time. Avoid spots where the slab rests on the bumper pool frame; a clamped membrane can't vibrate.
 
-The thin slab + air-gap-below configuration is excellent for piezo coupling. Vibration from a tap anywhere on a player's section transmits efficiently to the piezo directly underneath. The bare top means nothing damps the slab from above either.
+**The input network lives at the disc, not the control board.** Each piezo gets its 1 MΩ bleed resistor and Zener clamp soldered right at the disc: twist the component legs and the pigtail wire into one bundle per node and flow solder once — two joints per piezo module. Zener band (cathode) toward the **signal** side; check before twisting. Make the joints in the pigtail ~1/2" off the disc (the ceramic hates long iron dwell), heat-shrink each node separately, then a dab of hot glue in the bore for strain relief. Clamping at the source means a slap's open-circuit spike dies at the disc instead of traveling the cable past seven neighboring runs. The signal wire then runs straight to the ADC pin — the optional 10–47 kΩ series-protection resistor is omitted in this build (the 1 MΩ + Zener are the real protection; the series R is extra hardening against a worst-case slam, easy to splice in later if wanted).
 
-**Mounting**: hot glue is fine for prototyping. For permanent installation use cyanoacrylate (super glue) or a thin layer of epoxy. Press flat, hold 30 seconds. Don't crush the disc — even pressure across the whole face.
+**Mounting**: bore floor clean and dust-free, cyanoacrylate or thin epoxy, brass face to the wood, even pressure for 30 seconds. Hot glue only for temporary tests.
 
-**Wire routing**: 22 AWG stranded leads from each piezo, soldered to the disc terminals (be quick — piezos are heat-sensitive), routed along the slab underside toward the control box. Secure with adhesive cable mounts every 6". From there to JST-XH connectors.
+**Wire routing**: one twisted pair (signal + GND) per piezo, 22 AWG stranded, routed in the underside kerfs to the control board — labeled S1–S8. Keep the pairs out of the kerfs carrying 5 V injection runs for their first few inches. No JSTs at either end: the pairs solder directly at the disc and at the board.
 
 ### 4.4 Cross-talk mitigation
 
@@ -390,7 +405,7 @@ Because the whole slab is one continuous piece of wood, every tap reaches all 8 
 Three choices, ranked from least to most effort:
 
 **Option A — Project box, surface-mounted under the slab** (default).
-A small ABS or aluminum project box (~110×60×30 mm) screws to the underside of the slab. Cable glands or grommets for entries. Cheapest, fastest, easiest to service. Slight visual penalty if you ever flip the slab over.
+An ABS or aluminum project box (~112×62×31 mm — sized for the half-size control protoboard, see `doc-src/protoboard_half_layout.svg`) screws to the underside of the slab. Cable glands or grommets for entries. Cheapest, fastest, easiest to service. Slight visual penalty if you ever flip the slab over.
 
 **Option B — Recessed pocket in the slab underside**.
 Route a rectangular pocket into the underside of the slab, sized to fit the protoboard + ESP32 + connectors. Cover plate (wood or thin metal) screws over it. Flush, invisible from below, but you have to commit to a location and dimension before routing — and any future hardware change means another router pass. Pay attention to slab thickness: with a ~1" slab and a typical protoboard depth of ~10–15 mm, you have very little wood left between the pocket bottom and the top surface. Best if you're confident in the design and the protoboard is thin enough.
@@ -415,7 +430,7 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 
 **What lives where**:
 
-*Slab (top, removable)*: LED strip + channel, all 8 piezos, ESP32 control box, level shifter, all signal wiring, and a DC pigtail terminating in a Powerpole connector.
+*Slab (top, removable)*: LED strip + channel, all 8 piezos, ESP32 control box (with the optional level shifter if fitted), all signal wiring, and a DC pigtail terminating in a Powerpole connector.
 
 *Frame (bottom, permanent)*: PSU, switch or IEC inlet, AC cord to wall, inline 5A fuse (DC side), DC pigtail terminating in the mating Powerpole connector.
 
@@ -467,23 +482,24 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 - [ ] Solder jumper wires at each corner (3-conductor: 5V, GND, Data); heat-shrink each joint
 - [ ] Test continuity: data line from start to end of the assembled strip with multimeter
 - [ ] Mount channel pieces to the **outer edge of the slab** with screws (or recessed in a routed rabbet — see §4.1)
-- [ ] **Count the actual installed LEDs** (most likely 232–240 depending on corner cuts) and update `NUM_LEDS` in firmware to match. Also recompute `LEDS_PER_SIDE = NUM_LEDS / 8`, **rounding down** (so e.g. 235 LEDs → 29 per side, with the last 3 LEDs unaddressed). Rounding up would make `renderTurn()` write past the end of the `leds[]` array
+- [ ] **Calibrate the per-side LED counts.** The firmware no longer assumes a uniform `LEDS_PER_SIDE` — each side's actual count lives in a `sideLedCounts[8]` table (corner cuts make sides unequal). Flash `tap_light`, open the serial monitor, and use the calibration commands (`0`–`7` select a side, `+`/`-` move its boundary, `p` prints the table) until every color flip in the side-colors mode sits exactly on a physical corner. The table persists in NVS and `turn_counter` reads it automatically; also paste the printed table into both sketches' `sideLedCounts` defaults so it survives a flash-erase
 - [ ] Solder pigtails for power injection at three points along the strip: at the start (DIN end), at the corner roughly halfway around (the corner between the 4th and 5th side as the strip runs), and at the end of the strip. Each pigtail joins +5V and GND from the slab's main DC rails to the strip's 5V and GND pads
+- [ ] Mount the 8 corner caps (§4.2) over the corner jumper bridges — screwed, rubber-faced, ~5 mm proud of the diffuser
 
 ### Phase 4: Piezo Mounting
 
+- [ ] Drill 8 rim bores from the underside, one per side near the outer edge, leaving a ~3–5 mm floor (§4.3) — verify remaining thickness before the first glue-down, and never bore through to the laminate
 - [ ] Solder leads to all 8 piezos (red to +, black to –). Quick — under 2 seconds per pad
+- [ ] Build each disc's network in the pigtail ~1/2" off the disc: twist the 1 MΩ + Zener legs into the wire bundle, one soldered joint per node, Zener band toward signal; heat-shrink each node separately (§4.3)
 - [ ] Test each piezo before mounting: connect to multimeter on AC voltage, tap it, expect a brief swing
-- [ ] Splice each piezo's leads onto a pre-crimped JST-XH pigtail from the connector kit (solder + heat-shrink — the kit's wires come pre-crimped, so no JST crimper is needed)
-- [ ] On the slab underside, mark 8 piezo locations: one per wedge, ~3–4" inward from each outer edge, avoiding any spot where the slab rests on the pool table frame
-- [ ] Glue each piezo at its mark, brass face against wood
-- [ ] Route piezo cables along the slab underside toward where the control box will live; secure with adhesive cable mounts every 6"
+- [ ] Glue each piezo into its bore, brass face against the wood floor — vacuum the drilling dust out first
+- [ ] Route each twisted pair through the underside kerfs toward the control box; secure every 6"; label S1–S8
 
 ### Phase 5: Control Box
 
-- [ ] Build the protoboard: ESP32 socket (use female headers, don't solder it directly), level shifter, 8× pulldown resistors, 8× Zeners, 470 Ω data resistor, 1000 µF cap
-- [ ] Add 8× JST-XH 2-pin headers for piezo inputs
-- [ ] Add 1× JST-XH 3-pin header for strip data + ground reference
+- [ ] Build the protoboard: half-size Perma-Proto — ESP32 socket (use female headers, don't solder the module), 1000 µF cap, and the GPIO 11 → 470 Ω → strip data run (470 Ω spliced in-line, near DIN). Direct 3.3 V drive — **no level shifter** by default (cols 23–30 stay empty; that's where the optional '125 drops in, §3.3). Print `doc-src/protoboard_half_layout.svg` for placement; `doc-src/protoboard_wiring.svg` is the retired full-size map, kept only for the DevKitC-1 v1.1 pin reference. Piezo networks are **not** on this board — they live at the discs (§4.3)
+- [ ] Solder the 8 labeled piezo pairs directly into their row-a/j holes per the layout — signal to the GPIO column, GND to the nearest rail. No series resistor, no JST headers
+- [ ] Solder the 3-wire strip harness (5V / data / ground) directly to the board, with an in-line JST-XH 3-pin a few inches off-board as the service disconnect (the board feeds the strip-start injection point; the mid and end taps stay on the slab rail)
 - [ ] Add a 5V/GND input pigtail (its far end lands in a WAGO 221 lever node on the slab DC rail)
 - [ ] Test before installing: power up with the bench-test pigtail (see §4.6) connected to a 5V supply — either a small bench supply, or a USB-C wall adapter with a USB-C-to-Powerpole adapter cable, or even just the ESP32-S3's USB power if you only need to verify the firmware logic without driving the LED strip — then run firmware and tap piezo leads with a screwdriver to fake hits
 - [ ] Mount protoboard inside the chosen enclosure (see §4.5 — typically a project box under the slab); cut cable entries for power and signal
@@ -611,7 +627,7 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| LEDs flicker or first LED is wrong color | Missing or weak data signal | Confirm 470 Ω resistor + level shifter + common ground |
+| LEDs flicker or first LED is wrong color | Weak data signal into pixel 1 (3.3 V direct drive is marginal) | Confirm 470 Ω + common ground; if it persists, add the optional 74AHCT125 level shifter (§3.3) |
 | Far-end LEDs tint pink/orange | Voltage drop along strip | Add or check power injection at midpoint and end |
 | Whole strip dark | PSU off, switch off, blown fuse, or reversed polarity | Check switch first, then fuse, then PSU output, then polarity |
 | Tap doesn't register | `TAP_DELTA` too high, bad piezo solder, glue not contacting wood | Lower `TAP_DELTA`, reflow joint, re-glue |
