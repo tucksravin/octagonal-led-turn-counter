@@ -1,102 +1,84 @@
-#include <FastLED.h>
+#include <octagon_core.h>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 
-// Targets ESP32-S3 (e.g. ESP32-S3-DevKitC-1 N8R8). Piezos live on ADC1
-// (GPIO 1-10) so they keep working while Wi-Fi/BLE are active.
-#define LED_PIN          11
-#define NUM_LEDS         240   // buffer ceiling; the lit total is sideStarts[NUM_SIDES]
-#define NUM_SIDES        8
-#define BRIGHTNESS       128
-#define MAX_POWER_MA     1500  // FastLED auto-dims to hold LED draw here. Sized so the whole table
-                               // can run through the ESP32-S3 dev board's own USB jack: the board's
-                               // 5V path is good for ~1.5-2A, and 1500mA LEDs + ~250mA ESP ~= 1.75A.
-                               // One-lit-side play (~0.6A) never hits the cap and stays full-bright;
-                               // only the all-on moments (setup blink, READY, ready-flash) dim (~1/3).
-                               // For full-brightness all-on, feed the strip 5V directly (not through
-                               // the board) and raise this to ~2500 — see design doc 3.5.
-#define LED_TYPE         WS2812B
-#define COLOR_ORDER      GRB
+// The full game: a roster of seats, four interaction modes, and a tap-gesture
+// setup mode to configure both. The table hardware underneath — strip geometry,
+// the calibrated side table, piezo tap detection — lives in the octagon_core
+// library, shared with the `eight` sketch.
+//
+// WiFi/OTA is what pushes this past the stock 1.25 MB app partition, so it
+// builds with min_spiffs (see the Makefile).
 
-const char* WIFI_SSID     = "your-network-here";
-const char* WIFI_PASSWORD = "your-password-here";
-const char* OTA_HOSTNAME  = "turn-counter";
-const char* OTA_PASSWORD  = "letsplayagame";
+// Wi-Fi/OTA credentials live in a gitignored secrets.h — copy secrets.example.h
+// and fill it in. Absent that file the SSID is empty and setupWiFi() skips the
+// radio entirely, so a fresh clone still compiles and runs.
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #define WIFI_SSID     ""
+  #define WIFI_PASSWORD ""
+  #define OTA_HOSTNAME  "turn-counter"
+  #define OTA_PASSWORD  ""
+#endif
 
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 5000;
+const uint32_t WIFI_RETRY_MS           = 30000;  // how often loop() re-attempts a down link
 
-// All 8 piezos on ADC1. GPIO 3 is skipped because it's a JTAG strap pin.
-const uint8_t PIEZO_PINS[NUM_SIDES] = {1, 2, 4, 5, 6, 7, 8, 9};
-
-// Adaptive tap detection (same approach as tap_light.ino): each side's resting
-// ADC level is averaged at boot, then tracked with a slow moving average. A tap
-// fires when a reading jumps TAP_DELTA above that side's own baseline. Spike
-// readings never feed the average, so taps don't desensitize a side, while slow
-// drift (temperature, glue aging, ambient vibration) is absorbed automatically.
-const uint16_t TAP_DELTA                = 1000;
-const uint16_t DEBOUNCE_MS              = 250;
 const uint8_t  SETUP_TAP_COUNT          = 4;
 const uint16_t SETUP_TAP_WINDOW_MS      = 2000;
-const uint16_t SETUP_EXIT_IDLE_MS       = 3000;
-const uint16_t OPPOSITE_PAIR_WINDOW_MS  = 150;
-const uint16_t MODE_DIAL_MS             = 5000;   // dial shows each mode ~5 s while browsing
-const uint16_t SETUP_BROWSE_IDLE_MS     = 20000;  // dial unlocked: longer idle before auto-commit
+const uint16_t MODE_DEMO_MS             = 7500;   // phase 1: each mode's whole-table demo runs ~7.5 s
+const uint16_t MODE_ABORT_IDLE_MS       = 35000;  // phase 1: no tap for a full demo rotation — abort, change nothing
+const uint16_t MODE_TAP_GRACE_MS        = 500;    // swallow gesture spillover right after entry
+const uint16_t SETUP_JOIN_IDLE_MS       = 5000;   // phase 2: idle commits the roster
+
+// Mode-demo animation timing (phase 1).
+const uint16_t DEMO_SNAKE_MS            = 15;     // CW/CCW: snake advances one LED (~3.3 s per lap)
+const uint8_t  DEMO_SNAKE_LEN           = 14;     // CW/CCW: snake length in LEDs, head bright, tail fading
+const uint16_t DEMO_HOP_MS              = 600;    // ARB: solid dwell per seat; a round covers all 8
+const uint16_t DEMO_FLIP_MS             = 250;    // READY: one more side flipping to green
+const uint16_t DEMO_HOLD_MS             = 500;    // READY: all-green pause before snapping back
+
+// READY mode plays in red/green, not player colors: red = not ready, green = in.
+const CRGB READY_RED   = CRGB(200, 0, 0);
+const CRGB READY_GREEN = CRGB(0, 200, 0);
 
 // Interaction modes chosen on the setup dial. CW/CCW/ARB are turn-passing
 // variants; READY is a group ready-check with no single "current" seat.
 enum GameMode : uint8_t { MODE_CW = 0, MODE_CCW = 1, MODE_ARB = 2, MODE_READY = 3, MODE_COUNT = 4 };
 
-// Per-side LED counts. Corner cuts eat 1-2 LEDs unpredictably, so the octagon's
-// sides aren't uniform — this table is the source of truth for where each side
-// starts. Defaults are overridden at boot by a table calibrated from the
-// tap_light firmware (NVS namespace "octagon", serial commands 0-7/+/-/p).
-uint8_t sideLedCounts[NUM_SIDES] = {29, 28, 27, 27, 27, 28, 28, 27};  // calibrated 2026-07-21, 221 LEDs total
-uint16_t sideStarts[NUM_SIDES + 1];  // prefix sums; sideStarts[NUM_SIDES] = lit total
+// Setup runs in two phases: the whole table demos candidate modes until any tap
+// commits the one showing, then seats tap themselves into the roster.
+enum SetupPhase : uint8_t { PHASE_MODE = 0, PHASE_JOIN = 1 };
 
-CRGB leds[NUM_LEDS];
 Preferences prefs;      // "turntable": game state
-Preferences sidePrefs;  // "octagon": calibrated side table
 
 bool     sideActive[NUM_SIDES] = {true, true, true, true, true, true, true, true};  // roster: which seats are "in"
 int8_t   currentSide = 0;        // the active seat whose turn it is (index into sideActive)
-uint8_t  prevRosterMask = 0xFF;  // roster snapshot taken on setup entry; restored if you exit with 0 seats joined
-uint32_t lastTapPerSide[NUM_SIDES] = {0};
-uint32_t baselineAcc[NUM_SIDES] = {0};  // fixed-point moving averages of resting levels, scaled by 64
-uint32_t lastAnyTapMs = 0;
+uint8_t  prevRosterMask = 0xFF;  // roster snapshot taken on setup entry; restored on abort or a 0-seat exit
 bool     inSetupMode = false;
-bool     isOn = true;
 bool     otaActive = false;
+bool     otaReady = false;          // ArduinoOTA.begin() has run against the current link
+uint32_t lastWifiAttemptMs = 0;
 
 uint8_t  gameMode = MODE_CW;            // persisted interaction mode
 int8_t   joinOrder[NUM_SIDES] = {0};    // seats in the order they joined (ARB turn order)
 uint8_t  joinCount = 0;
-int8_t   setupSide = -1;                // side that opened setup: the mode dial, auto-joined
-bool     modeLocked = true;             // dial locked (solid, committed) vs. cycling to browse (flashing)
-uint8_t  dialMode = MODE_CW;            // mode currently shown on the dial
-uint32_t dialLastAdvanceMs = 0;         // last time the dial auto-advanced while unlocked
-bool     ready[NUM_SIDES] = {false};    // READY mode: which active seats are lit on
+SetupPhase setupPhase = PHASE_MODE;
+uint8_t  dialMode = MODE_CW;            // mode currently being demoed in phase 1
+uint32_t setupEnteredMs = 0;            // when setup opened (anchors the tap grace window)
+uint32_t demoModeStartMs = 0;           // when the current demo began (auto-advance + animation clock)
+int8_t   prevJoinOrder[NUM_SIDES] = {0};// join-order snapshot paired with prevRosterMask
+uint8_t  prevJoinCount = 0;
+bool     ready[NUM_SIDES] = {false};    // READY mode: green (ready) vs red, active seats only
 
 uint32_t firstTapInBurstMs = 0;
 uint8_t  tapsInBurst = 0;
 int8_t   burstSide = -1;   // the side the current tap-burst is accumulating on
 
-int8_t   pendingTapSide = -1;
-uint32_t pendingTapMs = 0;
-
-const CRGB PLAYER_COLORS[8] = {
-  CRGB(255, 40, 40),
-  CRGB(40, 120, 255),
-  CRGB(60, 220, 80),
-  CRGB(255, 200, 30),
-  CRGB(220, 60, 220),
-  CRGB(40, 230, 230),
-  CRGB(255, 130, 30),
-  CRGB(180, 180, 220)
-};
-
-// Shown only on the mode dial (the setup side) during setup.
+// Demo colors for the mode-select phase; READY demos in red/green instead.
 const CRGB MODE_COLORS[MODE_COUNT] = {
   CRGB(60, 220, 80),    // CW    - green
   CRGB(40, 120, 255),   // CCW   - blue
@@ -106,43 +88,6 @@ const CRGB MODE_COLORS[MODE_COUNT] = {
 const char* const MODE_NAMES[MODE_COUNT] = {
   "clockwise", "counter-clockwise", "arbitrary (join order)", "ready-or-not"
 };
-
-uint16_t baseline(uint8_t i) { return baselineAcc[i] >> 6; }
-
-void rebuildSideStarts() {
-  sideStarts[0] = 0;
-  for (uint8_t s = 0; s < NUM_SIDES; s++) {
-    sideStarts[s + 1] = sideStarts[s] + sideLedCounts[s];
-  }
-}
-
-uint16_t totalLeds() { return sideStarts[NUM_SIDES]; }
-
-bool validSideTable(const uint8_t *t) {
-  uint16_t total = 0;
-  for (uint8_t s = 0; s < NUM_SIDES; s++) {
-    if (t[s] < 1 || t[s] > 60) return false;
-    total += t[s];
-  }
-  return total <= NUM_LEDS;
-}
-
-void loadSideTable() {
-  uint8_t stored[NUM_SIDES];
-  if (sidePrefs.getBytes("sides", stored, NUM_SIDES) == NUM_SIDES && validSideTable(stored)) {
-    memcpy(sideLedCounts, stored, NUM_SIDES);
-    Serial.println("Loaded calibrated side table from NVS");
-  }
-  rebuildSideStarts();
-  Serial.print("Side LED counts:");
-  for (uint8_t s = 0; s < NUM_SIDES; s++) Serial.printf(" %u", sideLedCounts[s]);
-  Serial.printf(" (total %u)\n", totalLeds());
-}
-
-bool isOppositeSide(int8_t a, int8_t b) {
-  if (a < 0 || b < 0) return false;
-  return ((a + NUM_SIDES / 2) % NUM_SIDES) == b;
-}
 
 uint8_t rosterMask() {
   uint8_t m = 0;
@@ -239,14 +184,79 @@ bool readyMode() { return gameMode == MODE_READY; }
 
 // Only the current seat lights, in that side's fixed color; every other seat dark.
 void renderTurn() {
-  FastLED.clear();
   if (currentSide >= 0 && sideActive[currentSide]) {
-    fill_solid(&leds[sideStarts[currentSide]], sideLedCounts[currentSide], PLAYER_COLORS[currentSide]);
+    showOnlySide(currentSide, PLAYER_COLORS[currentSide]);
+  } else {
+    renderOff();
+  }
+}
+
+// Phase 1: the whole table acts out the candidate mode, ~5 s per mode, so
+// nobody has to remember a color legend — the animation IS the mode.
+void renderModeDemo(uint32_t now) {
+  if (now - demoModeStartMs >= MODE_DEMO_MS) {
+    demoModeStartMs = now;
+    dialMode = (dialMode + 1) % MODE_COUNT;
+    Serial.printf("Setup: demoing %s\n", MODE_NAMES[dialMode]);
+  }
+  uint32_t elapsed = now - demoModeStartMs;
+
+  FastLED.clear();
+  switch (dialMode) {
+    case MODE_CW:
+    case MODE_CCW: {  // twin snakes lapping the table from opposite sides
+      uint16_t total = totalLeds();
+      for (uint8_t snake = 0; snake < 2; snake++) {
+        uint16_t head = ((elapsed / DEMO_SNAKE_MS) + snake * (total / 2)) % total;
+        for (uint8_t k = 0; k < DEMO_SNAKE_LEN; k++) {
+          // CW: heads climb the strip (same direction as nextActiveSide), tails
+          // trailing below them; CCW is the mirror image.
+          uint16_t pos = (dialMode == MODE_CW)
+                           ? (head + total - k) % total
+                           : (total - 1 - head + k) % total;
+          CRGB col = MODE_COLORS[dialMode];
+          col.nscale8(255 - (uint16_t)k * 255 / DEMO_SNAKE_LEN);
+          leds[pos] = col;
+        }
+      }
+      break;
+    }
+    case MODE_ARB: {  // the turn lands solid on one seat, then another — every
+                      // seat exactly once per round, in a freshly shuffled order
+      static uint8_t  order[NUM_SIDES] = {0, 1, 2, 3, 4, 5, 6, 7};
+      static uint8_t  orderPos = NUM_SIDES - 1;  // wraps on the first tick, so round one is shuffled too
+      static uint32_t lastHopMs = 0;             // 0 = that first tick fires immediately
+      if (now - lastHopMs >= DEMO_HOP_MS) {
+        lastHopMs = now;
+        if (++orderPos >= NUM_SIDES) {
+          orderPos = 0;
+          uint8_t last = order[NUM_SIDES - 1];
+          do {  // Fisher-Yates; re-deal if the new round would open on the seat
+                // that just closed the old one (a repeat the eye would catch)
+            for (uint8_t i = NUM_SIDES - 1; i > 0; i--) {
+              uint8_t j = random(i + 1);
+              uint8_t t = order[i]; order[i] = order[j]; order[j] = t;
+            }
+          } while (order[0] == last);
+        }
+      }
+      fillSide(order[orderPos], MODE_COLORS[MODE_ARB]);
+      break;
+    }
+    default: {  // MODE_READY: seats flip green one by one, hold all-green, snap back
+      uint8_t greens = (elapsed % ((uint32_t)NUM_SIDES * DEMO_FLIP_MS + DEMO_HOLD_MS)) / DEMO_FLIP_MS;
+      if (greens > NUM_SIDES) greens = NUM_SIDES;
+      for (uint8_t s = 0; s < NUM_SIDES; s++) {
+        fillSide(s, s < greens ? READY_GREEN : READY_RED);
+      }
+      break;
+    }
   }
   FastLED.show();
 }
 
-void renderSetup() {
+// Phase 2: joined seats blink in their colors; empty seats dark.
+void renderJoin() {
   static uint32_t lastBlink = 0;
   static bool blinkState = false;
 
@@ -256,57 +266,21 @@ void renderSetup() {
     blinkState = !blinkState;
   }
 
-  // While the dial is unlocked it auto-cycles the modes, ~5 s each.
-  if (!modeLocked && now - dialLastAdvanceMs >= MODE_DIAL_MS) {
-    dialLastAdvanceMs = now;
-    dialMode = (dialMode + 1) % MODE_COUNT;
-  }
-
   FastLED.clear();
   for (uint8_t s = 0; s < NUM_SIDES; s++) {
-    if (s == setupSide) {
-      // The mode dial: flashing while you browse (color cycles ~5 s each), solid
-      // once you tap to commit a mode.
-      if (modeLocked || blinkState) {
-        fill_solid(&leds[sideStarts[s]], sideLedCounts[s], MODE_COLORS[dialMode]);
-      }
-    } else if (sideActive[s] && blinkState) {
-      fill_solid(&leds[sideStarts[s]], sideLedCounts[s], PLAYER_COLORS[s]);
-    }
+    if (sideActive[s] && blinkState) fillSide(s, PLAYER_COLORS[s]);
   }
   FastLED.show();
 }
 
-void renderOff() {
-  FastLED.clear();
-  FastLED.show();
-}
-
-// READY mode: each active seat that has tapped in shows its own color; rest dark.
+// READY mode: every active seat is always lit — red until its player taps it
+// green. All-green holds until any tap resets the round; empty seats stay dark.
 void renderReady() {
   FastLED.clear();
   for (uint8_t s = 0; s < NUM_SIDES; s++) {
-    if (sideActive[s] && ready[s]) {
-      fill_solid(&leds[sideStarts[s]], sideLedCounts[s], PLAYER_COLORS[s]);
-    }
+    if (sideActive[s]) fillSide(s, ready[s] ? READY_GREEN : READY_RED);
   }
   FastLED.show();
-}
-
-// Everyone's in: blink all active seats a few times, then clear for the next round.
-void flashReadyAndReset() {
-  for (uint8_t b = 0; b < 3; b++) {
-    FastLED.clear();
-    FastLED.show();
-    delay(120);
-    for (uint8_t s = 0; s < NUM_SIDES; s++) {
-      if (sideActive[s]) fill_solid(&leds[sideStarts[s]], sideLedCounts[s], PLAYER_COLORS[s]);
-    }
-    FastLED.show();
-    delay(120);
-  }
-  for (uint8_t s = 0; s < NUM_SIDES; s++) ready[s] = false;
-  renderReady();
 }
 
 // Start (or resume) play in the current mode.
@@ -317,57 +291,6 @@ void startPlay() {
   } else {
     renderTurn();
   }
-}
-
-void renderOtaProgress(uint8_t percent) {
-  FastLED.clear();
-  uint16_t lit = (uint32_t)totalLeds() * percent / 100;
-  for (uint16_t i = 0; i < lit; i++) {
-    leds[i] = CRGB(0, 80, 255);
-  }
-  FastLED.show();
-}
-
-// Returns a bitmask of accepted hits in this scan. At most two bits set:
-// the side with the biggest jump above its own baseline (cross-talk filter —
-// adjacent ghosts lose to the real hit) and, if its diametrically-opposite
-// side also spiked this scan, that one too (two-handed slap detected in a
-// single scan, before debounce can lock it out). Cross-scan two-handed
-// slaps still work via pendingTapSide in onTapDetected().
-uint8_t readPiezos(uint32_t now) {
-  uint8_t aboveThresholdMask = 0;
-  uint8_t maxIdx = 0xFF;
-  uint16_t maxDelta = 0;
-
-  for (uint8_t i = 0; i < NUM_SIDES; i++) {
-    uint16_t reading = analogRead(PIEZO_PINS[i]);
-    if (reading > baseline(i) + TAP_DELTA) {
-      aboveThresholdMask |= (1 << i);
-      uint16_t delta = reading - baseline(i);
-      if (delta > maxDelta) {
-        maxDelta = delta;
-        maxIdx = i;
-      }
-    } else {
-      baselineAcc[i] += reading - baseline(i);  // slow average, tau ~0.3 s at 5 ms/loop
-    }
-  }
-
-  if (maxIdx == 0xFF) return 0;
-  if (now - lastTapPerSide[maxIdx] <= DEBOUNCE_MS) return 0;
-
-  uint8_t resultMask = (1 << maxIdx);
-  lastTapPerSide[maxIdx] = now;
-  lastAnyTapMs = now;
-
-  uint8_t oppIdx = (maxIdx + NUM_SIDES / 2) % NUM_SIDES;
-  if ((aboveThresholdMask & (1 << oppIdx)) &&
-      now - lastTapPerSide[oppIdx] > DEBOUNCE_MS) {
-    resultMask |= (1 << oppIdx);
-    lastTapPerSide[oppIdx] = now;
-  }
-
-  return resultMask;
 }
 
 void advanceTurn() {
@@ -394,35 +317,54 @@ bool registerTapForSetupGesture(int8_t side, uint32_t now) {
   return tapsInBurst >= SETUP_TAP_COUNT;
 }
 
-void enterSetupMode(int8_t triggerSide) {
+void enterSetupMode() {
   inSetupMode = true;
+  setupPhase = PHASE_MODE;
   firstTapInBurstMs = 0;
   tapsInBurst = 0;
-  prevRosterMask = rosterMask();  // remember the roster so an empty exit can restore it
-  for (uint8_t s = 0; s < NUM_SIDES; s++) sideActive[s] = false;  // clear — each player taps their own seat in
 
-  setupSide = triggerSide;        // the side that opened setup becomes the mode dial...
-  sideActive[setupSide] = true;   // ...and auto-joins (always in)
+  // Snapshot everything a phase-1 abort (or an empty phase-2 exit) must put back.
+  prevRosterMask = rosterMask();
+  memcpy(prevJoinOrder, joinOrder, NUM_SIDES);
+  prevJoinCount = joinCount;
+
+  for (uint8_t s = 0; s < NUM_SIDES; s++) sideActive[s] = false;  // everyone taps in fresh — nobody auto-joins
   joinCount = 0;
-  joinOrderAdd(setupSide);
 
-  dialMode = gameMode;            // dial starts on the current mode and cycles; tap it to commit
-  modeLocked = false;
-  dialLastAdvanceMs = millis();
+  dialMode = gameMode;            // demos start from the active mode
+  setupEnteredMs = millis();
+  demoModeStartMs = setupEnteredMs;
 
-  Serial.printf("Entering setup - side %d is the mode dial (tap to change mode); tap other seats to join\n", setupSide);
+  Serial.printf("Entering setup - demoing %s; tap any side to pick the mode showing\n", MODE_NAMES[dialMode]);
+}
+
+// Phase-1 idle timeout: nobody picked a mode, so put the table back exactly as
+// it was — roster, join order and mode untouched, nothing written to NVS.
+void abortSetupMode() {
+  inSetupMode = false;
+  applyRosterMask(prevRosterMask);
+  memcpy(joinOrder, prevJoinOrder, NUM_SIDES);
+  joinCount = prevJoinCount;
+  if (activeCount() == 0) {
+    applyRosterMask(0xFF);
+    rebuildJoinOrderFromRoster();
+  }
+  Serial.println("Setup abort: no mode picked, nothing changed");
 }
 
 void exitSetupMode() {
   inSetupMode = false;
-  setupSide = -1;
   if (activeCount() == 0) {
     applyRosterMask(prevRosterMask);                 // nobody joined — restore the previous roster, don't brick
-    if (activeCount() == 0) applyRosterMask(0xFF);   // previous was empty too — fall back to all seats in
-    rebuildJoinOrderFromRoster();                    // tap order lost on restore — use physical order
+    memcpy(joinOrder, prevJoinOrder, NUM_SIDES);     // and the join order that goes with it
+    joinCount = prevJoinCount;
+    if (activeCount() == 0) {
+      applyRosterMask(0xFF);                         // previous was empty too — fall back to all seats in
+      rebuildJoinOrderFromRoster();
+    }
     Serial.println("Setup exit: no seats joined, roster restored");
   }
-  // ARB starts on the first joiner (the configurer); the others at the lowest active seat.
+  // ARB starts on the first joiner; other modes at the lowest active seat.
   currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstActiveSide();
 
   prefs.putUChar("roster", rosterMask());
@@ -433,38 +375,15 @@ void exitSetupMode() {
   Serial.printf("Setup done. %d seats, mode=%s, starting at side %d\n", activeCount(), MODE_NAMES[gameMode], currentSide);
 }
 
-void toggleOnOff() {
-  isOn = !isOn;
-  inSetupMode = false;
-  setupSide = -1;
-  firstTapInBurstMs = 0;
-  tapsInBurst = 0;
-  pendingTapSide = -1;
-  prefs.putUChar("ison", isOn ? 1 : 0);
-
-  if (isOn) {
-    Serial.println("Power ON");
-    startPlay();
-  } else {
-    Serial.println("Power OFF");
-    renderOff();
-  }
-}
-
 void commitTap(int8_t side, uint32_t whenMs) {
-  if (!isOn) return;
-
   if (inSetupMode) {
-    if (side == setupSide) {
-      // The dial: tap to lock the shown mode, tap again to unlock and keep browsing.
-      modeLocked = !modeLocked;
-      if (modeLocked) {
-        gameMode = dialMode;
-        Serial.printf("Setup: mode locked = %s\n", MODE_NAMES[gameMode]);
-      } else {
-        dialLastAdvanceMs = millis();
-        Serial.println("Setup: mode dial browsing");
-      }
+    if (setupPhase == PHASE_MODE) {
+      // Any side commits the mode being demoed — but not the tail of the entry
+      // gesture (a stray 5th tap, or its cross-talk ghost on another side).
+      if (whenMs - setupEnteredMs < MODE_TAP_GRACE_MS) return;
+      gameMode = dialMode;
+      setupPhase = PHASE_JOIN;
+      Serial.printf("Setup: mode = %s - tap seats to join\n", MODE_NAMES[gameMode]);
       return;
     }
     sideActive[side] = !sideActive[side];  // toggle this seat in/out of the roster
@@ -476,22 +395,23 @@ void commitTap(int8_t side, uint32_t whenMs) {
   if (readyMode()) {
     // Group ready-check: no current seat, so any fast 4-tap opens setup.
     if (registerTapForSetupGesture(side, whenMs)) {
-      enterSetupMode(side);
+      enterSetupMode();
       return;
     }
     if (!sideActive[side]) return;             // seats not in the roster do nothing
-    ready[side] = !ready[side];                // toggle this seat's ready light
-    Serial.printf("Ready: side %d %s\n", side, ready[side] ? "ON" : "off");
     bool allReady = true;
     for (uint8_t s = 0; s < NUM_SIDES; s++) {
       if (sideActive[s] && !ready[s]) { allReady = false; break; }
     }
     if (allReady) {
-      Serial.println("Ready: everyone in - flashing, then resetting");
-      flashReadyAndReset();
+      // Whole table green: the round is over — any tap deals the next one.
+      for (uint8_t s = 0; s < NUM_SIDES; s++) ready[s] = false;
+      Serial.println("Ready: round reset - everyone back to red");
     } else {
-      renderReady();
+      ready[side] = !ready[side];
+      Serial.printf("Ready: side %d %s\n", side, ready[side] ? "GREEN" : "red");
     }
+    renderReady();
     return;
   }
 
@@ -504,45 +424,18 @@ void commitTap(int8_t side, uint32_t whenMs) {
     // land on the current seat, so brisk normal play can never accumulate toward
     // the gesture and trip setup mode by accident.
     if (registerTapForSetupGesture(side, whenMs)) {
-      enterSetupMode(side);
+      enterSetupMode();
       return;
     }
     Serial.printf("Tap on side %d ignored - not the current seat\n", side);
   }
 }
 
-void onTapDetected(int8_t side, uint32_t now) {
-  if (pendingTapSide >= 0 && isOppositeSide(pendingTapSide, side)) {
-    pendingTapSide = -1;
-    toggleOnOff();
-    return;
-  }
+bool wifiConfigured() { return WIFI_SSID[0] != '\0'; }
 
-  if (pendingTapSide >= 0) {
-    commitTap(pendingTapSide, pendingTapMs);
-  }
-
-  pendingTapSide = side;
-  pendingTapMs = now;
-}
-
-void setupWiFiAndOta() {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  uint32_t start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_CONNECT_TIMEOUT_MS) {
-    delay(100);
-  }
-
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi not connected, OTA disabled");
-    return;
-  }
-
-  Serial.print("WiFi connected: ");
-  Serial.println(WiFi.localIP());
-
+// Installs the OTA handlers and opens the listener. Separate from the connect so
+// it can run the first time the link comes up, however late that is.
+void beginOta() {
   ArduinoOTA.setHostname(OTA_HOSTNAME);
   ArduinoOTA.setPassword(OTA_PASSWORD);
 
@@ -554,7 +447,7 @@ void setupWiFiAndOta() {
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     uint8_t percent = (uint32_t)progress * 100 / total;
-    renderOtaProgress(percent);
+    renderProgressBar(percent, CRGB(0, 80, 255));
   });
 
   ArduinoOTA.onEnd([]() {
@@ -571,7 +464,73 @@ void setupWiFiAndOta() {
   });
 
   ArduinoOTA.begin();
-  Serial.println("OTA ready");
+  otaReady = true;
+  Serial.printf("OTA ready at %s.local (", OTA_HOSTNAME);
+  Serial.print(WiFi.localIP());
+  Serial.println(")");
+}
+
+void setupWiFi() {
+  if (!wifiConfigured()) {
+    Serial.println("No secrets.h (or empty SSID) - WiFi and OTA disabled");
+    return;
+  }
+
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  lastWifiAttemptMs = millis();
+
+  uint32_t start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_CONNECT_TIMEOUT_MS) {
+    delay(100);
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("WiFi connected: ");
+    Serial.println(WiFi.localIP());
+    beginOta();
+  } else {
+    Serial.println("WiFi not up yet - retrying in the background, OTA starts when it joins");
+  }
+}
+
+// Non-blocking link maintenance. Before this existed a slow AP at boot meant no
+// OTA until the table was power-cycled. Never delays, so tap latency is
+// unaffected.
+void serviceWiFi(uint32_t now) {
+  if (!wifiConfigured()) return;
+
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!otaReady) beginOta();
+    return;
+  }
+
+  if (otaReady) {          // link dropped — tear the listener down so the
+    ArduinoOTA.end();      // reconnect can rebind it against the new address
+    otaReady = false;
+    Serial.println("WiFi lost - OTA offline until it returns");
+  }
+
+  if (now - lastWifiAttemptMs < WIFI_RETRY_MS) return;
+  lastWifiAttemptMs = now;
+  WiFi.reconnect();
+}
+
+// Bench commands over USB serial: m remaps the piezos, p prints the map. The
+// wizard is blocking and owns the LEDs, so any setup session in progress is
+// dropped and play restarts cleanly when it returns.
+void handleSerial() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == 'm') {
+      runPiezoMapWizard();
+      inSetupMode = false;
+      startPlay();
+    } else if (c == 'p') {
+      printPiezoMap();
+    }
+  }
 }
 
 void setup() {
@@ -581,7 +540,6 @@ void setup() {
   prefs.begin("turntable", false);
   applyRosterMask(prefs.getUChar("roster", 0xFF));   // default: all 8 seats in
   currentSide = prefs.getUChar("curside", 0);
-  isOn        = prefs.getUChar("ison", 1) ? true : false;
   if (activeCount() == 0) applyRosterMask(0xFF);
   if (currentSide < 0 || currentSide >= NUM_SIDES || !sideActive[currentSide]) currentSide = firstActiveSide();
 
@@ -589,73 +547,46 @@ void setup() {
   if (gameMode >= MODE_COUNT) gameMode = MODE_CW;
   loadJoinOrder();                                   // restore ARB turn order (or rebuild from roster)
 
-  isOn = true;  // TEMP bench: force always-on so a stale NVS "off" doesn't boot dark — REVERT for real play
+  octagonBegin();                    // side table from NVS, FastLED, piezo baselines
+  // No pair handler: power is physical (plug in = on), and skipping the pair
+  // hold means taps commit the scan they're detected instead of 150 ms later.
+  tapsBegin(commitTap, nullptr);
 
-  sidePrefs.begin("octagon", false);
-  loadSideTable();
+  setupWiFi();
 
-  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
-  FastLED.setBrightness(BRIGHTNESS);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MA);  // runs off the board's USB; dims all-on peaks
-
-  for (uint8_t i = 0; i < NUM_SIDES; i++) {
-    pinMode(PIEZO_PINS[i], INPUT);
-  }
-
-  // Seed each side's baseline with ~0.5 s of quiet readings before accepting taps.
-  uint32_t sums[NUM_SIDES] = {0};
-  for (uint8_t s = 0; s < 100; s++) {
-    for (uint8_t i = 0; i < NUM_SIDES; i++) {
-      sums[i] += analogRead(PIEZO_PINS[i]);
-    }
-    delay(5);
-  }
-  Serial.print("Piezo baselines:");
-  for (uint8_t i = 0; i < NUM_SIDES; i++) {
-    baselineAcc[i] = (sums[i] / 100) << 6;
-    Serial.printf(" %u", baseline(i));
-  }
-  Serial.printf(" (tap fires at baseline + %u)\n", TAP_DELTA);
-
-  setupWiFiAndOta();
-
-  if (isOn) {
-    startPlay();
-  } else {
-    renderOff();
-  }
+  startPlay();
 }
 
 void loop() {
-  ArduinoOTA.handle();
+  if (otaReady) ArduinoOTA.handle();
 
   if (otaActive) {
     delay(5);
     return;
   }
 
+  handleSerial();
+
   uint32_t now = millis();
 
-  uint8_t hits = readPiezos(now);
-  for (uint8_t i = 0; i < NUM_SIDES; i++) {
-    if (hits & (1 << i)) {
-      onTapDetected(i, now);
-    }
-  }
+  serviceWiFi(now);
 
-  if (pendingTapSide >= 0 && now - pendingTapMs >= OPPOSITE_PAIR_WINDOW_MS) {
-    commitTap(pendingTapSide, pendingTapMs);
-    pendingTapSide = -1;
-  }
+  tapsPoll(now);
 
-  if (isOn && inSetupMode) {
-    uint32_t idleLimit = modeLocked ? SETUP_EXIT_IDLE_MS : SETUP_BROWSE_IDLE_MS;
-    if (lastAnyTapMs != 0 && now - lastAnyTapMs > idleLimit) {
-      if (!modeLocked) { modeLocked = true; gameMode = dialMode; }  // browsing timed out — lock what's shown
+  if (inSetupMode) {
+    // lastAnyTapMs() is never 0 here — setup can only be entered by tapping.
+    if (setupPhase == PHASE_MODE) {
+      if (now - lastAnyTapMs() > MODE_ABORT_IDLE_MS) {
+        abortSetupMode();
+        startPlay();
+      } else {
+        renderModeDemo(now);
+      }
+    } else if (now - lastAnyTapMs() > SETUP_JOIN_IDLE_MS) {
       exitSetupMode();
       startPlay();
     } else {
-      renderSetup();
+      renderJoin();
     }
   }
 
