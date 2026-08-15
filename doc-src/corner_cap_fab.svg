@@ -1,0 +1,223 @@
+<svg viewBox="0 0 620 1120" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .label { font-size: 12px; fill: #111; }
+    .label-bold { font-size: 12px; font-weight: bold; fill: #111; }
+    .title { font-size: 16px; font-weight: bold; fill: #111; }
+    .small { font-size: 10px; fill: #555; }
+    .note { font-size: 11px; fill: #444; font-style: italic; }
+    .wood { fill: #c8a878; stroke: #6b4d28; stroke-width: 1.5; }
+    .stock { fill: #ecd8b0; stroke: #4a3418; stroke-width: 2; }
+    .wood-grain { stroke: #8a6f3c; stroke-width: 0.5; fill: none; opacity: 0.5; }
+    .channel { fill: #d8d8d8; stroke: #555; stroke-width: 1.2; }
+    .diffuser { fill: #fff8c4; stroke: #b8a838; stroke-width: 1; }
+    .screw { fill: #999999; stroke: #333; stroke-width: 1; }
+    .leader { stroke: #555; stroke-width: 0.8; fill: none; }
+    .kerf { stroke: #c0392b; stroke-width: 2; fill: none; }
+    .waste { fill: #ffffff; stroke: #c0392b; stroke-width: 1; stroke-dasharray: 4,3; }
+    .glue { stroke: #2563eb; stroke-width: 2.5; fill: none; }
+    .hidden { stroke: #6b4d28; stroke-width: 1; fill: none; stroke-dasharray: 5,3; }
+    .dim { stroke: #2563eb; stroke-width: 1; fill: none; }
+    .dimtext { font-size: 10px; fill: #2563eb; }
+    .rule { stroke: #cccccc; stroke-width: 1; }
+    .good { font-size: 11px; font-weight: bold; fill: #1a7f37; }
+    .bad { font-size: 11px; font-weight: bold; fill: #c0392b; }
+    .boxfill { fill: #f7f4ee; stroke: #b9ab90; stroke-width: 1; }
+  </style>
+
+  <rect x="0" y="0" width="620" height="1120" fill="#ffffff"/>
+
+  <text x="310" y="26" text-anchor="middle" class="title">Corner Caps — Fabrication with a Circular Saw and a Drill</text>
+  <text x="310" y="44" text-anchor="middle" class="note">red = saw cut · blue = glue line · mill the profile in one long stick, cut the 8 caps last</text>
+
+  <!-- ================================================================ -->
+  <!-- PANEL A : cross-section, what the cavity has to clear             -->
+  <!-- ================================================================ -->
+  <text x="310" y="72" text-anchor="middle" class="label-bold">A — Section through the slab edge: the cavity is a THROUGH cut, open at both ends</text>
+
+  <!-- A-left: the easy case, a rabbet -->
+  <text x="150" y="96" text-anchor="middle" class="good">EASIER — channel biased to one edge → rabbet</text>
+
+  <line x1="240" y1="132" x2="264" y2="132" class="dim"/>
+  <line x1="240" y1="128" x2="240" y2="136" class="dim"/>
+  <line x1="264" y1="128" x2="264" y2="136" class="dim"/>
+  <text x="252" y="124" text-anchor="middle" class="dimtext">channel H + 1 mm</text>
+
+  <rect x="60" y="150" width="180" height="75" class="wood"/>
+  <line x1="75" y1="178" x2="225" y2="178" class="wood-grain"/>
+  <line x1="75" y1="203" x2="225" y2="203" class="wood-grain"/>
+  <text x="140" y="215" text-anchor="middle" class="label">slab edge, ~1"</text>
+
+  <rect x="240" y="174" width="18" height="51" class="channel"/>
+  <rect x="258" y="174" width="3" height="51" class="diffuser"/>
+
+  <polygon points="240,150 276,150 276,225 264,225 264,171 240,171" class="stock"/>
+
+  <polygon points="276,154 270,158 216,158 212,160 216,162 270,162 276,166" class="screw"/>
+
+  <text x="300" y="140" class="dimtext">land ≈ 7 mm</text>
+  <line x1="298" y1="143" x2="292" y2="156" class="leader"/>
+  <line x1="292" y1="150" x2="292" y2="171" class="dim"/>
+  <line x1="288" y1="150" x2="296" y2="150" class="dim"/>
+  <line x1="288" y1="171" x2="296" y2="171" class="dim"/>
+
+  <text x="300" y="158" class="label">cap stock</text>
+  <line x1="298" y1="155" x2="278" y2="152" class="leader"/>
+  <text x="300" y="176" class="small">screw into the land</text>
+  <line x1="298" y1="173" x2="278" y2="163" class="leader"/>
+
+  <line x1="261" y1="240" x2="276" y2="240" class="dim"/>
+  <line x1="261" y1="236" x2="261" y2="244" class="dim"/>
+  <line x1="276" y1="236" x2="276" y2="244" class="dim"/>
+  <text x="268" y="256" text-anchor="middle" class="dimtext">~5 mm proud</text>
+
+  <text x="60" y="278" class="small">Two rip cuts and the waste falls out —</text>
+  <text x="60" y="292" class="small">no plunge cuts, nothing to chisel.</text>
+
+  <!-- A-right: the harder case, centered groove -->
+  <text x="470" y="96" text-anchor="middle" class="bad">HARDER — channel centered → blind-walled groove</text>
+
+  <rect x="400" y="150" width="100" height="75" class="wood"/>
+  <line x1="412" y1="178" x2="488" y2="178" class="wood-grain"/>
+  <line x1="412" y1="203" x2="488" y2="203" class="wood-grain"/>
+
+  <rect x="500" y="162" width="18" height="51" class="channel"/>
+  <rect x="518" y="162" width="3" height="51" class="diffuser"/>
+
+  <polygon points="500,150 536,150 536,225 500,225 500,216 524,216 524,159 500,159" class="stock"/>
+
+  <text x="548" y="156" class="small">~3 mm land</text>
+  <line x1="546" y1="153" x2="528" y2="154" class="leader"/>
+  <text x="548" y="228" class="small">~3 mm land</text>
+  <line x1="546" y1="225" x2="528" y2="221" class="leader"/>
+
+  <text x="400" y="278" class="small">Two thin lands — no room for a screw — and the</text>
+  <text x="400" y="292" class="small">floor needs stepped kerfs + a chisel between walls.</text>
+  <text x="400" y="306" class="small">Decide the channel's position before you drill it on.</text>
+
+  <line x1="40" y1="326" x2="580" y2="326" class="rule"/>
+
+  <!-- ================================================================ -->
+  <!-- PANEL B : mill it long                                            -->
+  <!-- ================================================================ -->
+  <text x="310" y="352" text-anchor="middle" class="label-bold">B — Mill the profile in one long stick, then cut the caps off it</text>
+
+  <rect x="60" y="378" width="500" height="46" class="stock"/>
+  <rect x="60" y="404" width="500" height="20" fill="#f7ecd6" stroke="#4a3418" stroke-width="1"/>
+  <text x="310" y="396" text-anchor="middle" class="small">rabbet runs the full length — one setup</text>
+
+  <line x1="60" y1="438" x2="560" y2="438" class="dim"/>
+  <line x1="60" y1="434" x2="60" y2="442" class="dim"/>
+  <line x1="560" y1="434" x2="560" y2="442" class="dim"/>
+  <text x="310" y="452" text-anchor="middle" class="dimtext">≥ 1.2 m — enough for all 8 caps</text>
+
+  <text x="60" y="474" class="small">slab side = left edge of each section below</text>
+
+  <rect x="90" y="495" width="60" height="75" class="stock"/>
+  <text x="120" y="590" text-anchor="middle" class="small">1 — stock</text>
+  <text x="120" y="603" text-anchor="middle" class="small">25 × 20 mm</text>
+
+  <rect x="230" y="495" width="60" height="75" class="stock"/>
+  <line x1="254" y1="570" x2="254" y2="516" class="kerf"/>
+  <text x="260" y="590" text-anchor="middle" class="small">2 — rip from the</text>
+  <text x="260" y="603" text-anchor="middle" class="small">bottom face</text>
+
+  <polygon points="370,495 430,495 430,570 394,570 394,516 370,516" class="stock"/>
+  <line x1="370" y1="516" x2="394" y2="516" class="kerf"/>
+  <rect x="336" y="500" width="24" height="54" class="waste"/>
+  <line x1="368" y1="534" x2="352" y2="534" class="leader"/>
+  <polygon points="346,534 356,530 356,538" fill="#c0392b"/>
+  <text x="404" y="590" text-anchor="middle" class="small">3 — rip from the side;</text>
+  <text x="404" y="603" text-anchor="middle" class="small">waste falls free</text>
+
+  <polygon points="510,495 561,495 570,504 570,561 561,570 534,570 534,516 510,516" class="stock"/>
+  <text x="540" y="590" text-anchor="middle" class="small">4 — chamfer the show</text>
+  <text x="540" y="603" text-anchor="middle" class="small">edges, on the stick</text>
+
+  <line x1="40" y1="624" x2="580" y2="624" class="rule"/>
+
+  <!-- ================================================================ -->
+  <!-- PANEL C : kerf and fold                                           -->
+  <!-- ================================================================ -->
+  <text x="310" y="650" text-anchor="middle" class="label-bold">C — Kerf-and-fold: one continuous show face, no visible joint</text>
+
+  <text x="177" y="672" text-anchor="middle" class="small">blank seen edge-on · groove side up</text>
+
+  <polygon points="55,700 154.7,700 177.5,755 200.3,700 300,700 300,760 55,760" class="stock"/>
+  <line x1="55" y1="724" x2="154.7" y2="724" class="hidden"/>
+  <line x1="200.3" y1="724" x2="300" y2="724" class="hidden"/>
+  <path d="M 154.7,700 L 177.5,755 L 200.3,700" class="kerf"/>
+
+  <path d="M 166,727.3 A 30 30 0 0 1 189,727.3" stroke="#2563eb" stroke-width="1" fill="none"/>
+  <text x="177.5" y="722" text-anchor="middle" class="dimtext">45°</text>
+
+  <text x="58" y="690" class="small">groove floor</text>
+  <line x1="86" y1="693" x2="100" y2="722" class="leader"/>
+
+  <text x="58" y="784" class="small">show face (outside)</text>
+  <line x1="100" y1="775" x2="108" y2="762" class="leader"/>
+
+  <text x="252" y="784" class="small">hinge</text>
+  <line x1="250" y1="781" x2="182" y2="757" class="leader"/>
+
+  <text x="35" y="806" class="small">45° V-notch = 180° − 135°; stop</text>
+  <text x="35" y="820" class="small">1–1.5 mm shy of the show face —</text>
+  <text x="35" y="834" class="small">that skin is the hinge.</text>
+
+  <line x1="315" y1="735" x2="342" y2="735" stroke="#333" stroke-width="2"/>
+  <polygon points="350,735 340,730 340,740" fill="#333"/>
+  <text x="332" y="722" text-anchor="middle" class="small">glue + fold</text>
+
+  <polygon points="460,688 552.4,726.3 529.4,781.7 460,752.9 390.6,781.7 367.6,726.3" class="stock"/>
+  <polyline points="381.4,759.6 460,727 538.6,759.6" class="hidden"/>
+  <line x1="460" y1="693" x2="460" y2="752.9" class="glue"/>
+  <circle cx="460" cy="690" r="3.5" fill="none" stroke="#c0392b" stroke-width="2"/>
+
+  <text x="386" y="682" text-anchor="end" class="small">glue in the notch, hinge holds</text>
+  <line x1="388" y1="679" x2="454" y2="691" class="leader"/>
+
+  <path d="M 423,768.2 A 40 40 0 0 0 497,768.2" stroke="#2563eb" stroke-width="1" fill="none"/>
+  <text x="460" y="788" text-anchor="middle" class="dimtext">135°</text>
+
+  <text x="566" y="772" class="small">groove</text>
+  <line x1="564" y1="769" x2="536" y2="760" class="leader"/>
+
+  <text x="360" y="806" class="small">Glue line lands inside the corner, then disappears</text>
+  <text x="360" y="820" class="small">under 3 coats of Plasti Dip. The show face never parts —</text>
+  <text x="360" y="834" class="small">it just bends, which eases the corner for free.</text>
+
+  <line x1="40" y1="854" x2="580" y2="854" class="rule"/>
+
+  <!-- ================================================================ -->
+  <!-- PANEL D : cut list                                                -->
+  <!-- ================================================================ -->
+  <text x="310" y="880" text-anchor="middle" class="label-bold">D — Crosscut the stick: one blank per cap, notch at the midpoint</text>
+
+  <rect x="60" y="900" width="440" height="40" class="stock"/>
+  <rect x="60" y="922" width="440" height="18" fill="#f7ecd6" stroke="#4a3418" stroke-width="1"/>
+  <g class="kerf">
+    <line x1="170" y1="898" x2="170" y2="942"/>
+    <line x1="280" y1="898" x2="280" y2="942"/>
+    <line x1="390" y1="898" x2="390" y2="942"/>
+  </g>
+  <g stroke="#c0392b" stroke-width="1" stroke-dasharray="3,2">
+    <line x1="115" y1="900" x2="115" y2="940"/>
+    <line x1="225" y1="900" x2="225" y2="940"/>
+    <line x1="335" y1="900" x2="335" y2="940"/>
+    <line x1="445" y1="900" x2="445" y2="940"/>
+  </g>
+  <text x="512" y="924" class="small">…× 8</text>
+
+  <line x1="60" y1="954" x2="170" y2="954" class="dim"/>
+  <line x1="60" y1="950" x2="60" y2="958" class="dim"/>
+  <line x1="170" y1="950" x2="170" y2="958" class="dim"/>
+  <text x="115" y="968" text-anchor="middle" class="dimtext">one blank = 2 × L</text>
+  <text x="240" y="968" class="small">solid red = crosscut · dashed = V-notch centerline</text>
+
+  <rect x="60" y="984" width="500" height="112" rx="4" class="boxfill"/>
+  <text x="74" y="1004" class="label-bold">Measure before cutting the stick</text>
+  <text x="74" y="1024" class="small">• Muzata U01 outer height, frosted cover fitted → rabbet depth (+1 mm)</text>
+  <text x="74" y="1040" class="small">• U01 outer width → rabbet width (+1 mm)</text>
+  <text x="74" y="1056" class="small">• Where the channel sits across the slab edge → rabbet (panel A left) or groove (panel A right)</text>
+  <text x="74" y="1072" class="small">• Slab edge thickness → cap height · cap face length L → blank = 2L, ×8</text>
+  <text x="74" y="1088" class="small">• Drill's only job: pilot + countersink, two screws per cap (design doc §4.2)</text>
+</svg>

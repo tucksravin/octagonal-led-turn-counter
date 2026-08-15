@@ -19,6 +19,8 @@ with open(doc_dir / 'installation_arch.svg') as f:
     install_svg = f.read()
 with open(doc_dir / 'corner_cap.svg') as f:
     cap_svg = f.read()
+with open(doc_dir / 'corner_cap_fab.svg') as f:
+    cap_fab_svg = f.read()
 
 
 def strip_xml_decl(svg):
@@ -29,6 +31,7 @@ rim_svg = strip_xml_decl(rim_svg)
 wiring_svg = strip_xml_decl(wiring_svg)
 install_svg = strip_xml_decl(install_svg)
 cap_svg = strip_xml_decl(cap_svg)
+cap_fab_svg = strip_xml_decl(cap_fab_svg)
 
 
 title_block_md = """**Project**: LED rim turn counter for an octagonal gaming table
@@ -138,6 +141,11 @@ md_text = md_text.replace('[RIM_SECTION_FIGURE]', rim_figure)
 cap_figure = f'<div class="figure">{cap_svg}<p class="caption">Figure 4.2 — corner caps. Top: one of the 8 corners seen from above — the cap wraps the 135° corner, covers the jumper bridge in the channel miter gap, and stands ~5 mm proud of the diffuser. Bottom: the slab leaned on its side for bumper pool rests only on the two rubber-skinned caps; the channel and diffuser never touch the floor.</p></div>'
 
 md_text = md_text.replace('[CORNER_CAP_FIGURE]', cap_figure)
+
+
+cap_fab_figure = f'<div class="figure full-page">{cap_fab_svg}<p class="caption">Figure 4.3 — making the caps with a circular saw and a drill. A: the cavity is a through cut, so biasing the channel to one edge of the slab turns it into a rabbet (two rip cuts) instead of a walled groove. B: mill the profile down one long stick, chamfer it there too, and crosscut the caps last. C: instead of gluing two 22.5° miters, cut a 45° V-notch in the back of one blank and fold it — the show face stays continuous. D: crosscut layout and the dimensions to take off the real parts first.</p></div>'
+
+md_text = md_text.replace('[CORNER_CAP_FAB_FIGURE]', cap_fab_figure)
 
 
 install_figure = f'<div class="figure">{install_svg}<p class="caption">Figure 4.6 — slab/frame architecture. Everything turn-counter-related lives on the removable top slab; the PSU and AC mains live permanently on the bumper pool frame. A single Anderson Powerpole DC connector is the only thing you disconnect when lifting the top.</p></div>'
