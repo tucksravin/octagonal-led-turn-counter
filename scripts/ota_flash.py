@@ -50,12 +50,17 @@ def find_espota(packages_root):
     return sorted(found, key=version_key)[-1]
 
 
-def port_open(host, port, timeout=3.0):
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
+def host_alive(address, timeout_s=2):
+    """One ICMP echo, to tell "board is off the network" from "board is up".
+
+    Deliberately not a port check: ArduinoOTA listens on UDP 3232 (espota sends
+    an invitation datagram and the device connects back over TCP), and UDP has
+    no handshake to complete, so there is nothing a connect() could confirm. A
+    TCP probe of 3232 always fails, healthy board or not.
+    """
+    return subprocess.run(["ping", "-c", "1", "-t", str(timeout_s), address],
+                          stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL).returncode == 0
 
 
 def main():
@@ -92,11 +97,11 @@ def main():
                  "mDNS may not be working across your network — find the board's IP in the "
                  "boot serial output (`make ping`) and pass it: make ota HOST=192.168.x.x")
 
-    print(f"{host} -> {address}, checking OTA port {OTA_PORT}…")
-    if not port_open(address, OTA_PORT):
-        sys.exit(f"{address}:{OTA_PORT} is not answering.\n"
-                 "The board resolved but isn't listening for OTA. Most likely it never joined "
-                 "Wi-Fi (check `make ping` for the boot output), or it's on a different subnet.\n"
+    print(f"{host} -> {address}, checking it's reachable…")
+    if not host_alive(address):
+        sys.exit(f"{address} resolved but doesn't answer a ping.\n"
+                 "Stale mDNS cache, or the board dropped off the network. Check `make ping` for "
+                 "the address in its boot output, and that it's on the same subnet as this Mac.\n"
                  "Fall back to USB with `make flash-turn`.")
 
     cmd = [sys.executable, str(espota),
@@ -106,9 +111,10 @@ def main():
     result = subprocess.run(cmd)
     if result.returncode != 0:
         sys.exit(f"\nOTA upload failed (exit {result.returncode}). "
-                 "A wrong OTA_PASSWORD shows up as an auth failure above; a mid-transfer drop "
-                 "is safe to retry — the board keeps running the old firmware until a push "
-                 "completes. USB fallback: make flash-turn")
+                 "No response to the invitation means OTA isn't running on the board (check "
+                 "`make ping` for 'OTA ready'); a wrong OTA_PASSWORD shows up as an auth failure "
+                 "above; a mid-transfer drop is safe to retry — the board keeps running the old "
+                 "firmware until a push completes. USB fallback: make flash-turn")
     print("\nPushed. The board reboots into the new firmware on its own.")
 
 

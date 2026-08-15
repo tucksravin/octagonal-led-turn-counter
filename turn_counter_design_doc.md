@@ -658,14 +658,21 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 **To push an update from the command line**:
 
 ```bash
-make ota                      # compiles, resolves turn-counter.local, pre-flights port 3232, pushes
+make ota                      # compiles, resolves turn-counter.local, checks it's reachable, pushes
 make ota HOST=192.168.1.42    # same, when mDNS won't resolve
 ```
 
 `make ota` reads the OTA password out of `secrets.h`, so it never lands in a
-Makefile or in shell history. It confirms the board is answering on port 3232
-before it starts transferring — the difference between a clear "can't reach it"
-and a silent 60-second hang.
+Makefile or in shell history. It resolves the hostname and confirms the board
+answers a ping before it starts transferring — the difference between a clear
+"can't reach it" and a silent 60-second hang.
+
+Note that OTA's port 3232 is **UDP**, not TCP: espota sends an invitation
+datagram and the device connects back over TCP to receive the image. UDP has no
+handshake, so there is nothing a `connect()` could confirm — a TCP probe of 3232
+fails against a perfectly healthy board. The pre-flight therefore checks
+reachability, and leaves "is OTA actually listening" to espota's own response
+(and to the `OTA ready` line in the boot output).
 
 The device also retries a failed or dropped Wi-Fi connection every 30 seconds
 and starts OTA the moment it joins, so a router that was slow or down at boot no
