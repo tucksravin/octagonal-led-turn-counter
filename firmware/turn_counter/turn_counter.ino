@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
+#include "web_ui.h"
 
 // The full game: a roster of seats, four interaction modes, and a tap-gesture
 // setup mode to configure both. The table hardware underneath — strip geometry,
@@ -60,8 +61,10 @@ int8_t   currentSide = 0;        // the active seat whose turn it is (index into
 uint8_t  prevRosterMask = 0xFF;  // roster snapshot taken on setup entry; restored on abort or a 0-seat exit
 bool     inSetupMode = false;
 bool     otaActive = false;
-bool     otaReady = false;          // ArduinoOTA.begin() has run against the current link
+bool     netServicesUp = false;     // OTA listener + web UI are bound to the current link
 uint32_t lastWifiAttemptMs = 0;
+bool     tableLit = true;           // false = LEDs dark, game state preserved. Never persisted:
+                                    // plug in = on, so a power cut can't leave it looking broken.
 
 uint8_t  gameMode = MODE_CW;            // persisted interaction mode
 int8_t   joinOrder[NUM_SIDES] = {0};    // seats in the order they joined (ARB turn order)
@@ -283,8 +286,18 @@ void renderReady() {
   FastLED.show();
 }
 
+// Redraw whatever should be on screen, without changing any game state. This is
+// the safe repaint: startPlay() clears ready[], which would wipe a READY round
+// in progress if it were used for a brightness or power change.
+void renderCurrent() {
+  if (!tableLit) { renderOff(); return; }
+  if (inSetupMode) return;            // setup re-renders from loop() every pass
+  if (readyMode()) renderReady(); else renderTurn();
+}
+
 // Start (or resume) play in the current mode.
 void startPlay() {
+  if (!tableLit) { renderOff(); return; }
   if (readyMode()) {
     for (uint8_t s = 0; s < NUM_SIDES; s++) ready[s] = false;
     renderReady();
@@ -375,7 +388,61 @@ void exitSetupMode() {
   Serial.printf("Setup done. %d seats, mode=%s, starting at side %d\n", activeCount(), MODE_NAMES[gameMode], currentSide);
 }
 
+// The only ways to change mode, brightness and power from outside the tap flow.
+// Each returns false only for "valid but refused right now" — range checking is
+// the caller's job, so the web layer can tell 400 from 409. Defined here, below
+// abortSetupMode() and above commitTap(), because it sits between its callee and
+// its caller.
+
+bool applyMode(uint8_t newMode) {
+  if (newMode >= MODE_COUNT) return false;
+  if (inSetupMode) return false;   // someone is mid-gesture at the table; don't
+                                   // yank the mode out from under the demo dial
+  gameMode = newMode;
+  if (gameMode == MODE_ARB && joinCount == 0) rebuildJoinOrderFromRoster();
+  if (currentSide < 0 || currentSide >= NUM_SIDES || !sideActive[currentSide]) {
+    currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstActiveSide();
+  }
+  prefs.putUChar("mode", gameMode);
+  prefs.putUChar("curside", currentSide);
+  startPlay();                     // a mode change SHOULD clear ready[]
+  Serial.printf("Mode set to %s\n", MODE_NAMES[gameMode]);
+  return true;
+}
+
+bool applyBrightness(uint8_t pct) {
+  setBrightnessPercent(pct);
+  renderCurrent();                 // visible at once, without disturbing ready[]
+  return true;
+}
+
+bool applyPower(bool lit) {
+  if (lit == tableLit) return true;
+  if (!lit && inSetupMode) {
+    abortSetupMode();              // restores the previous roster and mode, writes nothing
+  }
+  tableLit = lit;
+  if (lit) renderCurrent(); else renderOff();   // NOT startPlay() — that would
+                                                // clear a READY round's greens
+  Serial.printf("Table %s\n", lit ? "on" : "off");
+  return true;
+}
+
 void commitTap(int8_t side, uint32_t whenMs) {
+  if (!tableLit) {
+    // Dark: the only gesture that does anything is the wake burst — four fast
+    // taps on one side, the same burst that opens setup while lit. The two
+    // states are mutually exclusive, so there's no ambiguity. Single taps stay
+    // inert, so bumping the table doesn't relight it.
+    if (registerTapForSetupGesture(side, whenMs)) {
+      firstTapInBurstMs = 0;   // consume the burst, so waking never also opens
+      tapsInBurst = 0;         // setup or passes a turn
+      burstSide = -1;
+      applyPower(true);
+    }
+    return;
+  }
+
   if (inSetupMode) {
     if (setupPhase == PHASE_MODE) {
       // Any side commits the mode being demoed — but not the tail of the entry
@@ -431,6 +498,21 @@ void commitTap(int8_t side, uint32_t whenMs) {
   }
 }
 
+// Fills the snapshot the phone page renders from. READY has no single current
+// seat, so it reports -1 rather than a stale one.
+void readTableState(TableState &s) {
+  s.mode              = gameMode;
+  s.brightnessPercent = brightnessPercent();
+  s.lit               = tableLit;
+  s.currentSide       = readyMode() ? -1 : currentSide;
+  s.rosterMask        = rosterMask();
+  s.readyMask         = 0;
+  for (uint8_t i = 0; i < NUM_SIDES; i++) if (ready[i]) s.readyMask |= (1 << i);
+  s.inSetupMode       = inSetupMode;
+}
+
+const TableConfig WEB_CONFIG = {MODE_NAMES, MODE_COUNT};
+
 bool wifiConfigured() { return WIFI_SSID[0] != '\0'; }
 
 // Installs the OTA handlers and opens the listener. Separate from the connect so
@@ -464,7 +546,8 @@ void beginOta() {
   });
 
   ArduinoOTA.begin();
-  otaReady = true;
+  webUiBegin(WEB_CONFIG, readTableState, applyMode, applyBrightness, applyPower);
+  netServicesUp = true;
   Serial.printf("OTA ready at %s.local (", OTA_HOSTNAME);
   Serial.print(WiFi.localIP());
   Serial.println(")");
@@ -489,6 +572,7 @@ void setupWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.print("WiFi connected: ");
     Serial.println(WiFi.localIP());
+    Serial.printf("MAC %s (use this for a DHCP reservation)\n", WiFi.macAddress().c_str());
     beginOta();
   } else {
     Serial.println("WiFi not up yet - retrying in the background, OTA starts when it joins");
@@ -502,14 +586,15 @@ void serviceWiFi(uint32_t now) {
   if (!wifiConfigured()) return;
 
   if (WiFi.status() == WL_CONNECTED) {
-    if (!otaReady) beginOta();
+    if (!netServicesUp) beginOta();
     return;
   }
 
-  if (otaReady) {          // link dropped — tear the listener down so the
-    ArduinoOTA.end();      // reconnect can rebind it against the new address
-    otaReady = false;
-    Serial.println("WiFi lost - OTA offline until it returns");
+  if (netServicesUp) {       // link dropped — tear both down so the reconnect
+    ArduinoOTA.end();        // rebinds them against the new address
+    webUiEnd();
+    netServicesUp = false;
+    Serial.println("WiFi lost - OTA and web UI offline until it returns");
   }
 
   if (now - lastWifiAttemptMs < WIFI_RETRY_MS) return;
@@ -558,7 +643,10 @@ void setup() {
 }
 
 void loop() {
-  if (otaReady) ArduinoOTA.handle();
+  if (netServicesUp) {
+    ArduinoOTA.handle();
+    webUiHandle();
+  }
 
   if (otaActive) {
     delay(5);
@@ -570,6 +658,7 @@ void loop() {
   uint32_t now = millis();
 
   serviceWiFi(now);
+  brightnessPersistTick(now);
 
   tapsPoll(now);
 
