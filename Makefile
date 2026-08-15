@@ -14,6 +14,16 @@ LIBS := --libraries firmware/libraries
 # Compile chatter: make flash-tap V=1 → full toolchain commands + all compiler
 # warnings (arduino-cli hides both by default).
 VERBOSE := $(if $(V),--verbose --warnings all,)
+# compile-all is the correctness gate, so warnings are always on there — but not
+# --verbose, which buries the one line that matters (the size summary) under
+# every toolchain invocation and every cached-object path. V=1 adds it back.
+CHECK := $(if $(V),--verbose,) --warnings all
+
+# Every sketch, grouped by what it needs to build. PLAIN sketches are
+# self-contained; LIB sketches pull in octagon_core; turn_counter additionally
+# needs the min_spiffs partition.
+SKETCHES_PLAIN := hello_board strip_test all_white tap_light
+SKETCHES_LIB   := piezo_test piezo_stream eight
 
 .PHONY: help ports ping monitor record map-piezos flash-hello flash-strip flash-white flash-tap flash-piezo flash-stream flash-eight flash-turn ota compile-all test pdf vscode upgrade check-port
 
@@ -69,15 +79,18 @@ ota: ## compile turn_counter and push it over Wi-Fi (needs firmware/turn_counter
 test: ## run the host-script test suite (no board needed)
 	.venv/bin/python3 -m pytest tests/ -q
 
-compile-all: ## compile every sketch without uploading (always verbose + all warnings)
-	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/hello_board
-	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/strip_test
-	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/all_white
-	arduino-cli compile --verbose --warnings all --fqbn $(FQBN) firmware/tap_light
-	arduino-cli compile --verbose --warnings all $(LIBS) --fqbn $(FQBN) firmware/piezo_test
-	arduino-cli compile --verbose --warnings all $(LIBS) --fqbn $(FQBN) firmware/piezo_stream
-	arduino-cli compile --verbose --warnings all $(LIBS) --fqbn $(FQBN) firmware/eight
-	arduino-cli compile --verbose --warnings all $(LIBS) --fqbn $(FQBN_TURN) firmware/turn_counter
+compile-all: ## compile every sketch without uploading (warnings on; V=1 for full toolchain output)
+	@for s in $(SKETCHES_PLAIN); do \
+	  printf '\n=== %s ===\n' "$$s"; \
+	  arduino-cli compile $(CHECK) --fqbn $(FQBN) firmware/$$s || exit 1; \
+	done
+	@for s in $(SKETCHES_LIB); do \
+	  printf '\n=== %s ===\n' "$$s"; \
+	  arduino-cli compile $(CHECK) $(LIBS) --fqbn $(FQBN) firmware/$$s || exit 1; \
+	done
+	@printf '\n=== turn_counter (min_spiffs) ===\n'
+	@arduino-cli compile $(CHECK) $(LIBS) --fqbn $(FQBN_TURN) firmware/turn_counter
+	@printf '\nAll sketches compiled.\n'
 
 pdf: ## rebuild all PDFs from the markdown sources
 	.venv/bin/python3 doc-src/build_pdf.py
