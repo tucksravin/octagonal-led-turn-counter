@@ -400,6 +400,15 @@ Three ways to make them:
 - **Off-the-shelf**: wall-protection suppliers sell **135° corner guards** (Lexan or vinyl, sold as ~4 ft wall strips, ~$20–30) — one strip cut into 1"-tall pieces yields all 8 caps. These are thin profiles, so they cover the corner and the wiring but don't provide standoff; pair them with **7/8" screw-on rubber dome bumpers** (hardware-store item, ~$4 per 4-pack) — two per corner, one on each adjacent facet, supplying the actual proudness.
 - **3D-printed**: custom 135° caps profiled around the exact channel cross-section, PETG (or TPU for built-in grip). Best fit if you have printer access.
 
+**Making the hardwood caps without a router.** The cavity in the cap is not a blind pocket — the channel runs out both ends of the cap, so it's a **through cut**, which a circular saw handles. Two decisions make it easy:
+
+- **Bias the channel toward one edge of the slab's outer face** rather than centering it. The cap's cavity then becomes a *rabbet* — two rip cuts on perpendicular faces and the waste falls out, nothing to chisel — and the leftover land is wide enough to take the mounting screws. A centered channel leaves ~3 mm of land on each side: no room for a screw, and the groove floor has to be cleared with stepped kerfs and a chisel between two walls.
+- **Mill one long stick, cut the caps last.** Run the rabbet down ~1.2 m of scrap in a single setup, ease the show edges on that same stick with a block plane, and only then crosscut the 8 blanks. All the shaping happens on a long, clampable workpiece instead of sixteen small ones.
+
+For the 135° corner itself, **kerf-and-fold beats a glued miter**: cut a 45° V-notch (180° − 135°) across the back of one blank, stopping 1–1.5 mm shy of the show face, glue the notch and fold it closed. The outer face is one continuous piece of wood with unbroken grain around the corner and no joint line, and it eases the corner as it bends. The only glue line is buried inside the corner, under three coats of Plasti Dip.
+
+[CORNER_CAP_FAB_FIGURE]
+
 If the slab is thin enough to flex when leaned, add one more rubber bumper at the midpoint of each side, same proudness as the caps — six contact points per resting edge instead of two.
 
 ### 4.3 Piezo placement
@@ -626,9 +635,10 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 | `SETUP_TAP_WINDOW_MS` | 2000 | Window in which the taps must occur |
 | `SETUP_EXIT_IDLE_MS` | 3000 | Idle time in setup mode before saving and exiting |
 | `OPPOSITE_PAIR_WINDOW_MS` | 150 | Window for detecting the on/off two-handed gesture; raise to make it more forgiving, lower for snappier turn passes |
-| `WIFI_SSID` / `WIFI_PASSWORD` | placeholder | Your home Wi-Fi (for OTA) |
-| `OTA_HOSTNAME` | `turn-counter` | mDNS name; reach device at `turn-counter.local` |
-| `OTA_PASSWORD` | `change-me` | Required to push firmware updates |
+| `WIFI_SSID` / `WIFI_PASSWORD` | (unset) | Your home Wi-Fi, in `firmware/turn_counter/secrets.h` (gitignored; copy `secrets.example.h`). Unset = radio off |
+| `OTA_HOSTNAME` | `turn-counter` | In `secrets.h`; mDNS name, reach device at `turn-counter.local` |
+| `OTA_PASSWORD` | `change-me` | In `secrets.h`; required to push firmware updates |
+| `WIFI_RETRY_MS` | 30000 | How often a down link is retried; OTA starts whenever the link comes up |
 
 `PLAYER_COLORS[]` array defines the color for each player — edit to taste.
 
@@ -645,6 +655,22 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 4. On success, all LEDs flash green briefly. On failure, all red for 2 seconds.
 5. Device reboots into the new firmware.
 
+**To push an update from the command line**:
+
+```bash
+make ota                      # compiles, resolves turn-counter.local, pre-flights port 3232, pushes
+make ota HOST=192.168.1.42    # same, when mDNS won't resolve
+```
+
+`make ota` reads the OTA password out of `secrets.h`, so it never lands in a
+Makefile or in shell history. It confirms the board is answering on port 3232
+before it starts transferring — the difference between a clear "can't reach it"
+and a silent 60-second hang.
+
+The device also retries a failed or dropped Wi-Fi connection every 30 seconds
+and starts OTA the moment it joins, so a router that was slow or down at boot no
+longer means power-cycling the table to get OTA back.
+
 **Security note**: anyone on your local network can attempt to flash the device. The OTA password protects against accidental or casual attacks but isn't strong security. Don't put this on a network with untrusted devices, and definitely don't expose it to the internet.
 
 **If OTA breaks** (most common cause: pushing firmware that crashes immediately and loses Wi-Fi): you can always fall back to USB. Plug into the ESP32-S3, hit Upload, done. Keep a USB cable accessible.
@@ -659,7 +685,7 @@ The device tries to join Wi-Fi at boot with a 5-second timeout. If it joins, OTA
 | Far-end LEDs tint pink/orange | Voltage drop along strip | Add or check power injection at midpoint and end |
 | Whole strip dark | PSU off, switch off, blown fuse, or reversed polarity | Check switch first, then fuse, then PSU output, then polarity |
 | Tap doesn't register | `TAP_DELTA` too high, bad piezo solder, glue not contacting wood | Lower `TAP_DELTA`, reflow joint, re-glue |
-| Tap on side 1 lights side 3 | Piezo wire mapping wrong | Check `PIEZO_PINS[]` order vs physical wiring |
+| Tap on side 1 lights side 3 | Piezo wire mapping wrong | Run `make map-piezos` — each side lights in turn, you tap it, the corrected map is stored on the board. No reflash, no wire tracing |
 | Adjacent sides cross-trigger | Mechanical cross-talk through wood | Foam break, kerf cut, or relative-strength filter in firmware |
 | Weird boot behavior | Strapping pin pulled wrong | Confirm GPIO 0/3/45/46 unused (ESP32-S3 strap pins) |
 | ESP32-S3 won't flash via USB | Upload speed, USB CDC setting, or held button | Drop to 115200 baud, confirm Tools → USB CDC On Boot is Enabled, hold BOOT + tap RESET + release BOOT to enter download mode manually |

@@ -218,7 +218,8 @@ Do all of these with the board **unpowered** and the ESP32 still **out of its so
 - [ ] Confirm `PIEZO_PINS[] = {1,2,4,5,6,7,8,9}` and `NUM_LEDS` / `LEDS_PER_SIDE` match the installed strip
 - [ ] Flash, open Serial Monitor at 115200; watch the per-side baseline seed lines at boot
 - [ ] If it won't enter download mode: hold **BOOT**, tap **RESET**, release **BOOT**
-- [ ] OTA (optional): set Wi-Fi creds, confirm `ping turn-counter.local` resolves
+- [ ] Piezo map: run `make map-piezos`, tap each side as it lights white, then power-cycle and confirm taps land on the right seats. Do this instead of chasing a crossed harness back through the wiring
+- [ ] OTA (optional): copy `secrets.example.h` to `firmware/turn_counter/secrets.h` and fill it in, `make flash-turn` once over USB, confirm `ping turn-counter.local` resolves, then confirm `make ota` completes
 
 ## 10. First power-up & smoke test
 

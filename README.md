@@ -50,7 +50,7 @@ Open the `.ino` files in Arduino IDE.
 - Tools → **USB CDC On Boot: Enabled** (so `Serial.println` reaches the IDE over the native USB port)
 - Required libraries: FastLED, ArduinoOTA (ArduinoOTA bundles with the ESP32 core)
 - The ESP32-S3 enumerates over native USB — no CP210x/CH340 driver needed
-- Edit Wi-Fi credentials, mDNS hostname, and OTA password at the top of `turn_counter.ino` before the first flash
+- Wi-Fi credentials, mDNS hostname and OTA password live in `firmware/turn_counter/secrets.h` — copy `secrets.example.h` to it and fill it in. That file is gitignored; without it the sketch still builds and just runs with the radio off
 
 ### arduino-cli (no IDE needed)
 
@@ -78,8 +78,11 @@ make flash-hello    # compile + upload the connection smoke test
 make flash-strip    # compile + upload the WS2812B strip test
 make flash-tap      # compile + upload the Phase 0 tap light
 make flash-turn     # compile + upload turn_counter (applies the min_spiffs partition)
+make ota            # compile turn_counter and push it over Wi-Fi instead of USB
+make map-piezos     # reassign piezos to sides by tapping each lit side
 make monitor        # serial monitor at 115200 (Ctrl+C to quit — frees the port for uploads)
 make compile-all    # build everything without touching the board (verbose + all warnings)
+make test           # run the host-script test suite (no board needed)
 make ports          # list connected boards
 make pdf            # rebuild all doc PDFs (design, simple, dry-run, tap-light, bench guide)
 make vscode         # regenerate .vscode IntelliSense config from the installed toolchain
@@ -87,6 +90,10 @@ make upgrade        # arduino-cli core+lib upgrade, then vscode regen + compile-
 ```
 
 Only one program can hold the serial port — quit `make monitor` before any `flash-*` target.
+
+**If a tap lights the wrong seat**, run `make map-piezos`. Each side lights white in turn; tap that seat. The corrected map is stored on the board (NVS), so it survives reboots and OTA and needs no reflash — no wire tracing either.
+
+**`make ota`** pushes over Wi-Fi instead of USB. It needs `firmware/turn_counter/secrets.h`, and the board must already be running firmware that joined the network — so the first flash after setting credentials is always a USB one. Use `make ota HOST=192.168.x.x` if mDNS won't resolve `turn-counter.local`.
 
 ## Rebuilding the PDF
 

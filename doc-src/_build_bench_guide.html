@@ -1376,7 +1376,8 @@
 <li class="task"><span class="task-box">☐</span> Confirm <code>PIEZO_PINS[] = {1,2,4,5,6,7,8,9}</code> and <code>NUM_LEDS</code> / <code>LEDS_PER_SIDE</code> match the installed strip</li>
 <li class="task"><span class="task-box">☐</span> Flash, open Serial Monitor at 115200; watch the per-side baseline seed lines at boot</li>
 <li class="task"><span class="task-box">☐</span> If it won't enter download mode: hold <strong>BOOT</strong>, tap <strong>RESET</strong>, release <strong>BOOT</strong></li>
-<li class="task"><span class="task-box">☐</span> OTA (optional): set Wi-Fi creds, confirm <code>ping turn-counter.local</code> resolves</li>
+<li class="task"><span class="task-box">☐</span> Piezo map: run <code>make map-piezos</code>, tap each side as it lights white, then power-cycle and confirm taps land on the right seats. Do this instead of chasing a crossed harness back through the wiring</li>
+<li class="task"><span class="task-box">☐</span> OTA (optional): copy <code>secrets.example.h</code> to <code>firmware/turn_counter/secrets.h</code> and fill it in, <code>make flash-turn</code> once over USB, confirm <code>ping turn-counter.local</code> resolves, then confirm <code>make ota</code> completes</li>
 </ul>
 <div class="page-break"></div>
 
