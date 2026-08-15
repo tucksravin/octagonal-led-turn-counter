@@ -29,8 +29,8 @@ const uint32_t WIFI_RETRY_MS           = 30000;  // how often loop() re-attempts
 
 const uint8_t  SETUP_TAP_COUNT          = 4;
 const uint16_t SETUP_TAP_WINDOW_MS      = 2000;
-const uint16_t MODE_DEMO_MS             = 7500;   // phase 1: each mode's whole-table demo runs ~7.5 s
-const uint16_t MODE_ABORT_IDLE_MS       = 35000;  // phase 1: no tap for a full demo rotation — abort, change nothing
+const uint16_t MODE_DEMO_MS             = 5000;   // phase 1: each mode's whole-table demo runs ~5 s
+const uint16_t MODE_ABORT_IDLE_MS       = 25000;  // phase 1: no tap for a full demo rotation — abort, change nothing
 const uint16_t MODE_TAP_GRACE_MS        = 500;    // swallow gesture spillover right after entry
 const uint16_t SETUP_JOIN_IDLE_MS       = 5000;   // phase 2: idle commits the roster
 
