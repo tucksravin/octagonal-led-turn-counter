@@ -3,3 +3,4 @@ pyserial==3.5
 weasyprint==66.0
 pypdf==6.10.2
 pytest~=8.4
+segno~=1.6

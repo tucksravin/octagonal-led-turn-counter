@@ -14,3 +14,7 @@ firmware/*/secrets.h
 
 # arduino-cli build output for `make ota`
 build/
+
+# `make qr` output — encodes one network's address, so it's yours, not the repo's
+doc-src/table_qr.svg
+table_qr.pdf

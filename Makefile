@@ -25,7 +25,7 @@ CHECK := $(if $(V),--verbose,) --warnings all
 SKETCHES_PLAIN := hello_board strip_test all_white tap_light
 SKETCHES_LIB   := piezo_test piezo_stream eight
 
-.PHONY: help ports ping monitor record map-piezos flash-hello flash-strip flash-white flash-tap flash-piezo flash-stream flash-eight flash-turn ota compile-all test pdf vscode upgrade check-port
+.PHONY: help ports ping monitor record map-piezos qr flash-hello flash-strip flash-white flash-tap flash-piezo flash-stream flash-eight flash-turn ota compile-all test pdf vscode upgrade check-port
 
 help: ## list available targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -47,6 +47,10 @@ record: check-port ## record piezo_stream to data/piezo/ + sensitivity report (C
 
 map-piezos: check-port ## guided piezo->side remap (each side lights, you tap it)
 	.venv/bin/python3 scripts/map_piezos.py --port $(PORT) --baud $(BAUD)
+
+qr: ## printable QR sticker for the web UI (make qr URL=192.168.0.50)
+	@test -n "$(URL)" || { echo "Pass an address: make qr URL=192.168.0.50"; exit 1; }
+	.venv/bin/python3 scripts/make_qr.py --url "$(URL)"
 
 flash-hello: check-port ## compile + upload hello_board (connection smoke test)
 	arduino-cli compile $(VERBOSE) -u -p $(PORT) --fqbn $(FQBN) firmware/hello_board
