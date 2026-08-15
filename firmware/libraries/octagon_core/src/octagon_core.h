@@ -16,7 +16,10 @@
 #define LED_PIN          11
 #define NUM_LEDS         240   // buffer ceiling; the lit total is totalLeds()
 #define NUM_SIDES        8
-#define BRIGHTNESS       128
+// Brightness is runtime state, not a constant — see brightnessPercent() below.
+#define BRIGHTNESS_DEFAULT_PCT 50  // 50% == raw 127, one step off the 128 this ran at for years
+#define BRIGHTNESS_MIN_PCT     5   // floor, not zero: darkening the table entirely is the on/off
+                                   // control's job, and a zeroed slider reads as broken
 #define MAX_POWER_MA     1500  // FastLED auto-dims to hold LED draw here. Sized so the whole table
                                // can run through the ESP32-S3 dev board's own USB jack: the board's
                                // 5V path is good for ~1.5-2A, and 1500mA LEDs + ~250mA ESP ~= 1.75A.
@@ -85,6 +88,18 @@ uint16_t totalLeds();
 uint16_t baseline(uint8_t i);  // side i's resting ADC level, for bench diagnosis
 bool isOppositeSide(int8_t a, int8_t b);
 void printPiezoMap();          // current side->GPIO map as a paste-ready C array line
+
+// LED brightness as a percentage, BRIGHTNESS_MIN_PCT..100. Persisted in NVS
+// ("octagon"/"bri") so it survives a reboot and both sketches agree.
+uint8_t brightnessPercent();
+
+// Applies immediately; the NVS write is deferred (see brightnessPersistTick).
+// Values outside the range are clamped, not rejected.
+void setBrightnessPercent(uint8_t pct);
+
+// Call once per loop with millis(). Writes a pending brightness change to NVS
+// once it has settled, so dragging a slider costs one write, not twenty.
+void brightnessPersistTick(uint32_t now);
 
 void fillSide(uint8_t side, const CRGB &color);           // writes the buffer, no show()
 void showOnlySide(int8_t side, const CRGB &color);        // that side lit, everything else dark

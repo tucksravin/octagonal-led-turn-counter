@@ -36,6 +36,7 @@ static const uint16_t DEBOUNCE_MS             = 250;
 static const uint16_t OPPOSITE_PAIR_WINDOW_MS = 150;
 static const uint16_t MAP_PROMPT_TIMEOUT_MS   = 20000;  // silence at a prompt aborts the whole remap
 static const uint16_t MAP_SETTLE_MS           = 400;    // ring-down gap so one tap can't answer two prompts
+static const uint16_t BRIGHTNESS_SETTLE_MS    = 2000;   // quiet time before a slider change hits flash
 
 static Preferences sidePrefs;
 
@@ -238,6 +239,47 @@ void tapsPoll(uint32_t now) {
   }
 }
 
+static uint8_t  briPct       = BRIGHTNESS_DEFAULT_PCT;
+static bool     briDirty     = false;
+static uint32_t briChangedMs = 0;
+
+uint8_t brightnessPercent() { return briPct; }
+
+// FastLED wants 0-255. The floor is applied here too, so no code path can
+// produce a dark table by way of the brightness control.
+static uint8_t briRaw(uint8_t pct) {
+  uint16_t raw = (uint16_t)pct * 255 / 100;
+  uint16_t floorRaw = (uint16_t)BRIGHTNESS_MIN_PCT * 255 / 100;
+  if (raw < floorRaw) raw = floorRaw;
+  if (raw > 255) raw = 255;
+  return (uint8_t)raw;
+}
+
+void setBrightnessPercent(uint8_t pct) {
+  if (pct < BRIGHTNESS_MIN_PCT) pct = BRIGHTNESS_MIN_PCT;
+  if (pct > 100) pct = 100;
+  if (pct == briPct) return;
+  briPct = pct;
+  FastLED.setBrightness(briRaw(briPct));
+  briDirty = true;               // the flash write waits for the drag to stop
+  briChangedMs = millis();
+}
+
+// A phone slider throttled to 250 ms would otherwise put ~20 writes into flash
+// per drag. Applying is instant; only the persist waits.
+void brightnessPersistTick(uint32_t now) {
+  if (!briDirty || now - briChangedMs < BRIGHTNESS_SETTLE_MS) return;
+  briDirty = false;
+  sidePrefs.putUChar("bri", briPct);
+  Serial.printf("LED brightness saved: %u%%\n", briPct);
+}
+
+static void loadBrightness() {
+  uint8_t stored = sidePrefs.getUChar("bri", BRIGHTNESS_DEFAULT_PCT);
+  briPct = (stored >= BRIGHTNESS_MIN_PCT && stored <= 100) ? stored : BRIGHTNESS_DEFAULT_PCT;
+  Serial.printf("LED brightness: %u%%\n", briPct);
+}
+
 // Seeds every baseline from ~0.5 s of quiet readings before taps are accepted.
 // Takes the pin array so the same buffer can be seeded side-indexed
 // (sidePiezoPin, for play) or channel-indexed (PIEZO_PINS, for the remap wizard).
@@ -339,8 +381,9 @@ void octagonBegin() {
   loadSideTable();
   loadPiezoMap();
 
+  loadBrightness();
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
-  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.setBrightness(briRaw(briPct));
   FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MA);  // runs off the board's USB; dims all-on peaks
 
   // Every hardware pin is configured regardless of the map — the remap wizard
