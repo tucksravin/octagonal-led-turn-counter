@@ -1,18 +1,25 @@
-# Phone control — mode and brightness
+# Phone control — mode, brightness and off
 
 **Date**: 2026-08-15
 **Status**: approved
 
 ## Goal
 
-Let anyone at the table change the game mode and the LED brightness from their
-phone, and see what the table is currently doing, without installing anything.
+Let anyone at the table change the game mode, the LED brightness, and whether
+the table is lit at all, from their phone — and see what the table is currently
+doing, without installing anything.
 
 Today mode is reachable only through the 4-tap setup gesture, which also resets
 the roster — there is no way to switch CW→CCW without re-seating everybody.
-Brightness is a compile-time constant, so changing it means a reflash.
+Brightness is a compile-time constant, so changing it means a reflash. And there
+is no way to darken the table short of unplugging it.
 
-Scope is deliberately mode and brightness only. The roster stays tap-driven.
+Scope is deliberately mode, brightness and on/off. The roster stays tap-driven.
+
+**Off is a separate control from brightness, not the bottom of the slider.**
+Brightness keeps its value while off, so turning back on restores what you had
+rather than leaving you staring at a dark table and a zeroed slider trying to
+work out whether it's broken.
 
 ## Non-goals
 
@@ -45,7 +52,8 @@ The split follows what each side legitimately knows:
 // web_ui.h
 struct TableState {
   uint8_t mode;               // index into modeNames
-  uint8_t brightnessPercent;  // 5..100
+  uint8_t brightnessPercent;  // 5..100, retained while off
+  bool    lit;                // false = table is off, game state preserved
   int8_t  currentSide;        // -1 when the mode has no single current seat
   uint8_t rosterMask;         // bit s = seat s is in
   uint8_t readyMask;          // bit s = seat s is green (READY only)
@@ -58,11 +66,12 @@ struct TableConfig {
 };
 
 typedef void (*StateReader)(TableState &out);
-typedef bool (*ModeSetter)(uint8_t mode);           // false = rejected
-typedef bool (*BrightnessSetter)(uint8_t percent);  // false = rejected
+typedef bool (*ModeSetter)(uint8_t mode);           // false = valid but refused
+typedef bool (*BrightnessSetter)(uint8_t percent);  // false = valid but refused
+typedef bool (*PowerSetter)(bool lit);              // false = valid but refused
 
-void webUiBegin(const TableConfig &cfg, StateReader read,
-                ModeSetter setMode, BrightnessSetter setBrightness);
+void webUiBegin(const TableConfig &cfg, StateReader read, ModeSetter setMode,
+                BrightnessSetter setBrightness, PowerSetter setPower);
 void webUiHandle();   // call from loop()
 void webUiEnd();      // on Wi-Fi loss, symmetric with ArduinoOTA.end()
 ```
@@ -77,9 +86,10 @@ would cost more flash than it saves for six fields.
 |---|---|---|
 | GET | `/` | the page, one self-contained HTML string in PROGMEM |
 | GET | `/api/config` | static: mode names, seat colors, side count. Fetched once |
-| GET | `/api/state` | dynamic: mode, brightness, currentSide, roster, ready, inSetup. Polled every 2 s |
+| GET | `/api/state` | dynamic: mode, brightness, lit, currentSide, roster, ready, inSetup. Polled every 2 s |
 | POST | `/api/mode?value=0..3` | set mode |
 | POST | `/api/brightness?value=5..100` | set brightness |
+| POST | `/api/power?value=on\|off` | light the table or darken it |
 
 Splitting config from state keeps the polled payload small (~150 bytes) and
 keeps mode names and seat colors single-sourced from the firmware rather than
@@ -133,6 +143,62 @@ Worth documenting in the UI copy: `MAX_POWER_MA` already auto-dims all-on
 scenes, so raising brightness past roughly 60% visibly changes one-lit-side play
 but not READY or the setup blink, which are already at the power cap.
 
+## Off
+
+A single `bool tableLit` in `turn_counter.ino`. Off means the LEDs are dark and
+nothing else changes: mode, roster, whose turn it is, and everyone's ready flags
+are all preserved and come straight back when it lights again. Brightness is
+untouched, which is the whole reason this isn't the bottom of the slider.
+
+**Off is deliberately not persisted.** Plug in = on, which is the principle the
+code already states where it explains why there's no pair handler. A table that
+boots dark after a power cut looks broken, and the person best placed to fix it
+is standing next to a plug, not holding a phone.
+
+### Turning it back on at the table
+
+The phone can turn it off, and the phone may then leave the room. So there has
+to be a way back that needs no phone.
+
+**Four rapid taps on one side wakes it** — the same burst
+`registerTapForSetupGesture()` already detects for entering setup. While off it
+means wake; while lit it means setup. The two states are mutually exclusive, so
+there's no ambiguity, and it costs nothing: no new detection code, no change to
+tap timing.
+
+Single taps do nothing while off, so knocking the table or setting a drink down
+won't light it up.
+
+Two alternatives were considered and rejected:
+
+- **Any tap wakes it.** Simplest, but a game table gets bumped, and a table that
+  relights every time someone leans on it isn't off in any useful sense.
+- **The two-handed opposite-side slap.** This is what `PairHandler` in
+  `octagon_core` was built for and it currently goes unused, so it's tempting.
+  But installing a pair handler makes *every* tap wait out
+  `OPPOSITE_PAIR_WINDOW_MS` (150 ms) to see whether its opposite is coming —
+  the sketch comments call this out as the reason the handler is `nullptr`
+  today. Swapping the handler in only while off would dodge the latency cost,
+  but that's real state machinery to maintain for a gesture nobody has asked
+  for, when a burst the firmware already recognises does the job.
+
+### What it touches
+
+- `commitTap()` while off feeds `registerTapForSetupGesture()` and returns,
+  nothing else. The wake burst therefore lights the table without also passing
+  a turn or toggling a ready flag — the taps that woke it are consumed by the
+  waking.
+- `renderCurrent()` and `startPlay()` call `renderOff()` while off.
+- `loop()` skips the setup rendering while off — setup can't be entered anyway,
+  since taps don't reach it.
+- **Turning off during a setup session aborts it**, via the existing
+  `abortSetupMode()`, which by design restores the previous roster and mode and
+  writes nothing. So `setPower` always succeeds; it keeps the `bool` return only
+  to match the other setters, and never produces a 409.
+- OTA is unaffected: its progress bar deliberately lights the strip while off,
+  because a silent OTA is worse than a brief unexpected glow, and the board
+  reboots lit afterwards regardless.
+
 ## Mode changes
 
 A phone mode change is not a setup session — it leaves the roster untouched.
@@ -166,6 +232,7 @@ every player's green. A new `renderCurrent()` redraws without touching state:
 
 ```cpp
 void renderCurrent() {
+  if (!tableLit) { renderOff(); return; }
   if (inSetupMode) return;            // setup re-renders every loop anyway
   if (readyMode()) renderReady(); else renderTurn();
 }
@@ -180,8 +247,12 @@ One self-contained HTML string — no external stylesheets, fonts or scripts. Th
 board has no internet path, so anything external simply would not load.
 
 - Dark theme, large touch targets. It gets used in a dim room, one-handed.
+- An on/off toggle, visually separated from the brightness slider so it doesn't
+  read as part of it. While off, the mode buttons and slider stay live and
+  usable — they just don't light anything until it's back on — and the page
+  says the table is off rather than looking broken.
 - Four mode buttons, the active one highlighted; names come from `/api/config`.
-- Brightness slider, 5–100.
+- Brightness slider, 5–100. Its value is unaffected by the off state.
 - Status: current mode, whose turn it is (seat number and its colour swatch),
   roster as eight dots, ready/not-ready in READY mode, and a "setup in progress"
   banner when `inSetupMode` is set.
@@ -229,13 +300,22 @@ wrong, and only a real push found it.
   curl -s http://turn-counter.local/api/state
   curl -s -X POST "http://turn-counter.local/api/mode?value=1"        # -> CCW
   curl -s -X POST "http://turn-counter.local/api/brightness?value=20"
+  curl -s -X POST "http://turn-counter.local/api/power?value=off"
+  curl -s -X POST "http://turn-counter.local/api/power?value=on"
   curl -s -X POST "http://turn-counter.local/api/mode?value=9"        # -> 400
   curl -s -X POST "http://turn-counter.local/api/brightness?value=0"  # -> 400
+  curl -s -X POST "http://turn-counter.local/api/power?value=maybe"   # -> 400
   ```
 - **Bench, behaviour.** Brightness change during a READY round must not clear
   anyone's green. A mode change during a tap-setup session must be rejected with
   409. Brightness must survive a power cycle. The page must work from both an
   iPhone (via `.local`) and an Android phone (via IP).
+- **Bench, off.** Turn the table off mid-game, then back on from the phone —
+  the same seat's turn resumes, and in READY mode everyone's green survives.
+  Single-tap several sides while off and confirm nothing lights. Then wake it
+  with four rapid taps on one side and confirm it comes back to the same state,
+  and does *not* land in setup mode. Power-cycle while off and confirm it boots
+  lit, not dark.
 
 ## Risks
 
