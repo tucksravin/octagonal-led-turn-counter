@@ -1378,6 +1378,8 @@
 <li class="task"><span class="task-box">☐</span> If it won't enter download mode: hold <strong>BOOT</strong>, tap <strong>RESET</strong>, release <strong>BOOT</strong></li>
 <li class="task"><span class="task-box">☐</span> Piezo map: run <code>make map-piezos</code>, tap each side as it lights white, then power-cycle and confirm taps land on the right seats. Do this instead of chasing a crossed harness back through the wiring</li>
 <li class="task"><span class="task-box">☐</span> OTA (optional): copy <code>secrets.example.h</code> to <code>firmware/turn_counter/secrets.h</code> and fill it in, <code>make flash-turn</code> once over USB, confirm <code>ping turn-counter.local</code> resolves, then confirm <code>make ota</code> completes</li>
+<li class="task"><span class="task-box">☐</span> Phone UI: open <code>http://turn-counter.local/</code> (iPhone) and <code>http://&lt;ip&gt;/</code> (Android), confirm the mode buttons, brightness slider and on/off all work, and that the status follows taps made at the table</li>
+<li class="task"><span class="task-box">☐</span> Guest access: DHCP-reserve the board's IP (its MAC is printed at boot), then <code>make qr URL=&lt;ip&gt;</code> and stick the printed sticker under the table</li>
 </ul>
 <div class="page-break"></div>
 

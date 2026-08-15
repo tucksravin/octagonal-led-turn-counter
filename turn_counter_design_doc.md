@@ -628,7 +628,9 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 |----------|---------|----------|
 | `NUM_LEDS` | 240 | Actual LED count after corner trim |
 | `LEDS_PER_SIDE` | 30 | `NUM_LEDS / 8` |
-| `BRIGHTNESS` | 128 | Lower if too bright, max 255 |
+| `BRIGHTNESS_DEFAULT_PCT` | 50 | Startup brightness before any phone change; the runtime value lives in NVS `"octagon"/"bri"` |
+| `BRIGHTNESS_MIN_PCT` | 5 | Slider floor. Going fully dark is the on/off control's job, not the slider's |
+| `BRIGHTNESS_SETTLE_MS` | 2000 | Quiet time before a brightness change is written to flash, so dragging the slider costs one write, not twenty |
 | `TAP_DELTA` | 1000 | Calibrate during Phase 7. Adaptive: a tap fires at a side's auto-tracked baseline + this delta |
 | `DEBOUNCE_MS` | 250 | Raise if double-triggers, lower if it feels sluggish |
 | `SETUP_TAP_COUNT` | 4 | Taps required to enter setup mode |
@@ -682,6 +684,34 @@ longer means power-cycling the table to get OTA back.
 
 **If OTA breaks** (most common cause: pushing firmware that crashes immediately and loses Wi-Fi): you can always fall back to USB. Plug into the ESP32-S3, hit Upload, done. Keep a USB cable accessible.
 
+### 7.2 Phone control
+
+The board serves a single self-contained page on port 80 — no app to install, and no external assets (it has no internet path, so anything external wouldn't load anyway).
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/` | the page |
+| GET | `/api/config` | mode names, seat colours, side count — fetched once |
+| GET | `/api/state` | mode, brightness, lit, current seat, roster, ready, setup — polled every 2 s |
+| POST | `/api/mode?value=0..3` | set mode; 409 while a tap-setup session is running |
+| POST | `/api/brightness?value=5..100` | set brightness |
+| POST | `/api/power?value=on` or `off` | light or darken the table |
+
+Range errors are 400; 409 means the request was valid but the table is mid-setup, and the person physically at it wins.
+
+A mode change from the phone leaves the roster alone — it isn't a setup session. Off preserves all game state and isn't persisted, so the table always boots lit; four fast taps on one side wake it without a phone.
+
+Brightness applies instantly but its flash write is deferred two seconds, so dragging the slider costs one NVS write rather than one per step.
+
+```bash
+curl -s http://turn-counter.local/api/state
+curl -s -X POST "http://turn-counter.local/api/power?value=off"
+```
+
+**Reaching it**: `turn-counter.local` works on Apple devices. Android has no system-wide mDNS resolver, so use the IP — give the board a DHCP reservation (its MAC is printed at boot) and `make qr URL=<ip>` prints a sticker for under the table.
+
+**Security**: no authentication, same posture as OTA. Anyone on the LAN can change mode, brightness and on/off. Nothing destructive is exposed — no OTA trigger, no NVS wipe, no piezo remap.
+
 ---
 
 ## 8. Troubleshooting
@@ -697,6 +727,8 @@ longer means power-cycling the table to get OTA back.
 | Weird boot behavior | Strapping pin pulled wrong | Confirm GPIO 0/3/45/46 unused (ESP32-S3 strap pins) |
 | ESP32-S3 won't flash via USB | Upload speed, USB CDC setting, or held button | Drop to 115200 baud, confirm Tools → USB CDC On Boot is Enabled, hold BOOT + tap RESET + release BOOT to enter download mode manually |
 | OTA port doesn't appear in IDE | Wi-Fi didn't join, wrong network, mDNS not resolving | Check Serial Monitor at boot for IP; ping `turn-counter.local`; fall back to USB |
+| Phone page loads on iPhone but not Android | Android has no system-wide mDNS resolver, so `.local` never resolves | Use the IP. DHCP-reserve it on the router (MAC is printed at boot) so it stops moving, then `make qr URL=<ip>` |
+| Table dark and taps do nothing | Someone turned it off from a phone | Four fast taps on one side wake it; or power-cycle, since off is never persisted |
 | OTA fails midway | Network drop or insufficient flash | Retry; consider partition scheme with larger OTA region |
 | Player count resets unexpectedly | NVS partition issue | Erase flash and re-flash: `esptool.py erase_flash` |
 | Solder joint won't take | Tip too cold, no flux, dirty surface | Increase iron temp, add flux pen, clean the surface with isopropyl |

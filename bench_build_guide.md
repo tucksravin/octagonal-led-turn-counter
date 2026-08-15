@@ -220,6 +220,8 @@ Do all of these with the board **unpowered** and the ESP32 still **out of its so
 - [ ] If it won't enter download mode: hold **BOOT**, tap **RESET**, release **BOOT**
 - [ ] Piezo map: run `make map-piezos`, tap each side as it lights white, then power-cycle and confirm taps land on the right seats. Do this instead of chasing a crossed harness back through the wiring
 - [ ] OTA (optional): copy `secrets.example.h` to `firmware/turn_counter/secrets.h` and fill it in, `make flash-turn` once over USB, confirm `ping turn-counter.local` resolves, then confirm `make ota` completes
+- [ ] Phone UI: open `http://turn-counter.local/` (iPhone) and `http://<ip>/` (Android), confirm the mode buttons, brightness slider and on/off all work, and that the status follows taps made at the table
+- [ ] Guest access: DHCP-reserve the board's IP (its MAC is printed at boot), then `make qr URL=<ip>` and stick the printed sticker under the table
 
 ## 10. First power-up & smoke test
 

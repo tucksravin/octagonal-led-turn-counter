@@ -80,6 +80,7 @@ make flash-tap      # compile + upload the Phase 0 tap light
 make flash-turn     # compile + upload turn_counter (applies the min_spiffs partition)
 make ota            # compile turn_counter and push it over Wi-Fi instead of USB
 make map-piezos     # reassign piezos to sides by tapping each lit side
+make qr URL=...     # printable QR sticker pointing at the table's web UI
 make monitor        # serial monitor at 115200 (Ctrl+C to quit — frees the port for uploads)
 make compile-all    # build everything without touching the board (verbose + all warnings)
 make test           # run the host-script test suite (no board needed)
@@ -94,6 +95,18 @@ Only one program can hold the serial port — quit `make monitor` before any `fl
 **If a tap lights the wrong seat**, run `make map-piezos`. Each side lights white in turn; tap that seat. The corrected map is stored on the board (NVS), so it survives reboots and OTA and needs no reflash — no wire tracing either.
 
 **`make ota`** pushes over Wi-Fi instead of USB. It needs `firmware/turn_counter/secrets.h`, and the board must already be running firmware that joined the network — so the first flash after setting credentials is always a USB one. Use `make ota HOST=192.168.x.x` if mDNS won't resolve `turn-counter.local`.
+
+### Phone control
+
+With Wi-Fi configured, the table serves a control page on port 80: game mode, LED brightness, and an on/off switch, plus live status showing whose turn it is and who's seated.
+
+- **iPhone/iPad**: `http://turn-counter.local/`
+- **Android**: use the IP. Android has no system-wide mDNS resolver, so `.local` won't resolve. Give the board a DHCP reservation on your router so the address stops moving — the firmware prints its MAC at boot for exactly this.
+- **Guests**: `make qr URL=<address>` prints a sticker for under the table.
+
+There's no authentication. Anyone who can reach the table can change these three settings — at a game table that's the point — and nothing destructive is exposed.
+
+Off is separate from brightness: the LEDs go dark but mode, roster, whose turn it is and everyone's ready flags are all preserved, and brightness keeps its value. It isn't persisted, so the table always boots lit. To wake it without a phone, tap one side four times quickly — the same burst that opens setup while it's lit.
 
 ## Rebuilding the PDF
 
