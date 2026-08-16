@@ -1,7 +1,7 @@
 # Timed modes — countdown timer and time share
 
 **Date**: 2026-08-16
-**Status**: draft
+**Status**: implemented
 **Depends on**: `2026-08-16-setup-lock-and-diagnostics-design.md` (introduces
 `MODE_DIAL_COUNT` and the `TableHooks` struct this spec extends)
 

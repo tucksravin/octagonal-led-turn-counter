@@ -19,10 +19,12 @@
 <ul>
 <li><strong>Normal play</strong> — only the current player's side is lit, in that side's fixed color. Tap it to pass the turn; the light advances to the next active seat (clockwise by default), skipping empty seats.</li>
 <li><strong>Who's in</strong> — each side is independently in or out. With everyone in, it's an 8-player ring; with 3 people it hops between just those 3.</li>
-<li><strong>Setup</strong> — tap one seat <strong>4 times fast</strong> to enter setup. That seat becomes the <em>mode dial</em> (auto-joined, flashing). Everyone else taps their own seat to join (blinks in their color). After 3 s of no taps, it commits and play starts.</li>
-<li><strong>Game modes</strong> (chosen on the dial: it flashes through 4 colors ~5 s each; tap it to commit — it goes solid):</li>
+<li><strong>Setup</strong> — tap one seat <strong>4 times fast</strong> to enter setup. The whole table then acts out each mode in turn, ~5 s each; any tap commits the one showing, and everyone taps their own seat to join. After 5 s of no taps it commits and play starts. Ignore it entirely and it aborts after one full rotation (~20 s), changing nothing.</li>
+<li><strong>Game modes</strong> — the whole table demos each one, so the animation <em>is</em> the mode and there's no color legend to remember:</li>
 <li><strong>Clockwise</strong> (green) · <strong>Counter-clockwise</strong> (blue) · <strong>Arbitrary</strong> (magenta — turn follows the order people joined) · <strong>Ready-or-not</strong> (orange — every seat starts dark, each player taps on; when all are on they flash and reset for the next round).</li>
-<li><strong>On / off</strong> — a two-handed slap on two opposite sides at once toggles the table on/off.</li>
+<li><strong>Phone-only modes</strong> — two more that the table's dial can't demo, so they're picked from the phone. <strong>Countdown timer</strong>: the current seat drains from both ends over a set turn length (10–300 s), warming red near the end, then holds red until someone taps. <strong>Time share</strong>: the current seat's bar tracks that player's share of table time — it grows while you sit there and is shorter when the turn comes back, because everyone else's play diluted it. The four-tap gesture always returns the table to a dial mode.</li>
+<li><strong>On / off</strong> — from the phone. While the table is dark, four fast taps on one seat wake it, so it can always be relit without a phone. Never persisted: plug in and it's lit.</li>
+<li><strong>Setup lock</strong> — from the phone, when you'd rather guests didn't reset the roster by accident. A refused gesture double-flashes that side amber. It never blocks the wake taps, and unplugging the table clears it.</li>
 </ul>
 <p>Per-side LED counts are calibrated once and remembered (the octagon's corners eat 1–2 LEDs per side, so sides aren't uniform).</p>
 <hr />
@@ -171,12 +173,12 @@
 <h2 id="6-firmware">6. Firmware</h2>
 <p><code>firmware/turn_counter/turn_counter.ino</code> — the game logic above. Key facts:</p>
 <ul>
-<li><strong>FastLED + Preferences (NVS).</strong> <code>MAX_POWER_MA = 1500</code>, <code>BRIGHTNESS = 128</code>.</li>
+<li><strong>FastLED + Preferences (NVS).</strong> <code>MAX_POWER_MA = 1500</code>. Brightness is runtime state, not a constant — set it from the phone (5–100%, default 50%); it's saved to NVS and eases rather than snapping.</li>
 <li><strong>Calibration</strong>: flash <code>firmware/tap_light/tap_light.ino</code> first and calibrate per-side LED counts over serial (<code>0</code>–<code>7</code> select a side, <code>+</code>/<code>-</code> adjust, <code>p</code> print). It saves to NVS namespace <code>octagon</code>; turn_counter reads the same table automatically. Current table: <code>{29, 28, 27, 27, 27, 28, 28, 27}</code> = <strong>221 LEDs</strong>.</li>
 <li><strong>Tap detection</strong>: adaptive per-side baseline; a tap fires when a reading jumps <code>TAP_DELTA</code> (720) above that side's own resting level.</li>
 <li><strong>Setup gesture</strong> = 4 fast taps on the <em>same</em> side (so ready-or-not's rapid multi-player taps don't false-trip it).</li>
 <li><strong>Build/flash</strong>: <code>make flash-turn</code> (needs the <code>min_spiffs</code> partition — the Makefile handles it). Wi-Fi/OTA credentials are at the top of the sketch.</li>
-<li>Bench note: <code>setup()</code> currently forces <code>isOn = true</code> so a stale NVS "off" can't boot dark — <strong>revert that line for real play.</strong></li>
+<li><strong>Phone control</strong>: the board serves a page on port 80 for mode, brightness, on/off, and a setup lock, plus a diagnostics section showing live piezo baselines. On/off is never persisted, so the table always boots lit; the setup lock isn't either, so unplugging clears it.</li>
 </ul>
 <hr />
 <h2 id="7-bill-of-materials-simple-build">7. Bill of materials (simple build)</h2>
@@ -300,7 +302,7 @@
 <li><strong>Control board</strong>: ESP socket, 470 Ω, cap, piezo A1–A8 landings + inline JSTs, strip harness + JST.</li>
 <li><strong>Bench test</strong> the board: plug the USB source, flash <code>turn_counter</code>, fake taps with a screwdriver on the piezo leads.</li>
 <li><strong>Install on the lid</strong>: bond discs in their bores, mount the box, dress wiring, plug the 9 JSTs + USB.</li>
-<li><strong>Play</strong>: flash <code>turn_counter</code>, confirm calibration, revert the <code>isOn</code> bench line.</li>
+<li><strong>Play</strong>: flash <code>turn_counter</code>, confirm calibration, and check the piezo map from the phone's Diagnostics section (or remap over serial with <code>m</code> if a side responds to the wrong seat).</li>
 </ol>
 <hr />
 <h2 id="9-what-the-advanced-doc-adds">9. What the advanced doc adds</h2>

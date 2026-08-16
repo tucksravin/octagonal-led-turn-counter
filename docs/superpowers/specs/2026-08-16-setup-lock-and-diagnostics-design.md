@@ -1,7 +1,7 @@
 # Setup lock, over-the-air diagnostics, and abort timing
 
 **Date**: 2026-08-16
-**Status**: draft
+**Status**: implemented
 
 ## Goal
 
