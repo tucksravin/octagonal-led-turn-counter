@@ -34,6 +34,20 @@ uint16_t sideStarts[NUM_SIDES + 1];
 const uint16_t TAP_DELTA                      = 720;
 static const uint16_t DEBOUNCE_MS             = 250;
 static const uint16_t OPPOSITE_PAIR_WINDOW_MS = 150;
+
+// Tap guard: keeps one broken channel from taking the table down (spec:
+// docs/superpowers/specs/2026-08-16-tap-guard-design.md). Three fault modes,
+// three mechanisms — a sustained ring is stopped by hysteresis re-arm, a
+// pinned-at-rail input by the stuck timeout, oscillating mains pickup by the
+// rate quarantine. Values chosen so healthy play never touches any of them:
+// the setup gesture's taps land >= ~450 ms apart, no real ring survives 2 s
+// above half-threshold, and 8 consecutive sub-400 ms fires is a machine, not
+// a hand.
+static const uint16_t CHATTER_GAP_MS          = 400;    // a fire this soon after the same side's
+                                                        // previous fire counts toward its streak
+static const uint8_t  CHATTER_STREAK          = 8;      // streak length that mutes the side
+static const uint16_t STUCK_MUTE_MS           = 2000;   // disarmed this long without re-arming = pinned
+static const uint16_t UNMUTE_QUIET_MS         = 5000;   // continuous quiet that restores a muted side
 static const uint16_t MAP_PROMPT_TIMEOUT_MS   = 20000;  // silence at a prompt aborts the whole remap
 static const uint16_t MAP_SETTLE_MS           = 400;    // ring-down gap so one tap can't answer two prompts
 static const uint16_t BRIGHTNESS_SETTLE_MS    = 2000;   // quiet time before a slider change hits flash
@@ -48,6 +62,12 @@ static uint32_t baselineAcc[NUM_SIDES] = {0};  // fixed-point moving averages of
 static uint32_t lastTapPerSide[NUM_SIDES] = {0};
 static uint32_t lastTapMs = 0;
 
+// Tap-guard state, all RAM-only — a power cycle retries the hardware fresh.
+static bool     armed[NUM_SIDES]      = {true, true, true, true, true, true, true, true};
+static uint8_t  fireStreak[NUM_SIDES] = {0};
+static bool     muted[NUM_SIDES]      = {false};
+static uint32_t lastLoudMs[NUM_SIDES] = {0};   // last scan at/above the re-arm level
+
 static TapHandler  tapCb  = nullptr;
 static PairHandler pairCb = nullptr;
 static int8_t   pendingSide = -1;
@@ -58,6 +78,8 @@ uint16_t baseline(uint8_t i) { return baselineAcc[i] >> 6; }
 uint32_t lastAnyTapMs() { return lastTapMs; }
 
 uint32_t lastTapForSide(uint8_t i) { return (i < NUM_SIDES) ? lastTapPerSide[i] : 0; }
+
+bool sideMuted(uint8_t i) { return (i < NUM_SIDES) ? muted[i] : false; }
 
 uint16_t totalLeds() { return sideStarts[NUM_SIDES]; }
 
@@ -153,43 +175,100 @@ void renderProgressBar(uint8_t percent, const CRGB &color) {
   FastLED.show();
 }
 
+// Commit a fire on side i: refractory bookkeeping plus chatter accounting.
+// Returns false when the fire is swallowed (debounce, or the fire that crossed
+// the quarantine line). lastTapMs — the clock the games' idle/setup timers key
+// off — moves only on ACCEPTED fires, so a faulted side can no longer hold
+// setup open by refreshing it.
+static bool commitFire(uint8_t i, uint32_t now) {
+  uint32_t gap = now - lastTapPerSide[i];
+  if (gap <= DEBOUNCE_MS) return false;
+  armed[i] = false;                        // re-arms on a scan below baseline + TAP_DELTA/2
+  fireStreak[i] = (lastTapPerSide[i] != 0 && gap < CHATTER_GAP_MS) ? fireStreak[i] + 1 : 1;
+  lastTapPerSide[i] = now;
+  if (fireStreak[i] >= CHATTER_STREAK) {
+    muted[i] = true;
+    Serial.printf("Piezo side %u MUTED - %u fires at machine pace (chatter). "
+                  "Ignoring it until it stays quiet %u ms.\n",
+                  i, fireStreak[i], UNMUTE_QUIET_MS);
+    return false;
+  }
+  lastTapMs = now;
+  return true;
+}
+
 // Returns a bitmask of accepted hits in this scan. At most two bits set:
 // the side with the biggest jump above its own baseline (cross-talk filter —
 // adjacent ghosts lose to the real hit) and, if its diametrically-opposite
 // side also spiked this scan, that one too (two-handed slap detected in a
 // single scan, before debounce can lock it out). Cross-scan two-handed
 // slaps still work via pendingSide in tapsPoll().
+//
+// The tap guard threads through this: muted sides are invisible (they can
+// neither fire nor be the scan's winner, so a faulted channel can't starve
+// the healthy seven), while a HOT side that has fired and not yet re-armed
+// still wins the scan and suppresses it — that shadow is the existing ghost
+// filter, and the bounded pre-mute window where a fault can eat real taps is
+// the price of keeping it.
 static uint8_t readPiezos(uint32_t now) {
-  uint8_t aboveThresholdMask = 0;
+  uint8_t hotMask = 0;
   uint8_t maxIdx = 0xFF;
   uint16_t maxDelta = 0;
 
   for (uint8_t i = 0; i < NUM_SIDES; i++) {
     uint16_t reading = analogRead(sidePiezoPin[i]);
-    if (reading > baseline(i) + TAP_DELTA) {
-      aboveThresholdMask |= (1 << i);
-      uint16_t delta = reading - baseline(i);
+    uint16_t base = baseline(i);
+    bool hot = reading > base + TAP_DELTA;
+
+    if (reading >= base + TAP_DELTA / 2) {
+      lastLoudMs[i] = now;                 // loud: blocks re-arm and the unmute clock
+    } else {
+      armed[i] = true;                     // dipped below hysteresis: eligible again
+    }
+    if (!hot) {
+      baselineAcc[i] += reading - base;    // slow average, tau ~0.3 s at 5 ms/loop
+    }
+
+    if (muted[i]) {
+      if (now - lastLoudMs[i] >= UNMUTE_QUIET_MS) {
+        muted[i] = false;
+        fireStreak[i] = 0;
+        Serial.printf("Piezo side %u unmuted - quiet for %u ms\n", i, UNMUTE_QUIET_MS);
+      }
+      continue;                            // invisible: no fire, no shadow
+    }
+
+    if (!armed[i] && now - lastTapPerSide[i] > STUCK_MUTE_MS) {
+      // Fired and never re-armed: no real ring survives this long above
+      // half-threshold. A pinned input would otherwise shadow the whole
+      // table forever without ever firing again — a silent outage.
+      muted[i] = true;
+      fireStreak[i] = 0;
+      Serial.printf("Piezo side %u MUTED - stuck above re-arm level for %u ms "
+                    "(floating input?). Ignoring it until it stays quiet %u ms.\n",
+                    i, STUCK_MUTE_MS, UNMUTE_QUIET_MS);
+      continue;
+    }
+
+    if (hot) {
+      hotMask |= (1 << i);
+      uint16_t delta = reading - base;
       if (delta > maxDelta) {
         maxDelta = delta;
         maxIdx = i;
       }
-    } else {
-      baselineAcc[i] += reading - baseline(i);  // slow average, tau ~0.3 s at 5 ms/loop
     }
   }
 
   if (maxIdx == 0xFF) return 0;
-  if (now - lastTapPerSide[maxIdx] <= DEBOUNCE_MS) return 0;
+  if (!armed[maxIdx]) return 0;            // ghost era: the loudest side already
+                                           // fired and hasn't gone quiet yet
+  if (!commitFire(maxIdx, now)) return 0;
 
   uint8_t resultMask = (1 << maxIdx);
-  lastTapPerSide[maxIdx] = now;
-  lastTapMs = now;
-
   uint8_t oppIdx = (maxIdx + NUM_SIDES / 2) % NUM_SIDES;
-  if ((aboveThresholdMask & (1 << oppIdx)) &&
-      now - lastTapPerSide[oppIdx] > DEBOUNCE_MS) {
+  if ((hotMask & (1 << oppIdx)) && armed[oppIdx] && commitFire(oppIdx, now)) {
     resultMask |= (1 << oppIdx);
-    lastTapPerSide[oppIdx] = now;
   }
 
   return resultMask;

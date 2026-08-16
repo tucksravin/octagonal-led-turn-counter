@@ -83,8 +83,11 @@ void runPiezoMapWizard();
 // the piezo_test diagnostic can report against the same number the game uses.
 extern const uint16_t TAP_DELTA;
 
-uint32_t lastAnyTapMs();      // 0 until the first tap since boot
+uint32_t lastAnyTapMs();      // 0 until the first tap since boot; accepted fires only
 uint32_t lastTapForSide(uint8_t i);  // 0 until side i's first tap since boot
+bool sideMuted(uint8_t i);    // true while the tap guard has quarantined side i
+                              // (chattering or stuck channel); self-clears after
+                              // 5 s of quiet. See the guard block in the .cpp.
 uint16_t totalLeds();
 uint16_t baseline(uint8_t i);  // side i's resting ADC level, for bench diagnosis
 bool isOppositeSide(int8_t a, int8_t b);
