@@ -18,10 +18,11 @@ The whole thing runs off a **USB powerbank (or a USB wall adapter)** plugged int
 
 - **Normal play** — only the current player's side is lit, in that side's fixed color. Tap it to pass the turn; the light advances to the next active seat (clockwise by default), skipping empty seats.
 - **Who's in** — each side is independently in or out. With everyone in, it's an 8-player ring; with 3 people it hops between just those 3.
-- **Setup** — tap one seat **4 times fast** to enter setup. That seat becomes the *mode dial* (auto-joined, flashing). Everyone else taps their own seat to join (blinks in their color). After 3 s of no taps, it commits and play starts.
-- **Game modes** (chosen on the dial: it flashes through 4 colors ~5 s each; tap it to commit — it goes solid):
+- **Setup** — tap one seat **4 times fast** to enter setup. The whole table then acts out each mode in turn, ~5 s each; any tap commits the one showing, and everyone taps their own seat to join. After 5 s of no taps it commits and play starts. Ignore it entirely and it aborts after one full rotation (~20 s), changing nothing.
+- **Game modes** — the whole table demos each one, so the animation *is* the mode and there's no color legend to remember:
   - **Clockwise** (green) · **Counter-clockwise** (blue) · **Arbitrary** (magenta — turn follows the order people joined) · **Ready-or-not** (orange — every seat starts dark, each player taps on; when all are on they flash and reset for the next round).
-- **On / off** — a two-handed slap on two opposite sides at once toggles the table on/off.
+- **On / off** — from the phone. While the table is dark, four fast taps on one seat wake it, so it can always be relit without a phone. Never persisted: plug in and it's lit.
+- **Setup lock** — from the phone, when you'd rather guests didn't reset the roster by accident. A refused gesture double-flashes that side amber. It never blocks the wake taps, and unplugging the table clears it.
 
 Per-side LED counts are calibrated once and remembered (the octagon's corners eat 1–2 LEDs per side, so sides aren't uniform).
 
@@ -96,12 +97,12 @@ So the whole control box unplugs as a unit — 8 piezo JSTs + 1 strip JST + the 
 
 `firmware/turn_counter/turn_counter.ino` — the game logic above. Key facts:
 
-- **FastLED + Preferences (NVS).** `MAX_POWER_MA = 1500`, `BRIGHTNESS = 128`.
+- **FastLED + Preferences (NVS).** `MAX_POWER_MA = 1500`. Brightness is runtime state, not a constant — set it from the phone (5–100%, default 50%); it's saved to NVS and eases rather than snapping.
 - **Calibration**: flash `firmware/tap_light/tap_light.ino` first and calibrate per-side LED counts over serial (`0`–`7` select a side, `+`/`-` adjust, `p` print). It saves to NVS namespace `octagon`; turn_counter reads the same table automatically. Current table: `{29, 28, 27, 27, 27, 28, 28, 27}` = **221 LEDs**.
 - **Tap detection**: adaptive per-side baseline; a tap fires when a reading jumps `TAP_DELTA` (720) above that side's own resting level.
 - **Setup gesture** = 4 fast taps on the *same* side (so ready-or-not's rapid multi-player taps don't false-trip it).
 - **Build/flash**: `make flash-turn` (needs the `min_spiffs` partition — the Makefile handles it). Wi-Fi/OTA credentials are at the top of the sketch.
-- Bench note: `setup()` currently forces `isOn = true` so a stale NVS "off" can't boot dark — **revert that line for real play.**
+- **Phone control**: the board serves a page on port 80 for mode, brightness, on/off, and a setup lock, plus a diagnostics section showing live piezo baselines. On/off is never persisted, so the table always boots lit; the setup lock isn't either, so unplugging clears it.
 
 ---
 
@@ -141,7 +142,7 @@ Plus shared tools (iron, solder, multimeter, etc.) — see [shopping_list.md](sh
 4. **Control board**: ESP socket, 470 Ω, cap, piezo A1–A8 landings + inline JSTs, strip harness + JST.
 5. **Bench test** the board: plug the USB source, flash `turn_counter`, fake taps with a screwdriver on the piezo leads.
 6. **Install on the lid**: bond discs in their bores, mount the box, dress wiring, plug the 9 JSTs + USB.
-7. **Play**: flash `turn_counter`, confirm calibration, revert the `isOn` bench line.
+7. **Play**: flash `turn_counter`, confirm calibration, and check the piezo map from the phone's Diagnostics section (or remap over serial with `m` if a side responds to the wrong seat).
 
 ---
 

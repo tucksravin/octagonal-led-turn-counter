@@ -644,7 +644,8 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 | `SETUP_TAP_COUNT` | 4 | Taps on one side to open setup — or, while the table is off, to wake it |
 | `SETUP_TAP_WINDOW_MS` | 2000 | Window in which those taps must occur |
 | `MODE_DEMO_MS` | 5000 | Setup phase 1: how long each mode demos before the dial advances |
-| `MODE_ABORT_IDLE_MS` | 25000 | Setup phase 1: no tap for a full demo rotation aborts, changing nothing |
+| `MODE_ABORT_IDLE_MS` | `MODE_DEMO_MS × MODE_DIAL_COUNT` (20000) | Setup phase 1: no tap for exactly one demo rotation aborts, changing nothing. Derived, not hardcoded — a fixed 25000 against a 5000 ms demo ran five demos across four modes, so the dial wrapped and replayed its opening mode in full before giving up |
+| `REFUSE_BLINK_MS` | 120 | Locked table: length of each amber blink when a setup gesture is refused (on/off/on/off = 480 ms) |
 | `SETUP_JOIN_IDLE_MS` | 5000 | Setup phase 2: idle time before the roster is committed and setup exits |
 | `OPPOSITE_PAIR_WINDOW_MS` | 150 | Window for detecting the on/off two-handed gesture; raise to make it more forgiving, lower for snappier turn passes |
 | `WIFI_SSID` / `WIFI_PASSWORD` | (unset) | Your home Wi-Fi, in `firmware/turn_counter/secrets.h` (gitignored; copy `secrets.example.h`). Unset = radio off |
@@ -702,12 +703,23 @@ The board serves a single self-contained page on port 80 — no app to install, 
 |--------|------|---------|
 | GET | `/` | the page |
 | GET | `/api/config` | mode names, seat colours, side count — fetched once |
-| GET | `/api/state` | mode, brightness, lit, current seat, roster, ready, setup — polled every 2 s |
+| GET | `/api/state` | mode, brightness, lit, current seat, roster, ready, setup, locked — polled every 2 s |
+| GET | `/api/diag` | per-side pin, live baseline, LED count and time since last tap, plus `TAP_DELTA`, uptime, free heap and RSSI |
 | POST | `/api/mode?value=0..3` | set mode; 409 while a tap-setup session is running |
 | POST | `/api/brightness?value=5..100` | set brightness |
 | POST | `/api/power?value=on` or `off` | light or darken the table |
+| POST | `/api/lock?value=on` or `off` | refuse the four-tap setup gesture at the table |
 
 Range errors are 400; 409 means the request was valid but the table is mid-setup, and the person physically at it wins.
+
+**Diagnostics.** The piezo baselines were previously printed once at boot and never again, so judging whether a disc had gone bad meant carrying a laptop to the table and rebooting it. `/api/diag` reports them live, behind a collapsed section on the page that fetches on open rather than joining the 2 s poll. A baseline more than 4× the median across sides is flagged amber — a piezo that has lost its ground return reads high and steady, which is invisible unless you already know what normal looks like.
+
+**Setup lock.** The four-tap gesture is easy to trip by accident, and whoever trips it resets the roster. Locking refuses the gesture and double-flashes the tapped side amber, because silence would read as a dead piezo. Two carve-outs matter:
+
+- **The lock never applies while the table is dark.** The wake burst is the only way to relight the table by hand, and a locked table that can't be woken looks broken.
+- **It is never persisted.** A locked table with Wi-Fi down would otherwise have no phone and no gesture, and nothing could change it. Unplugging and replugging clears the lock — the thing anyone tries first anyway. Turning the table off and on *from the phone* keeps it, since that's `tableLit`, a different piece of state.
+
+A refused burst is still consumed, so taps can't accumulate against the lock and spring setup open the moment it's lifted.
 
 A mode change from the phone leaves the roster alone — it isn't a setup session. Off preserves all game state and isn't persisted, so the table always boots lit; four fast taps on one side wake it without a phone.
 

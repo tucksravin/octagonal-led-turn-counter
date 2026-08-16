@@ -31,7 +31,6 @@ const uint32_t WIFI_RETRY_MS           = 30000;  // how often loop() re-attempts
 const uint8_t  SETUP_TAP_COUNT          = 4;
 const uint16_t SETUP_TAP_WINDOW_MS      = 2000;
 const uint16_t MODE_DEMO_MS             = 5000;   // phase 1: each mode's whole-table demo runs ~5 s
-const uint16_t MODE_ABORT_IDLE_MS       = 25000;  // phase 1: no tap for a full demo rotation — abort, change nothing
 const uint16_t MODE_TAP_GRACE_MS        = 500;    // swallow gesture spillover right after entry
 const uint16_t SETUP_JOIN_IDLE_MS       = 5000;   // phase 2: idle commits the roster
 const uint16_t REFUSE_BLINK_MS          = 120;    // locked: on/off/on/off = 480 ms total
@@ -50,7 +49,21 @@ const CRGB READY_GREEN = CRGB(0, 200, 0);
 
 // Interaction modes chosen on the setup dial. CW/CCW/ARB are turn-passing
 // variants; READY is a group ready-check with no single "current" seat.
-enum GameMode : uint8_t { MODE_CW = 0, MODE_CCW = 1, MODE_ARB = 2, MODE_READY = 3, MODE_COUNT = 4 };
+// MODE_DIAL_COUNT is what the table's setup dial can demo; MODE_COUNT is what
+// applyMode() accepts. Equal today — the timed-modes work adds phone-only modes
+// past the dial's end, and the abort timing below must follow the dial, not the
+// total.
+enum GameMode : uint8_t {
+  MODE_CW = 0, MODE_CCW = 1, MODE_ARB = 2, MODE_READY = 3,
+  MODE_DIAL_COUNT = 4,
+  MODE_COUNT = 4
+};
+
+// One full rotation, derived rather than hardcoded. The old fixed 25000 against
+// a 5000 ms demo ran five demos across four modes, so the dial wrapped and
+// replayed its opening mode in full before giving up. uint32_t because a demo
+// longer than 16 s would silently wrap a uint16_t.
+const uint32_t MODE_ABORT_IDLE_MS = (uint32_t)MODE_DEMO_MS * MODE_DIAL_COUNT;
 
 // Setup runs in two phases: the whole table demos candidate modes until any tap
 // commits the one showing, then seats tap themselves into the roster.
@@ -207,7 +220,7 @@ void renderTurn() {
 void renderModeDemo(uint32_t now) {
   if (now - demoModeStartMs >= MODE_DEMO_MS) {
     demoModeStartMs = now;
-    dialMode = (dialMode + 1) % MODE_COUNT;
+    dialMode = (dialMode + 1) % MODE_DIAL_COUNT;
     Serial.printf("Setup: demoing %s\n", MODE_NAMES[dialMode]);
   }
   uint32_t elapsed = now - demoModeStartMs;
