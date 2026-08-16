@@ -57,6 +57,8 @@ uint16_t baseline(uint8_t i) { return baselineAcc[i] >> 6; }
 
 uint32_t lastAnyTapMs() { return lastTapMs; }
 
+uint32_t lastTapForSide(uint8_t i) { return (i < NUM_SIDES) ? lastTapPerSide[i] : 0; }
+
 uint16_t totalLeds() { return sideStarts[NUM_SIDES]; }
 
 static void rebuildSideStarts() {
