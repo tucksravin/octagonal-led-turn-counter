@@ -34,6 +34,8 @@ const uint16_t MODE_DEMO_MS             = 5000;   // phase 1: each mode's whole-
 const uint16_t MODE_ABORT_IDLE_MS       = 25000;  // phase 1: no tap for a full demo rotation — abort, change nothing
 const uint16_t MODE_TAP_GRACE_MS        = 500;    // swallow gesture spillover right after entry
 const uint16_t SETUP_JOIN_IDLE_MS       = 5000;   // phase 2: idle commits the roster
+const uint16_t REFUSE_BLINK_MS          = 120;    // locked: on/off/on/off = 480 ms total
+const CRGB     REFUSE_AMBER             = CRGB(255, 130, 0);
 
 // Mode-demo animation timing (phase 1).
 const uint16_t DEMO_SNAKE_MS            = 15;     // CW/CCW: snake advances one LED (~3.3 s per lap)
@@ -65,6 +67,12 @@ bool     netServicesUp = false;     // OTA listener + web UI are bound to the cu
 uint32_t lastWifiAttemptMs = 0;
 bool     tableLit = true;           // false = LEDs dark, game state preserved. Never persisted:
                                     // plug in = on, so a power cut can't leave it looking broken.
+bool     setupLocked = false;       // refuses the four-tap gesture while lit. Never persisted
+                                    // either, and for a sharper reason: a locked table with no
+                                    // Wi-Fi has no phone and no gesture, so unplug-replug has
+                                    // to be the way out.
+int8_t   refuseSide  = -1;          // side mid-refusal-flash, -1 = idle
+uint32_t refuseStart = 0;
 
 uint8_t  gameMode = MODE_CW;            // persisted interaction mode
 int8_t   joinOrder[NUM_SIDES] = {0};    // seats in the order they joined (ARB turn order)
@@ -295,6 +303,32 @@ void renderCurrent() {
   if (readyMode()) renderReady(); else renderTurn();
 }
 
+// A refused gesture has to say something, or it reads as a dead piezo. Runs as a
+// state machine from loop() rather than a delay() in the tap handler, which would
+// stall tapsPoll() and drag the adaptive baselines.
+void refuseSetup(int8_t side, uint32_t now) {
+  refuseSide = side;
+  refuseStart = now;
+  Serial.printf("Setup gesture on side %d refused - table is locked\n", side);
+}
+
+void refuseTick(uint32_t now) {
+  if (refuseSide < 0) return;
+  if (!tableLit || inSetupMode) { refuseSide = -1; return; }
+  uint32_t phase = (now - refuseStart) / REFUSE_BLINK_MS;
+  if (phase >= 4) {
+    refuseSide = -1;
+    renderCurrent();
+    return;
+  }
+  if (phase % 2 == 0) {
+    fillSide(refuseSide, REFUSE_AMBER);   // overlays the live scene, so no saved buffer
+    FastLED.show();
+  } else {
+    renderCurrent();                      // safe repaint: does NOT clear ready[]
+  }
+}
+
 // Start (or resume) play in the current mode.
 void startPlay() {
   if (!tableLit) { renderOff(); return; }
@@ -328,6 +362,16 @@ bool registerTapForSetupGesture(int8_t side, uint32_t now) {
   }
   tapsInBurst++;
   return tapsInBurst >= SETUP_TAP_COUNT;
+}
+
+// True only when the burst completed AND setup is allowed to open. A refused
+// burst is still consumed by registerTapForSetupGesture, so taps can't pile up
+// against the lock and spring setup open the moment it's lifted.
+bool setupGestureFired(int8_t side, uint32_t now) {
+  if (!registerTapForSetupGesture(side, now)) return false;
+  if (!setupLocked) return true;
+  refuseSetup(side, now);
+  return false;
 }
 
 void enterSetupMode() {
@@ -427,6 +471,12 @@ bool applyPower(bool lit) {
   return true;
 }
 
+bool applyLock(bool locked) {
+  setupLocked = locked;               // deliberately not persisted — see the declaration
+  Serial.printf("Setup %s\n", locked ? "locked" : "unlocked");
+  return true;                        // never refused: locking mid-setup lets the session
+}                                     // at the table finish rather than yanking it away
+
 void commitTap(int8_t side, uint32_t whenMs) {
   if (!tableLit) {
     // Dark: the only gesture that does anything is the wake burst — four fast
@@ -460,7 +510,7 @@ void commitTap(int8_t side, uint32_t whenMs) {
 
   if (readyMode()) {
     // Group ready-check: no current seat, so any fast 4-tap opens setup.
-    if (registerTapForSetupGesture(side, whenMs)) {
+    if (setupGestureFired(side, whenMs)) {
       enterSetupMode();
       return;
     }
@@ -489,7 +539,7 @@ void commitTap(int8_t side, uint32_t whenMs) {
     // Setup gesture only counts taps on a non-current side. Turn-passes always
     // land on the current seat, so brisk normal play can never accumulate toward
     // the gesture and trip setup mode by accident.
-    if (registerTapForSetupGesture(side, whenMs)) {
+    if (setupGestureFired(side, whenMs)) {
       enterSetupMode();
       return;
     }
@@ -664,6 +714,7 @@ void loop() {
 
   serviceWiFi(now);
   brightnessTick(now);
+  refuseTick(now);
 
   tapsPoll(now);
 
