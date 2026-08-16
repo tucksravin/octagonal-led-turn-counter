@@ -18,18 +18,21 @@ NUM_SIDES = 8
 def build_diag(tap_delta, uptime_ms, free_heap, rssi, sides):
     """Reproduce handleDiag()'s snprintf layout exactly.
 
-    `sides` is a list of (pin, baseline, leds, last_tap_ms) tuples. A last_tap_ms
-    of 0 means "never tapped" and must serialise as -1, not as `uptime - 0`.
+    `sides` is a list of (pin, baseline, leds, last_tap_ms[, muted]) tuples. A
+    last_tap_ms of 0 means "never tapped" and must serialise as -1, not as
+    `uptime - 0`.
     """
     parts = [
         '{"tapDelta":%d,"uptimeMs":%d,"freeHeap":%d,"rssi":%d,"sides":['
         % (tap_delta, uptime_ms, free_heap, rssi)
     ]
-    for i, (pin, base, leds, last_tap) in enumerate(sides):
+    for i, side in enumerate(sides):
+        pin, base, leds, last_tap = side[:4]
+        muted = side[4] if len(side) > 4 else 0
         since = -1 if last_tap == 0 else uptime_ms - last_tap
         parts.append(
-            '%s{"pin":%d,"baseline":%d,"leds":%d,"sinceTapMs":%d}'
-            % ("," if i else "", pin, base, leds, since)
+            '%s{"pin":%d,"baseline":%d,"leds":%d,"sinceTapMs":%d,"muted":%d}'
+            % ("," if i else "", pin, base, leds, since, muted)
         )
     parts.append("]}")
     return "".join(parts)
@@ -37,8 +40,8 @@ def build_diag(tap_delta, uptime_ms, free_heap, rssi, sides):
 
 def worst_case_sides():
     """Widest plausible values: 2-digit pins, 4-digit baselines, 3-digit LED
-    counts, and a sinceTapMs at the far end of a 49-day millis() range."""
-    return [(10, 4095, 999, 1) for _ in range(NUM_SIDES)]
+    counts, a sinceTapMs at the far end of a 49-day millis() range, muted."""
+    return [(10, 4095, 999, 1, 1) for _ in range(NUM_SIDES)]
 
 
 def test_parses_as_json():

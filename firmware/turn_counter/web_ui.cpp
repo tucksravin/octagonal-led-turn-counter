@@ -57,6 +57,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
 th,td{text-align:left;padding:5px 4px;border-bottom:1px solid #2c2c2e}
 th{color:#8e8e93;font-weight:500}
 td.warn{color:#ff9f0a}
+tr.warn td{color:#ff453a}
 #diagmeta{font-size:12px;color:#8e8e93;margin-top:10px}
 .srow{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:13px}
 .sbar{flex:1;height:9px;border-radius:5px;background:#2c2c2e;overflow:hidden}
@@ -182,8 +183,9 @@ async function loadDiag(){
     const sorted=d.sides.map(s=>s.baseline).sort((a,b)=>a-b);
     const median=sorted[Math.floor(sorted.length/2)]||1;
     $('diagrows').innerHTML = d.sides.map((s,i)=>
-      '<tr><td>'+i+'</td><td>'+s.pin+'</td><td'+
+      '<tr'+(s.muted?' class="warn"':'')+'><td>'+i+'</td><td>'+s.pin+'</td><td'+
       (s.baseline > median*4 ? ' class="warn"' : '')+'>'+s.baseline+
+      (s.muted?' &middot; muted':'')+
       '</td><td>'+s.leds+'</td><td>'+ago(s.sinceTapMs)+'</td></tr>').join('');
     $('diagmeta').textContent =
       'tap fires at baseline + '+d.tapDelta+
@@ -327,8 +329,9 @@ static void handleDiag() {
     // the opposite of the truth, in exactly the case you're diagnosing.
     long since = (last == 0) ? -1L : (long)(now - last);
     n += snprintf(buf + n, sizeof(buf) - n,
-                  "%s{\"pin\":%u,\"baseline\":%u,\"leds\":%u,\"sinceTapMs\":%ld}",
-                  i ? "," : "", sidePiezoPin[i], baseline(i), sideLedCounts[i], since);
+                  "%s{\"pin\":%u,\"baseline\":%u,\"leds\":%u,\"sinceTapMs\":%ld,\"muted\":%u}",
+                  i ? "," : "", sidePiezoPin[i], baseline(i), sideLedCounts[i], since,
+                  sideMuted(i) ? 1 : 0);
   }
   if (n > 0 && n < (int)sizeof(buf)) snprintf(buf + n, sizeof(buf) - n, "]}");
   server.send(200, "application/json", buf);
