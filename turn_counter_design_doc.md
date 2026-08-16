@@ -709,6 +709,7 @@ The board serves a single self-contained page on port 80 — no app to install, 
 | POST | `/api/brightness?value=5..100` | set brightness |
 | POST | `/api/power?value=on` or `off` | light or darken the table |
 | POST | `/api/lock?value=on` or `off` | refuse the four-tap setup gesture at the table |
+| POST | `/api/timer?seconds=10..300` | countdown length for the timer mode |
 
 Range errors are 400; 409 means the request was valid but the table is mid-setup, and the person physically at it wins.
 

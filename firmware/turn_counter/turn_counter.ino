@@ -757,9 +757,31 @@ void readTableState(TableState &s) {
   for (uint8_t i = 0; i < NUM_SIDES; i++) if (ready[i]) s.readyMask |= (1 << i);
   s.inSetupMode       = inSetupMode;
   s.locked            = setupLocked;
+
+  uint32_t live  = millis() - turnStartMs;
+  uint32_t total = live;
+  for (uint8_t i = 0; i < NUM_SIDES; i++) total += sideMs[i];
+  for (uint8_t i = 0; i < NUM_SIDES; i++) {
+    uint32_t ms = sideMs[i] + ((int8_t)i == currentSide ? live : 0);
+    // A plain percentage of table time, NOT the doubled fair-share figure the
+    // LED bar uses: the bar answers "over or under my share" across a room, the
+    // phone shows the real numbers, and eight of these should sum to 100.
+    s.sharePct[i] = (total == 0) ? 0 : (uint8_t)((uint64_t)ms * 100 / total);
+  }
+
+  s.turnSeconds = turnSeconds;
+  if (gameMode == MODE_TIMER) {
+    uint32_t span    = (uint32_t)turnSeconds * 1000;
+    uint32_t elapsed = millis() - turnStartMs;
+    // Round up, so the last second reads "1 s" rather than "0 s left".
+    s.secondsLeft = (elapsed >= span) ? 0 : (int32_t)((span - elapsed + 999) / 1000);
+  } else {
+    s.secondsLeft = -1;
+  }
 }
 
-const TableConfig WEB_CONFIG = {MODE_NAMES, MODE_COUNT};
+const TableConfig WEB_CONFIG = {MODE_NAMES, MODE_COUNT, TIMER_SECONDS_MIN,
+                                TIMER_SECONDS_MAX, MODE_TIMER, MODE_SHARE};
 
 bool wifiConfigured() { return WIFI_SSID[0] != '\0'; }
 
@@ -800,6 +822,7 @@ void beginOta() {
     .setBrightness = applyBrightness,
     .setPower      = applyPower,
     .setLock       = applyLock,
+    .setTurnSeconds = applyTurnSeconds,
   };
   webUiBegin(WEB_CONFIG, hooks);
   netServicesUp = true;

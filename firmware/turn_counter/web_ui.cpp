@@ -4,8 +4,8 @@
 #include <octagon_core.h>
 
 static WebServer server(80);
-static TableConfig cfg = {nullptr, 0};
-static TableHooks hooks = {nullptr, nullptr, nullptr, nullptr, nullptr};
+static TableConfig cfg = {nullptr, 0, 0, 0, 0, 0};
+static TableHooks hooks = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 static bool started = false;
 
 // String::toInt() returns 0 for non-numeric input, which would quietly turn
@@ -58,6 +58,10 @@ th,td{text-align:left;padding:5px 4px;border-bottom:1px solid #2c2c2e}
 th{color:#8e8e93;font-weight:500}
 td.warn{color:#ff9f0a}
 #diagmeta{font-size:12px;color:#8e8e93;margin-top:10px}
+.srow{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:13px}
+.sbar{flex:1;height:9px;border-radius:5px;background:#2c2c2e;overflow:hidden}
+.sfill{height:100%;border-radius:5px}
+.spct{width:38px;text-align:right;color:#8e8e93}
 </style></head><body>
 <h1>Turn Counter</h1>
 <div id="banner" class="hide">Setup in progress at the table &mdash; mode changes are locked.</div>
@@ -79,6 +83,16 @@ td.warn{color:#ff9f0a}
   <div class="note">All-on scenes are already at the power cap, so above ~60% only
   single-seat play gets brighter.</div>
 </div>
+<div class="card hide" id="timercard">
+  <div class="lbl">Turn timer <span id="tsecs"></span></div>
+  <input type="range" id="tsec" step="5">
+  <div class="note" id="tleft"></div>
+</div>
+<div class="card hide" id="sharecard">
+  <div class="lbl">Time share</div>
+  <div id="sharerows"></div>
+  <button id="sharereset" style="text-align:center;margin-top:10px">Reset stats</button>
+</div>
 <div class="card"><details id="diagbox">
   <summary>Diagnostics</summary>
   <table><thead><tr><th>Seat</th><th>Pin</th><th>Baseline</th><th>LEDs</th><th>Last tap</th></tr></thead>
@@ -89,6 +103,7 @@ td.warn{color:#ff9f0a}
 <div id="err"></div>
 <script>
 let cfg=null, lastLocal=0, pending=null, dragging=false;
+let tlastLocal=0, tpending=null, tdragging=false;
 const $=i=>document.getElementById(i);
 
 async function post(path){
@@ -130,6 +145,26 @@ function render(s){
   // Don't fight the finger: ignore polled brightness right after a local change.
   if(!dragging && Date.now()-lastLocal>2000){ $('bri').value=s.brightness; }
   $('bripct').textContent=$('bri').value+'%';
+
+  $('timercard').classList.toggle('hide', s.mode!==cfg.timerMode);
+  $('sharecard').classList.toggle('hide', s.mode!==cfg.shareMode);
+
+  if(s.mode===cfg.timerMode){
+    if(!tdragging && Date.now()-tlastLocal>2000){ $('tsec').value=s.turnSeconds; }
+    $('tsecs').textContent=$('tsec').value+' s';
+    $('tleft').textContent = !s.lit ? 'Paused while the table is off.'
+      : s.secondsLeft===0 ? 'Time up - tap the seat to pass.'
+      : s.secondsLeft+' s left';
+  }
+
+  if(s.mode===cfg.shareMode){
+    $('sharerows').innerHTML = s.sharePct.map((p,i)=>
+      ((s.roster>>i)&1) ?
+        '<div class="srow"><span>'+i+'</span><div class="sbar"><div class="sfill" '+
+        'style="width:'+p+'%;background:'+cfg.colors[i]+'"></div></div>'+
+        '<span class="spct">'+p+'%</span></div>'
+      : '').join('');
+  }
 }
 
 function ago(ms){
@@ -188,6 +223,21 @@ async function poll(){
   };
   bri.onchange=()=>{ dragging=false; send(); };
 
+  const tsec=$('tsec');
+  tsec.min=cfg.timerMin; tsec.max=cfg.timerMax;
+  const tsend=()=>{ tlastLocal=Date.now(); post('/api/timer?seconds='+tsec.value); };
+  tsec.oninput=()=>{
+    $('tsecs').textContent=tsec.value+' s';
+    tdragging=true; tlastLocal=Date.now();
+    if(tpending) return;                        // throttle to 1 POST / 250 ms
+    tpending=setTimeout(()=>{ tpending=null; tsend(); },250);
+  };
+  tsec.onchange=()=>{ tdragging=false; tsend(); };
+
+  // Re-posting the active mode is what resets the stats — more discoverable
+  // than a note explaining that re-tapping the mode button does it.
+  $('sharereset').onclick=()=>post('/api/mode?value='+cfg.shareMode);
+
   // preventDefault: the button lives inside <details>, and without it a click
   // collapses the block you're trying to refresh.
   $('diagbox').ontoggle=()=>{ if($('diagbox').open) loadDiag(); };
@@ -204,12 +254,18 @@ static void sendState(int code) {
   TableState s;
   hooks.read(s);
   char buf[384];
-  snprintf(buf, sizeof(buf),
-           "{\"mode\":%u,\"brightness\":%u,\"lit\":%s,\"currentSide\":%d,"
-           "\"roster\":%u,\"ready\":%u,\"setup\":%s,\"locked\":%s}",
-           s.mode, s.brightnessPercent, s.lit ? "true" : "false", s.currentSide,
-           s.rosterMask, s.readyMask, s.inSetupMode ? "true" : "false",
-           s.locked ? "true" : "false");
+  int n = snprintf(buf, sizeof(buf),
+                   "{\"mode\":%u,\"brightness\":%u,\"lit\":%s,\"currentSide\":%d,"
+                   "\"roster\":%u,\"ready\":%u,\"setup\":%s,\"locked\":%s,"
+                   "\"turnSeconds\":%u,\"secondsLeft\":%ld,\"sharePct\":[",
+                   s.mode, s.brightnessPercent, s.lit ? "true" : "false", s.currentSide,
+                   s.rosterMask, s.readyMask, s.inSetupMode ? "true" : "false",
+                   s.locked ? "true" : "false",
+                   s.turnSeconds, (long)s.secondsLeft);
+  for (uint8_t i = 0; i < NUM_SIDES && n > 0 && n < (int)sizeof(buf); i++) {
+    n += snprintf(buf + n, sizeof(buf) - n, "%s%u", i ? "," : "", s.sharePct[i]);
+  }
+  if (n > 0 && n < (int)sizeof(buf)) snprintf(buf + n, sizeof(buf) - n, "]}");
   server.send(code, "application/json", buf);
 }
 
@@ -229,7 +285,11 @@ static void handleConfig() {
   for (uint8_t i = 0; i < cfg.modeCount && n < (int)sizeof(buf); i++) {
     n += snprintf(buf + n, sizeof(buf) - n, "%s\"%s\"", i ? "," : "", cfg.modeNames[i]);
   }
-  if (n < (int)sizeof(buf)) snprintf(buf + n, sizeof(buf) - n, "]}");
+  if (n < (int)sizeof(buf)) {
+    snprintf(buf + n, sizeof(buf) - n,
+             "],\"timerMin\":%u,\"timerMax\":%u,\"timerMode\":%u,\"shareMode\":%u}",
+             cfg.timerMinSeconds, cfg.timerMaxSeconds, cfg.timerMode, cfg.shareMode);
+  }
   server.send(200, "application/json", buf);
 }
 
@@ -315,6 +375,20 @@ static void handleLock() {
   sendState(200);
 }
 
+static void handleTimer() {
+  long v;
+  if (!server.hasArg("seconds") || !parseUInt(server.arg("seconds"), v)) {
+    server.send(400, "text/plain", "seconds must be a number");
+    return;
+  }
+  if (v < cfg.timerMinSeconds || v > cfg.timerMaxSeconds) {
+    server.send(400, "text/plain", "seconds out of range");
+    return;
+  }
+  hooks.setTurnSeconds((uint16_t)v);
+  sendState(200);
+}
+
 static void handleRoot() {
   server.send_P(200, "text/html", PAGE_HTML);
 }
@@ -332,6 +406,7 @@ void webUiBegin(const TableConfig &c, const TableHooks &h) {
   server.on("/api/brightness", HTTP_POST, handleBrightness);
   server.on("/api/power",      HTTP_POST, handlePower);
   server.on("/api/lock",       HTTP_POST, handleLock);
+  server.on("/api/timer",      HTTP_POST, handleTimer);
   server.onNotFound([]() { server.send(404, "text/plain", "no such endpoint"); });
 
   server.begin();
