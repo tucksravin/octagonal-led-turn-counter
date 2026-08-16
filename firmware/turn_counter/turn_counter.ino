@@ -36,6 +36,13 @@ const uint16_t SETUP_JOIN_IDLE_MS       = 5000;   // phase 2: idle commits the r
 const uint16_t REFUSE_BLINK_MS          = 120;    // locked: on/off/on/off = 480 ms total
 const CRGB     REFUSE_AMBER             = CRGB(255, 130, 0);
 
+const uint16_t TIMER_SECONDS_DEFAULT    = 60;
+const uint16_t TIMER_SECONDS_MIN        = 10;
+const uint16_t TIMER_SECONDS_MAX        = 300;    // 3 digits: parseUInt in web_ui.cpp
+                                                  // rejects anything longer
+const uint16_t TIMER_SETTLE_MS          = 2000;   // defer the NVS write past a slider drag
+const uint16_t MODE_FRAME_MS            = 50;     // timed modes repaint at 20 fps
+
 // Mode-demo animation timing (phase 1).
 const uint16_t DEMO_SNAKE_MS            = 15;     // CW/CCW: snake advances one LED (~3.3 s per lap)
 const uint8_t  DEMO_SNAKE_LEN           = 14;     // CW/CCW: snake length in LEDs, head bright, tail fading
@@ -50,13 +57,16 @@ const CRGB READY_GREEN = CRGB(0, 200, 0);
 // Interaction modes chosen on the setup dial. CW/CCW/ARB are turn-passing
 // variants; READY is a group ready-check with no single "current" seat.
 // MODE_DIAL_COUNT is what the table's setup dial can demo; MODE_COUNT is what
-// applyMode() accepts. Equal today — the timed-modes work adds phone-only modes
-// past the dial's end, and the abort timing below must follow the dial, not the
-// total.
+// applyMode() accepts. MODE_DIAL_COUNT and MODE_TIMER deliberately share the
+// value 4: one is a count, one is an index, and tying them together is the
+// point — the dial demos [0, MODE_DIAL_COUNT) and the phone-only modes begin
+// exactly where it stops. A mode the dial can't animate has no business on a
+// dial whose whole premise is "the animation IS the mode".
 enum GameMode : uint8_t {
   MODE_CW = 0, MODE_CCW = 1, MODE_ARB = 2, MODE_READY = 3,
   MODE_DIAL_COUNT = 4,
-  MODE_COUNT = 4
+  MODE_TIMER = 4, MODE_SHARE = 5,
+  MODE_COUNT = 6
 };
 
 // One full rotation, derived rather than hardcoded. The old fixed 25000 against
@@ -98,19 +108,30 @@ int8_t   prevJoinOrder[NUM_SIDES] = {0};// join-order snapshot paired with prevR
 uint8_t  prevJoinCount = 0;
 bool     ready[NUM_SIDES] = {false};    // READY mode: green (ready) vs red, active seats only
 
+uint16_t turnSeconds = TIMER_SECONDS_DEFAULT;   // persisted, "turntable"/"tsec"
+bool     turnSecondsDirty = false;
+uint32_t turnSecondsChangedMs = 0;
+
+uint32_t turnStartMs = 0;              // when the current seat's turn began
+uint32_t sideMs[NUM_SIDES] = {0};      // banked play time per seat. RAM only:
+                                       // this is the game, not a setting
+uint32_t modeFrameMs = 0;              // last timed-mode repaint
+int16_t  lastDrawnLeds = -1;           // suppresses redundant show(); -1 = repaint
+
 uint32_t firstTapInBurstMs = 0;
 uint8_t  tapsInBurst = 0;
 int8_t   burstSide = -1;   // the side the current tap-burst is accumulating on
 
 // Demo colors for the mode-select phase; READY demos in red/green instead.
-const CRGB MODE_COLORS[MODE_COUNT] = {
+const CRGB MODE_COLORS[MODE_DIAL_COUNT] = {   // demo-only, so it tracks the dial
   CRGB(60, 220, 80),    // CW    - green
   CRGB(40, 120, 255),   // CCW   - blue
   CRGB(220, 60, 220),   // ARB   - magenta
   CRGB(255, 130, 30)    // READY - orange
 };
 const char* const MODE_NAMES[MODE_COUNT] = {
-  "clockwise", "counter-clockwise", "arbitrary (join order)", "ready-or-not"
+  "clockwise", "counter-clockwise", "arbitrary (join order)", "ready-or-not",
+  "countdown timer", "time share"
 };
 
 uint8_t rosterMask() {
@@ -205,6 +226,7 @@ void loadJoinOrder() {
 }
 
 bool readyMode() { return gameMode == MODE_READY; }
+bool timedMode() { return gameMode == MODE_TIMER || gameMode == MODE_SHARE; }
 
 // Only the current seat lights, in that side's fixed color; every other seat dark.
 void renderTurn() {
@@ -307,13 +329,110 @@ void renderReady() {
   FastLED.show();
 }
 
+// Both timed modes draw a centred block that shrinks from the ends inward, so
+// the last light left sits directly in front of the player. One visual grammar
+// for both modes.
+void drawCentredBlock(uint8_t side, uint16_t lit, const CRGB &col) {
+  uint8_t len = sideLedCounts[side];
+  if (lit > len) lit = len;
+  FastLED.clear();
+  uint16_t start = sideStarts[side] + (len - lit) / 2;
+  for (uint16_t i = 0; i < lit; i++) leds[start + i] = col;
+}
+
+// Shot clock: the seat's own colour drains from both ends, warming toward red
+// over the final quarter so "almost out" reads across a loud room without
+// anyone counting LEDs. At zero it complains; it never takes the shot away.
+void renderTimer(uint32_t now) {
+  uint8_t  len     = sideLedCounts[currentSide];
+  uint32_t total   = (uint32_t)turnSeconds * 1000;
+  uint32_t elapsed = now - turnStartMs;
+
+  if (elapsed >= total) {
+    // beatsin8 runs off millis(), so the pulse keeps phase across repaints
+    // without carrying any state of its own.
+    FastLED.clear();
+    fillSide(currentSide, CRGB(beatsin8(120, 40, 255), 0, 0));
+    FastLED.show();
+    lastDrawnLeds = -1;          // pulsing: every frame differs
+    return;
+  }
+
+  uint32_t left = total - elapsed;
+  uint16_t lit  = (uint32_t)len * left / total;
+  uint32_t warn = total / 4;
+
+  CRGB col = PLAYER_COLORS[currentSide];
+  bool warming = left < warn;
+  if (warming) col = blend(col, CRGB(255, 0, 0), 255 - (uint8_t)(left * 255 / warn));
+
+  // Outside the final quarter nothing changes between LED steps, so skip the
+  // ~6.6 ms show(). Inside it the colour moves continuously, so repaint.
+  if (!warming && lit == lastDrawnLeds) return;
+  lastDrawnLeds = lit;
+  drawCentredBlock(currentSide, lit, col);
+  FastLED.show();
+}
+
+// Your share of table time, measured against a fair share of HALF the side — so
+// an even table sits half-lit and the bar has headroom both ways. It grows while
+// you sit there and is shorter when the turn comes back, because everyone else's
+// play diluted it.
+void renderShare(uint32_t now) {
+  uint8_t  len   = sideLedCounts[currentSide];
+  uint32_t live  = now - turnStartMs;
+  uint32_t mine  = sideMs[currentSide] + live;
+  uint32_t total = live;
+  for (uint8_t s = 0; s < NUM_SIDES; s++) total += sideMs[s];
+
+  uint8_t n = activeCount();
+  if (n == 0) n = 1;
+
+  uint16_t lit;
+  if (total == 0) {
+    lit = len / 2;                 // nobody has played: open neutral
+  } else {
+    // 64-bit intermediate: mine * n * len overflows uint32_t at ~5 h on one
+    // seat, and the bar would wrap to nonsense at the end of a long night —
+    // the worst possible time to find it.
+    lit = (uint16_t)(((uint64_t)mine * n * len) / ((uint64_t)2 * total));
+    if (lit > len) lit = len;
+    if (lit < 1) lit = 1;          // zero is indistinguishable from a dead piezo
+  }
+
+  if (lit == lastDrawnLeds) return;
+  lastDrawnLeds = lit;
+  drawCentredBlock(currentSide, lit, PLAYER_COLORS[currentSide]);
+  FastLED.show();
+}
+
+// Draws immediately, with no frame-interval guard, so renderCurrent() can force
+// a repaint. modeTick() is the throttled caller.
+void renderTimed(uint32_t now) {
+  if (currentSide < 0 || currentSide >= NUM_SIDES) { renderOff(); return; }
+  if (gameMode == MODE_TIMER) renderTimer(now); else renderShare(now);
+}
+
+// Timed modes animate continuously — every other mode repaints only on a tap.
+// FastLED.show() blocks ~6.6 ms on 221 LEDs, so the renderers skip it when
+// nothing moved; setup mode already shows on every pass and taps register fine
+// through it, so 20 fps is well inside proven territory.
+void modeTick(uint32_t now) {
+  if (!tableLit || inSetupMode || !timedMode()) return;
+  if (now - modeFrameMs < MODE_FRAME_MS) return;
+  modeFrameMs = now;
+  renderTimed(now);
+}
+
 // Redraw whatever should be on screen, without changing any game state. This is
-// the safe repaint: startPlay() clears ready[], which would wipe a READY round
-// in progress if it were used for a brightness or power change.
+// the safe repaint: startPlay() clears ready[] and restarts the turn clock,
+// either of which would be wrong for a brightness or power change.
 void renderCurrent() {
   if (!tableLit) { renderOff(); return; }
   if (inSetupMode) return;            // setup re-renders from loop() every pass
-  if (readyMode()) renderReady(); else renderTurn();
+  if (readyMode()) { renderReady(); return; }
+  if (timedMode()) { lastDrawnLeds = -1; renderTimed(millis()); return; }
+  renderTurn();
 }
 
 // A refused gesture has to say something, or it reads as a dead piezo. Runs as a
@@ -342,18 +461,41 @@ void refuseTick(uint32_t now) {
   }
 }
 
-// Start (or resume) play in the current mode.
+// Start (or resume) play in the current mode. Unlike renderCurrent() this is a
+// fresh start: the READY round is cleared and the turn clock restarts.
 void startPlay() {
   if (!tableLit) { renderOff(); return; }
+  turnStartMs = millis();
+  lastDrawnLeds = -1;
   if (readyMode()) {
     for (uint8_t s = 0; s < NUM_SIDES; s++) ready[s] = false;
     renderReady();
+  } else if (timedMode()) {
+    renderTimed(millis());
   } else {
     renderTurn();
   }
 }
 
+// Time is banked on transitions, never accumulated per frame: a per-frame
+// `sideMs[cur] += delta` drifts and depends on the loop rate. The live display
+// adds (now - turnStartMs) on the fly instead.
+void bankTurnTime() {
+  uint32_t now = millis();
+  if (currentSide >= 0 && currentSide < NUM_SIDES) {
+    sideMs[currentSide] += now - turnStartMs;
+  }
+  turnStartMs = now;
+}
+
+// Time-share stats are the game, so they reset when a game starts.
+void resetShareStats() {
+  memset(sideMs, 0, sizeof(sideMs));
+  turnStartMs = millis();
+}
+
 void advanceTurn() {
+  bankTurnTime();   // credit the outgoing seat before currentSide moves
   switch (gameMode) {
     case MODE_CCW: currentSide = prevActiveSide(currentSide); break;
     case MODE_ARB: currentSide = nextInJoinOrder(currentSide); break;
@@ -401,7 +543,11 @@ void enterSetupMode() {
   for (uint8_t s = 0; s < NUM_SIDES; s++) sideActive[s] = false;  // everyone taps in fresh — nobody auto-joins
   joinCount = 0;
 
-  dialMode = gameMode;            // demos start from the active mode
+  // Demos start from the active mode — unless that's a phone-only mode the dial
+  // can't animate, which would also index MODE_COLORS out of bounds. Falling
+  // back to CW gives the gesture a second job: it's the manual way out of a
+  // phone-only mode when the phone isn't around.
+  dialMode = (gameMode < MODE_DIAL_COUNT) ? gameMode : MODE_CW;
   setupEnteredMs = millis();
   demoModeStartMs = setupEnteredMs;
 
@@ -437,6 +583,8 @@ void exitSetupMode() {
   // ARB starts on the first joiner; other modes at the lowest active seat.
   currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstActiveSide();
 
+  resetShareStats();   // a new roster is a new game
+
   prefs.putUChar("roster", rosterMask());
   prefs.putUChar("curside", currentSide);
   prefs.putUChar("mode", gameMode);
@@ -460,6 +608,9 @@ bool applyMode(uint8_t newMode) {
   if (currentSide < 0 || currentSide >= NUM_SIDES || !sideActive[currentSide]) {
     currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstActiveSide();
   }
+  // Re-selecting SHARE from the phone is the "new game" gesture, so this fires
+  // even when SHARE was already the active mode.
+  if (gameMode == MODE_SHARE) resetShareStats();
   prefs.putUChar("mode", gameMode);
   prefs.putUChar("curside", currentSide);
   startPlay();                     // a mode change SHOULD clear ready[]
@@ -477,11 +628,44 @@ bool applyPower(bool lit) {
   if (!lit && inSetupMode) {
     abortSetupMode();              // restores the previous roster and mode, writes nothing
   }
+  if (!lit) bankTurnTime();        // freeze the share clock where it stands
   tableLit = lit;
-  if (lit) renderCurrent(); else renderOff();   // NOT startPlay() — that would
-                                                // clear a READY round's greens
+  if (lit) {
+    // Relighting gives the current player a fresh turn clock — a shot clock that
+    // expired in the dark isn't a shot clock. Share history survives; only the
+    // in-progress turn restarts.
+    turnStartMs = millis();
+    lastDrawnLeds = -1;
+    renderCurrent();               // NOT startPlay() — that would clear a
+  } else {                         // READY round's greens
+    renderOff();
+  }
   Serial.printf("Table %s\n", lit ? "on" : "off");
   return true;
+}
+
+bool applyTurnSeconds(uint16_t secs) {
+  turnSeconds = secs;
+  turnSecondsDirty = true;
+  turnSecondsChangedMs = millis();
+  if (gameMode == MODE_TIMER) {
+    // Restart rather than let the new length apply mid-turn: dropping 120 s to
+    // 30 s would expire the turn instantly, which reads as a crash.
+    turnStartMs = millis();
+    lastDrawnLeds = -1;
+    renderCurrent();
+  }
+  Serial.printf("Turn timer set to %u s\n", turnSeconds);
+  return true;
+}
+
+// Mirrors brightnessTick's deferred write: dragging a slider costs one flash
+// write instead of twenty.
+void turnSecondsTick(uint32_t now) {
+  if (!turnSecondsDirty || now - turnSecondsChangedMs < TIMER_SETTLE_MS) return;
+  turnSecondsDirty = false;
+  prefs.putUShort("tsec", turnSeconds);
+  Serial.printf("Turn timer saved: %u s\n", turnSeconds);
 }
 
 bool applyLock(bool locked) {
@@ -547,7 +731,8 @@ void commitTap(int8_t side, uint32_t whenMs) {
   // Turn-passing modes (CW / CCW / ARB).
   if (side == currentSide) {
     advanceTurn();
-    renderTurn();
+    lastDrawnLeds = -1;   // new seat, new length — don't suppress the first frame
+    renderCurrent();      // identical to renderTurn() for CW/CCW/ARB
   } else {
     // Setup gesture only counts taps on a non-current side. Turn-passes always
     // land on the current seat, so brisk normal play can never accumulate toward
@@ -700,6 +885,11 @@ void setup() {
 
   gameMode = prefs.getUChar("mode", MODE_CW);
   if (gameMode >= MODE_COUNT) gameMode = MODE_CW;
+
+  turnSeconds = prefs.getUShort("tsec", TIMER_SECONDS_DEFAULT);
+  if (turnSeconds < TIMER_SECONDS_MIN || turnSeconds > TIMER_SECONDS_MAX) {
+    turnSeconds = TIMER_SECONDS_DEFAULT;
+  }
   loadJoinOrder();                                   // restore ARB turn order (or rebuild from roster)
 
   octagonBegin();                    // side table from NVS, FastLED, piezo baselines
@@ -730,6 +920,8 @@ void loop() {
   serviceWiFi(now);
   brightnessTick(now);
   refuseTick(now);
+  modeTick(now);
+  turnSecondsTick(now);
 
   tapsPoll(now);
 
