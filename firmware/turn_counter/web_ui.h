@@ -28,7 +28,15 @@ typedef bool (*ModeSetter)(uint8_t mode);           // false = valid but refused
 typedef bool (*BrightnessSetter)(uint8_t percent);  // false = valid but refused
 typedef bool (*PowerSetter)(bool lit);              // always true today
 
-void webUiBegin(const TableConfig &cfg, StateReader read, ModeSetter setMode,
-                BrightnessSetter setBrightness, PowerSetter setPower);
+// Bundled rather than passed positionally: these are same-shaped function
+// pointers, and swapping two of them compiles clean and fails at the table.
+struct TableHooks {
+  StateReader      read;
+  ModeSetter       setMode;
+  BrightnessSetter setBrightness;
+  PowerSetter      setPower;
+};
+
+void webUiBegin(const TableConfig &cfg, const TableHooks &hooks);
 void webUiHandle();   // call once per loop
 void webUiEnd();      // on Wi-Fi loss, so the socket rebinds on reconnect

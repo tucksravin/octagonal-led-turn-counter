@@ -5,10 +5,7 @@
 
 static WebServer server(80);
 static TableConfig cfg = {nullptr, 0};
-static StateReader      readState = nullptr;
-static ModeSetter       modeSetter = nullptr;
-static BrightnessSetter briSetter = nullptr;
-static PowerSetter      pwrSetter = nullptr;
+static TableHooks hooks = {nullptr, nullptr, nullptr, nullptr};
 static bool started = false;
 
 // String::toInt() returns 0 for non-numeric input, which would quietly turn
@@ -196,7 +193,7 @@ async function poll(){
 // buffers, no heap churn in a handler that runs from the game loop.
 static void sendState(int code) {
   TableState s;
-  readState(s);
+  hooks.read(s);
   char buf[256];
   snprintf(buf, sizeof(buf),
            "{\"mode\":%u,\"brightness\":%u,\"lit\":%s,\"currentSide\":%d,"
@@ -264,7 +261,7 @@ static void handleMode() {
     server.send(400, "text/plain", "mode out of range");
     return;
   }
-  if (!modeSetter((uint8_t)v)) {
+  if (!hooks.setMode((uint8_t)v)) {
     server.send(409, "text/plain", "setup in progress at the table");
     return;
   }
@@ -281,7 +278,7 @@ static void handleBrightness() {
     server.send(400, "text/plain", "brightness must be 5-100");
     return;
   }
-  if (!briSetter((uint8_t)v)) {
+  if (!hooks.setBrightness((uint8_t)v)) {
     server.send(409, "text/plain", "busy");
     return;
   }
@@ -294,7 +291,7 @@ static void handlePower() {
     server.send(400, "text/plain", "value must be on or off");
     return;
   }
-  pwrSetter(v == "on");
+  hooks.setPower(v == "on");
   sendState(200);
 }
 
@@ -302,14 +299,10 @@ static void handleRoot() {
   server.send_P(200, "text/html", PAGE_HTML);
 }
 
-void webUiBegin(const TableConfig &c, StateReader read, ModeSetter setMode,
-                BrightnessSetter setBrightness, PowerSetter setPower) {
+void webUiBegin(const TableConfig &c, const TableHooks &h) {
   if (started) return;
   cfg = c;
-  readState = read;
-  modeSetter = setMode;
-  briSetter = setBrightness;
-  pwrSetter = setPower;
+  hooks = h;
 
   server.on("/",               HTTP_GET,  handleRoot);
   server.on("/api/config",     HTTP_GET,  handleConfig);

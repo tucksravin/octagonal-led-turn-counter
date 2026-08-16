@@ -545,7 +545,13 @@ void beginOta() {
   });
 
   ArduinoOTA.begin();
-  webUiBegin(WEB_CONFIG, readTableState, applyMode, applyBrightness, applyPower);
+  const TableHooks hooks = {
+    .read          = readTableState,
+    .setMode       = applyMode,
+    .setBrightness = applyBrightness,
+    .setPower      = applyPower,
+  };
+  webUiBegin(WEB_CONFIG, hooks);
   netServicesUp = true;
   Serial.printf("OTA ready at %s.local (", OTA_HOSTNAME);
   Serial.print(WiFi.localIP());
