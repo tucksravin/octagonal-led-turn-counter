@@ -107,8 +107,13 @@ what a normal baseline looks like.
 
 ### Behaviour
 
-`setupLocked` is persisted in NVS (`"turntable"/"lock"`) so it survives a power
-cut — "leave the table alone" is a standing condition, not a per-session one.
+`setupLocked` lives in RAM only and defaults to `false` at boot, so **a power
+cycle always clears it**. This mirrors `tableLit`, which is already unpersisted
+for the same reason: plug in = on, plug in = unlocked, and no stored flag can
+leave the table looking broken to someone who does not know it is there.
+
+Turning the table off from the phone does *not* clear the lock — that is
+`tableLit`, a separate piece of state. Only an actual reboot does.
 
 When locked, a four-tap burst **while the table is lit** does not open setup.
 Everything else is untouched: turns still pass, READY still toggles, brightness,
@@ -197,10 +202,15 @@ would be worse than letting it finish.
 ### The lockout trap
 
 If the table is locked and Wi-Fi is down, there is no phone and no gesture — the
-table is stuck in whatever mode it was in. The escape hatch is a serial command,
-`l`, alongside the existing `m` and `p` in `handleSerial()`. It toggles and
-prints the new state. This is the only reason the bench console still matters
-after this change, and it is worth the four lines.
+table would be stuck in whatever mode it was in. Not persisting the lock is what
+makes that unreachable: unplug the table and plug it back in, and the gesture
+works again. No cable, no console, no app, and it is the thing anyone will try
+first anyway.
+
+This is why the lock is not stored despite "leave the table alone" reading like a
+standing preference. A persisted lock buys a small convenience — surviving a
+power cut — and pays for it with a state that can strand the table. Re-locking
+after a reboot is one tap on the phone.
 
 ---
 
@@ -294,8 +304,9 @@ There is no on-device test framework, so verification is split:
   truncate silently in the field.
 - **Bench checks** driven by the user, listed in the plan: refused burst
   double-flashes amber and leaves a READY round's greens intact; a locked *dark*
-  table still wakes on four taps; serial `l` toggles; phase 1 aborts after one
-  rotation with no repeat of the opening mode.
+  table still wakes on four taps; a power cycle clears the lock while the phone's
+  off/on does not; phase 1 aborts after one rotation with no repeat of the
+  opening mode.
 
 ## Risk
 
