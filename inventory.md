@@ -42,7 +42,7 @@ Running record of parts bought for this project and — the point of this file �
 
 | Part | Mfr PN | Bought | Build uses | Spare | Notes |
 |------|--------|-------:|-----------:|------:|-------|
-| 27 mm piezo disc | `7BB-27-4L0` | 10 | 8 | 2 | one per side |
+| 27 mm piezo disc | `7BB-27-4L0` | 10 | 9 | 1 | one per side; side 7's replaced 2026-08-16 (original suspected in the after-tap phantoms) |
 | Project box, ABS ~112×62×31 | Hammond `1591BBK` | 1 | 1 | 0 | control box |
 | Half-size breadboard, 400-pt | `BB400` | 1 | 1 (bench) | reusable | solderless prototyping |
 | Perma-Proto half | Adafruit `1609` | 1 | 1 (tap light) | — | Phase 0 starter board |
