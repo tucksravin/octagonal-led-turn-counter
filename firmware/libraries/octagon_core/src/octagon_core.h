@@ -93,13 +93,14 @@ void printPiezoMap();          // current side->GPIO map as a paste-ready C arra
 // ("octagon"/"bri") so it survives a reboot and both sketches agree.
 uint8_t brightnessPercent();
 
-// Applies immediately; the NVS write is deferred (see brightnessPersistTick).
-// Values outside the range are clamped, not rejected.
+// Sets the target only — brightnessTick() eases the strip toward it, and the
+// NVS write is deferred. Values outside the range are clamped, not rejected.
 void setBrightnessPercent(uint8_t pct);
 
-// Call once per loop with millis(). Writes a pending brightness change to NVS
-// once it has settled, so dragging a slider costs one write, not twenty.
-void brightnessPersistTick(uint32_t now);
+// Call once per loop with millis(). Eases the strip toward the target
+// brightness, and writes the target to NVS once it has stopped moving, so
+// dragging a slider costs one flash write rather than twenty.
+void brightnessTick(uint32_t now);
 
 void fillSide(uint8_t side, const CRGB &color);           // writes the buffer, no show()
 void showOnlySide(int8_t side, const CRGB &color);        // that side lit, everything else dark

@@ -37,6 +37,10 @@ static const uint16_t OPPOSITE_PAIR_WINDOW_MS = 150;
 static const uint16_t MAP_PROMPT_TIMEOUT_MS   = 20000;  // silence at a prompt aborts the whole remap
 static const uint16_t MAP_SETTLE_MS           = 400;    // ring-down gap so one tap can't answer two prompts
 static const uint16_t BRIGHTNESS_SETTLE_MS    = 2000;   // quiet time before a slider change hits flash
+static const uint16_t BRIGHTNESS_FRAME_MS     = 16;     // ~60 Hz. A show() is ~7 ms of blocking bit-bang
+                                                        // for 221 pixels, so this can't run every loop pass
+static const uint8_t  BRIGHTNESS_FADE_ALPHA   = 40;     // of 255 per frame. Settle time scales with distance:
+                                                        // ~130 ms for a 1% nudge, ~540 ms for a full 5->100% sweep
 
 static Preferences sidePrefs;
 
@@ -239,7 +243,9 @@ void tapsPoll(uint32_t now) {
   }
 }
 
-static uint8_t  briPct       = BRIGHTNESS_DEFAULT_PCT;
+static uint8_t  briPct       = BRIGHTNESS_DEFAULT_PCT;  // target
+static uint16_t briShown256  = 0;                       // what's actually on the strip, 8.8 fixed point
+static uint32_t briFrameMs   = 0;
 static bool     briDirty     = false;
 static uint32_t briChangedMs = 0;
 
@@ -259,15 +265,45 @@ void setBrightnessPercent(uint8_t pct) {
   if (pct < BRIGHTNESS_MIN_PCT) pct = BRIGHTNESS_MIN_PCT;
   if (pct > 100) pct = 100;
   if (pct == briPct) return;
-  briPct = pct;
-  FastLED.setBrightness(briRaw(briPct));
-  briDirty = true;               // the flash write waits for the drag to stop
+  briPct = pct;                  // target only; brightnessTick() eases toward it
+  briDirty = true;               // and the flash write waits for the drag to stop
   briChangedMs = millis();
 }
 
-// A phone slider throttled to 250 ms would otherwise put ~20 writes into flash
-// per drag. Applying is instant; only the persist waits.
-void brightnessPersistTick(uint32_t now) {
+// Eases the strip toward the target brightness, then persists the target once it
+// has stopped moving.
+//
+// The easing is the lerp a web animation would use — current += (target -
+// current) * alpha — rather than a fixed-duration tween, because the phone
+// slider retargets up to four times a second while dragging and a tween would
+// have to restart on each one, which stutters. Smoothing just follows, and eases
+// out for free.
+//
+// Two constraints shape the rest. FastLED.setBrightness() does nothing on its
+// own — it only takes effect on the next show() — and in steady play nothing
+// redraws, so this has to issue the show() itself. But a show() blocks for ~7 ms
+// bit-banging 221 pixels, which is longer than the loop's own 5 ms cadence, so
+// it's gated to one step per frame and runs only while a fade is in flight.
+void brightnessTick(uint32_t now) {
+  if (now - briFrameMs >= BRIGHTNESS_FRAME_MS) {
+    briFrameMs = now;
+    uint16_t target256 = (uint16_t)briRaw(briPct) << 8;
+    if (briShown256 != target256) {
+      int32_t delta = (int32_t)target256 - (int32_t)briShown256;
+      if (delta > -256 && delta < 256) {
+        // Under one raw unit: the strip cannot show the difference, so land now
+        // instead of crawling the exponential tail. Without this a 1% nudge kept
+        // firing show() for ~600 ms after it was already visually finished.
+        briShown256 = target256;
+      } else {
+        // Always undershoots (alpha < 1), so it can't overshoot the target.
+        briShown256 = (uint16_t)((int32_t)briShown256 + delta * BRIGHTNESS_FADE_ALPHA / 255);
+      }
+      FastLED.setBrightness((uint8_t)(briShown256 >> 8));
+      FastLED.show();   // re-sends the frame already in leds[] at the new scale
+    }
+  }
+
   if (!briDirty || now - briChangedMs < BRIGHTNESS_SETTLE_MS) return;
   briDirty = false;
   sidePrefs.putUChar("bri", briPct);
@@ -383,7 +419,8 @@ void octagonBegin() {
 
   loadBrightness();
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
-  FastLED.setBrightness(briRaw(briPct));
+  briShown256 = (uint16_t)briRaw(briPct) << 8;   // start already at the target: boot is
+  FastLED.setBrightness(briRaw(briPct));         // not a transition, so no fade-in
   FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MA);  // runs off the board's USB; dims all-on peaks
 
   // Every hardware pin is configured regardless of the map — the remap wizard

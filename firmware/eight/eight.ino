@@ -57,7 +57,7 @@ void setup() {
 void loop() {
   handleSerial();
   uint32_t now = millis();
-  brightnessPersistTick(now);
+  brightnessTick(now);
   tapsPoll(now);
   delay(5);
 }

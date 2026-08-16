@@ -411,9 +411,8 @@ bool applyMode(uint8_t newMode) {
 }
 
 bool applyBrightness(uint8_t pct) {
-  setBrightnessPercent(pct);
-  renderCurrent();                 // visible at once, without disturbing ready[]
-  return true;
+  setBrightnessPercent(pct);       // brightnessTick() eases the strip toward it and
+  return true;                     // issues the show(), so no repaint is needed here
 }
 
 bool applyPower(bool lit) {
@@ -658,7 +657,7 @@ void loop() {
   uint32_t now = millis();
 
   serviceWiFi(now);
-  brightnessPersistTick(now);
+  brightnessTick(now);
 
   tapsPoll(now);
 

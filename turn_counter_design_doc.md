@@ -631,6 +631,8 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 | `BRIGHTNESS_DEFAULT_PCT` | 50 | Startup brightness before any phone change; the runtime value lives in NVS `"octagon"/"bri"` |
 | `BRIGHTNESS_MIN_PCT` | 5 | Slider floor. Going fully dark is the on/off control's job, not the slider's |
 | `BRIGHTNESS_SETTLE_MS` | 2000 | Quiet time before a brightness change is written to flash, so dragging the slider costs one write, not twenty |
+| `BRIGHTNESS_FRAME_MS` | 16 | Fade step interval (~60 Hz). A `show()` blocks ~7 ms for 221 pixels, so this can't run every loop pass |
+| `BRIGHTNESS_FADE_ALPHA` | 40 | Lerp rate out of 255 per frame. Settle time scales with distance: ~130 ms for a 1% nudge, ~540 ms for a full 5→100% sweep |
 | `TAP_DELTA` | 1000 | Calibrate during Phase 7. Adaptive: a tap fires at a side's auto-tracked baseline + this delta |
 | `DEBOUNCE_MS` | 250 | Raise if double-triggers, lower if it feels sluggish |
 | `SETUP_TAP_COUNT` | 4 | Taps required to enter setup mode |
@@ -701,7 +703,11 @@ Range errors are 400; 409 means the request was valid but the table is mid-setup
 
 A mode change from the phone leaves the roster alone — it isn't a setup session. Off preserves all game state and isn't persisted, so the table always boots lit; four fast taps on one side wake it without a phone.
 
-Brightness applies instantly but its flash write is deferred two seconds, so dragging the slider costs one NVS write rather than one per step.
+Brightness eases rather than snapping. The strip lerps toward the target the way a web animation would — `current += (target - current) * alpha` each 16 ms frame — instead of running a fixed-duration tween, because the slider retargets up to four times a second while dragging and a tween would restart, and visibly stutter, on every one of those. Smoothing simply follows, and eases out for free.
+
+Two details make it work. `FastLED.setBrightness()` does nothing until the next `show()`, and in steady play nothing redraws, so the fade tick issues its own `show()` — re-sending the frame already in `leds[]` at the new scale, with no re-render. And it lands the moment the residual drops below one raw unit, since the strip can't display finer than that; without that snap a 1% nudge kept firing `show()` for ~600 ms after it was visually finished.
+
+The flash write is separately deferred two seconds past the last change, so dragging the slider costs one NVS write rather than one per step.
 
 ```bash
 curl -s http://turn-counter.local/api/state
