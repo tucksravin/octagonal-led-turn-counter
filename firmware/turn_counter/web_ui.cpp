@@ -119,7 +119,7 @@ function render(s){
   $('power').textContent = s.lit ? 'Turn off' : 'Turn on';
   $('power').dataset.lit = s.lit;
   $('banner').classList.toggle('hide', !s.setup);
-  $('lock').textContent = s.locked ? 'Setup locked' : 'Lock setup';
+  $('lock').textContent = s.locked ? 'Unlock setup' : 'Lock setup';
   $('lock').setAttribute('aria-pressed', s.locked);
 
   document.querySelectorAll('#modes button').forEach((b,i)=>

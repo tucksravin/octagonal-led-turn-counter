@@ -524,7 +524,12 @@ bool registerTapForSetupGesture(int8_t side, uint32_t now) {
 // against the lock and spring setup open the moment it's lifted.
 bool setupGestureFired(int8_t side, uint32_t now) {
   if (!registerTapForSetupGesture(side, now)) return false;
-  if (!setupLocked) return true;
+  if (!setupLocked) return true;   // enterSetupMode() consumes the burst on this path
+  firstTapInBurstMs = 0;           // consume the refused burst too — without this,
+  tapsInBurst = 0;                 // tapsInBurst sits at >= SETUP_TAP_COUNT, so every
+  burstSide = -1;                  // further tap in the window re-fires the amber
+                                   // flash, and the first tap after an unlock
+                                   // springs setup open on its own
   refuseSetup(side, now);
   return false;
 }
