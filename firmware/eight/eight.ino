@@ -54,10 +54,29 @@ void setup() {
   showTurn();
 }
 
+// The tap guard mutes a faulted piezo channel, and a muted seat's taps are
+// invisible — so don't strand the turn on one. With no roster in this sketch
+// the turn just moves to the next unmuted seat, and comes back when the
+// channel calms down and unmutes.
+void skipMutedCurrent() {
+  if (!sideMuted(currentSide)) return;
+  for (uint8_t k = 1; k < NUM_SIDES; k++) {
+    int8_t s = (currentSide + k) % NUM_SIDES;
+    if (!sideMuted(s)) {
+      Serial.printf("Side %d muted - turn passes to side %d\n", currentSide, s);
+      currentSide = s;
+      showTurn();
+      return;
+    }
+  }
+  // every seat muted: leave the turn where it is rather than spin
+}
+
 void loop() {
   handleSerial();
   uint32_t now = millis();
   brightnessTick(now);
   tapsPoll(now);
+  skipMutedCurrent();
   delay(5);
 }

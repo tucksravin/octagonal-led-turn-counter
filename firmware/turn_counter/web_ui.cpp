@@ -326,8 +326,11 @@ static void handleDiag() {
   for (uint8_t i = 0; i < NUM_SIDES && n > 0 && n < (int)sizeof(buf); i++) {
     uint32_t last = lastTapForSide(i);
     // 0 means "never fired". Reporting now - 0 would read as "tapped at boot",
-    // the opposite of the truth, in exactly the case you're diagnosing.
-    long since = (last == 0) ? -1L : (long)(now - last);
+    // the opposite of the truth, in exactly the case you're diagnosing. The
+    // clamp keeps a >24.8-day gap from wrapping %ld negative, where the page
+    // would misread a real tap as the never-fired sentinel.
+    uint32_t gap = now - last;
+    long since = (last == 0) ? -1L : (long)(gap > 0x7FFFFFFFUL ? 0x7FFFFFFFUL : gap);
     n += snprintf(buf + n, sizeof(buf) - n,
                   "%s{\"pin\":%u,\"baseline\":%u,\"leds\":%u,\"sinceTapMs\":%ld,\"muted\":%u}",
                   i ? "," : "", sidePiezoPin[i], baseline(i), sideLedCounts[i], since,

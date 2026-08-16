@@ -117,6 +117,8 @@ int8_t   prevJoinOrder[NUM_SIDES] = {0};// join-order snapshot paired with prevR
 uint8_t  prevJoinCount = 0;
 uint8_t  prevGameMode = MODE_CW;        // mode snapshot: a phase-2 commit is RAM-only
                                         // until exit, so an abort must put it back
+uint8_t  setupTapCount[NUM_SIDES] = {0};// taps per side this setup session — names the
+                                        // culprit if the session runs past human pace
 bool     ready[NUM_SIDES] = {false};    // READY mode: green (ready) vs red, active seats only
 
 uint16_t turnSeconds = TIMER_SECONDS_DEFAULT;   // persisted, "turntable"/"tsec"
@@ -166,32 +168,58 @@ int8_t firstActiveSide() {
   return 0;
 }
 
-// Next active seat clockwise from `from`, skipping empty seats and wrapping.
-// Returns `from` unchanged if it's the only active seat.
+// A seat the turn can actually visit: in the roster AND not quarantined by the
+// tap guard. Routing skips muted seats — their taps are invisible to the
+// scanner, so parking the turn on one wedges the whole ring. The roster itself
+// is untouched: the seat rejoins the rotation the moment it unmutes.
+bool seatPlayable(int8_t s) {
+  return s >= 0 && s < NUM_SIDES && sideActive[s] && !sideMuted(s);
+}
+
+uint8_t playableCount() {
+  uint8_t n = 0;
+  for (uint8_t s = 0; s < NUM_SIDES; s++) if (seatPlayable(s)) n++;
+  return n;
+}
+
+// firstActiveSide for turn placement: prefers a playable seat, falls back to
+// any roster seat if every one of them is muted (a dark day, but not a crash).
+int8_t firstPlayableSide() {
+  for (uint8_t s = 0; s < NUM_SIDES; s++) if (seatPlayable(s)) return s;
+  return firstActiveSide();
+}
+
+// Next playable seat clockwise from `from`, skipping empty and muted seats,
+// wrapping. Returns `from` unchanged if nothing else is playable.
 int8_t nextActiveSide(int8_t from) {
   for (uint8_t k = 1; k <= NUM_SIDES; k++) {
     uint8_t s = (from + k) % NUM_SIDES;
-    if (sideActive[s]) return s;
+    if (seatPlayable(s)) return s;
   }
   return from;
 }
 
-// Next active seat counter-clockwise from `from`, skipping empties and wrapping.
+// Next playable seat counter-clockwise from `from`, skipping empties and muted,
+// wrapping.
 int8_t prevActiveSide(int8_t from) {
   for (uint8_t k = 1; k <= NUM_SIDES; k++) {
     int8_t s = (from - k + NUM_SIDES) % NUM_SIDES;
-    if (sideActive[s]) return s;
+    if (seatPlayable(s)) return s;
   }
   return from;
 }
 
-// Next seat in join order (ARB mode), wrapping. Returns `from` if it's the only one.
+// Next playable seat in join order (ARB mode), wrapping. Returns `from` if
+// nothing else in the order is playable.
 int8_t nextInJoinOrder(int8_t from) {
   if (joinCount == 0) return from;
   int8_t idx = -1;
   for (uint8_t i = 0; i < joinCount; i++) if (joinOrder[i] == from) { idx = i; break; }
-  if (idx < 0) return joinOrder[0];
-  return joinOrder[(idx + 1) % joinCount];
+  for (uint8_t k = 1; k <= joinCount; k++) {
+    int8_t s = joinOrder[(idx + k + joinCount) % joinCount];  // idx -1: starts at joinOrder[0]
+    if (seatPlayable(s)) return s;
+  }
+  return from;
 }
 
 void joinOrderAdd(int8_t s) {
@@ -330,11 +358,13 @@ void renderJoin() {
 }
 
 // READY mode: every active seat is always lit — red until its player taps it
-// green. All-green holds until any tap resets the round; empty seats stay dark.
+// green. All-green holds until any tap resets the round; empty seats stay dark,
+// and so do muted seats — a quarantined seat can never tap green, so counting
+// it would wedge the round, and dark is the at-table signal that it's out.
 void renderReady() {
   FastLED.clear();
   for (uint8_t s = 0; s < NUM_SIDES; s++) {
-    if (sideActive[s]) fillSide(s, ready[s] ? READY_GREEN : READY_RED);
+    if (seatPlayable(s)) fillSide(s, ready[s] ? READY_GREEN : READY_RED);
   }
   FastLED.show();
 }
@@ -424,6 +454,20 @@ void renderShare(uint32_t now) {
 void renderTimed(uint32_t now) {
   if (currentSide < 0 || currentSide >= NUM_SIDES) { renderOff(); return; }
   if (gameMode == MODE_TIMER) renderTimer(now); else renderShare(now);
+}
+
+// If the current seat gets muted mid-turn, pass the turn rather than strand it:
+// a muted seat's taps are invisible, so waiting on it wedges the whole ring.
+// Guarded on another playable seat existing, so an all-muted table doesn't
+// thrash advanceTurn's NVS write every loop pass.
+void skipMutedCurrent() {
+  if (!tableLit || inSetupMode || readyMode()) return;
+  if (!(currentSide >= 0 && currentSide < NUM_SIDES) || !sideMuted(currentSide)) return;
+  if (playableCount() == 0) return;
+  Serial.printf("Side %d is muted - passing its turn\n", currentSide);
+  advanceTurn();
+  lastDrawnLeds = -1;
+  renderCurrent();
 }
 
 // Timed modes animate continuously — every other mode repaints only on a tap.
@@ -568,6 +612,7 @@ void enterSetupMode(uint32_t whenMs) {
 
   for (uint8_t s = 0; s < NUM_SIDES; s++) sideActive[s] = false;  // everyone taps in fresh — nobody auto-joins
   joinCount = 0;
+  memset(setupTapCount, 0, sizeof(setupTapCount));
 
   // Demos start from the active mode — unless that's a phone-only mode the dial
   // can't animate, which would also index MODE_COLORS out of bounds. Falling
@@ -605,6 +650,16 @@ void abortSetupMode() {
 
 void exitSetupMode() {
   inSetupMode = false;
+  // A muted seat's joins were phantom taps — a fault walked itself into the
+  // roster and then went silent, and committing that would persist a corrupt
+  // roster to NVS. Real players' joins survive the drop.
+  for (uint8_t s = 0; s < NUM_SIDES; s++) {
+    if (sideActive[s] && sideMuted(s)) {
+      sideActive[s] = false;
+      joinOrderRemove(s);
+      Serial.printf("Setup: dropping muted side %u from the roster\n", s);
+    }
+  }
   if (activeCount() == 0) {
     applyRosterMask(prevRosterMask);                 // nobody joined — restore the previous roster, don't brick
     memcpy(joinOrder, prevJoinOrder, NUM_SIDES);     // and the join order that goes with it
@@ -615,8 +670,8 @@ void exitSetupMode() {
     }
     Serial.println("Setup exit: no seats joined, roster restored");
   }
-  // ARB starts on the first joiner; other modes at the lowest active seat.
-  currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstActiveSide();
+  // ARB starts on the first joiner; other modes at the lowest playable seat.
+  currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstPlayableSide();
 
   resetShareStats();   // a new roster is a new game
 
@@ -640,8 +695,8 @@ bool applyMode(uint8_t newMode) {
                                    // yank the mode out from under the demo dial
   gameMode = newMode;
   if (gameMode == MODE_ARB && joinCount == 0) rebuildJoinOrderFromRoster();
-  if (currentSide < 0 || currentSide >= NUM_SIDES || !sideActive[currentSide]) {
-    currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstActiveSide();
+  if (!seatPlayable(currentSide)) {
+    currentSide = (gameMode == MODE_ARB && joinCount > 0) ? joinOrder[0] : firstPlayableSide();
   }
   // Re-selecting SHARE from the phone is the "new game" gesture, so this fires
   // even when SHARE was already the active mode.
@@ -726,6 +781,7 @@ void commitTap(int8_t side, uint32_t whenMs) {
   }
 
   if (inSetupMode) {
+    if (side >= 0 && side < NUM_SIDES) setupTapCount[side]++;
     if (setupPhase == PHASE_MODE) {
       // Any side commits the mode being demoed — but not the tail of the entry
       // gesture (a stray 5th tap, or its cross-talk ghost on another side).
@@ -750,7 +806,7 @@ void commitTap(int8_t side, uint32_t whenMs) {
     if (!sideActive[side]) return;             // seats not in the roster do nothing
     bool allReady = true;
     for (uint8_t s = 0; s < NUM_SIDES; s++) {
-      if (sideActive[s] && !ready[s]) { allReady = false; break; }
+      if (seatPlayable(s) && !ready[s]) { allReady = false; break; }
     }
     if (allReady) {
       // Whole table green: the round is over — any tap deals the next one.
@@ -989,11 +1045,23 @@ void loop() {
   turnSecondsTick(now);
 
   tapsPoll(now);
+  skipMutedCurrent();
 
   if (inSetupMode) {
     // lastAnyTapMs() is never 0 here — setup can only be entered by tapping.
     if (now - setupEnteredMs > SETUP_SESSION_MAX_MS) {
-      Serial.println("Setup ran far past any human pace - aborting (chattering piezo?)");
+      // Only nonstop taps can hold setup open this long, and only a fault taps
+      // nonstop for 3 minutes. Name the side that drove the session and mute
+      // it (sticky) — a slow tap-like phantom is invisible to the duty EMA, so
+      // this behavioral evidence is the one detector that catches it. Without
+      // the mute, the fault would reopen setup seconds after this abort.
+      uint8_t worst = 0;
+      for (uint8_t s = 1; s < NUM_SIDES; s++) {
+        if (setupTapCount[s] > setupTapCount[worst]) worst = s;
+      }
+      Serial.printf("Setup ran far past any human pace - side %u drove it with %u taps\n",
+                    worst, setupTapCount[worst]);
+      muteSide(worst);
       abortSetupMode();
       startPlay();
     } else if (setupPhase == PHASE_MODE) {

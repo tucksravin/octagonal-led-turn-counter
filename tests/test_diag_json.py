@@ -29,7 +29,9 @@ def build_diag(tap_delta, uptime_ms, free_heap, rssi, sides):
     for i, side in enumerate(sides):
         pin, base, leds, last_tap = side[:4]
         muted = side[4] if len(side) > 4 else 0
-        since = -1 if last_tap == 0 else uptime_ms - last_tap
+        # Firmware clamps the gap to INT32_MAX before the (long) cast, so a
+        # >24.8-day gap can't wrap %ld negative and masquerade as "never".
+        since = -1 if last_tap == 0 else min(uptime_ms - last_tap, 2**31 - 1)
         parts.append(
             '%s{"pin":%d,"baseline":%d,"leds":%d,"sinceTapMs":%d,"muted":%d}'
             % ("," if i else "", pin, base, leds, since, muted)

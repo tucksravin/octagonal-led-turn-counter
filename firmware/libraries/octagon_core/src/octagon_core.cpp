@@ -36,18 +36,21 @@ static const uint16_t DEBOUNCE_MS             = 250;
 static const uint16_t OPPOSITE_PAIR_WINDOW_MS = 150;
 
 // Tap guard: keeps one broken channel from taking the table down (spec:
-// docs/superpowers/specs/2026-08-16-tap-guard-design.md). Three fault modes,
-// three mechanisms — a sustained ring is stopped by hysteresis re-arm, a
-// pinned-at-rail input by the stuck timeout, oscillating mains pickup by the
-// rate quarantine. Values chosen so healthy play never touches any of them:
-// the setup gesture's taps land >= ~450 ms apart, no real ring survives 2 s
-// above half-threshold, and 8 consecutive sub-400 ms fires is a machine, not
-// a hand.
-static const uint16_t CHATTER_GAP_MS          = 400;    // a fire this soon after the same side's
-                                                        // previous fire counts toward its streak
-static const uint8_t  CHATTER_STREAK          = 8;      // streak length that mutes the side
-static const uint16_t STUCK_MUTE_MS           = 2000;   // disarmed this long without re-arming = pinned
-static const uint16_t UNMUTE_QUIET_MS         = 5000;   // continuous quiet that restores a muted side
+// docs/superpowers/specs/2026-08-16-tap-guard-design.md). The discriminator is
+// loudness DUTY CYCLE, not fire rate — adversarial review showed rate bands
+// overlap human play in both directions (an eager wake+setup burst reads as
+// chatter; a slow metronomic fault reads as a player). Duty separates them
+// physically: a tap is loud ~30 ms out of every few hundred (~10%), mains hum
+// on a floating pin is loud half the time, a pinned input always. One EMA per
+// side, mute at the high-water mark, unmute at the low. Faults duty can't see
+// (slow tap-like phantoms) are the game layer's job — see muteSide().
+static const uint16_t DUTY_TAU_SCANS          = 200;    // EMA time constant, ~1 s at 5 ms scans
+static const uint8_t  MUTE_DUTY_HI            = 96;     // ~38% loud: no human play gets here — the
+                                                        // hardest machine-gun tapping tops out ~25%
+static const uint8_t  MUTE_DUTY_LO            = 13;     // ~5%: calm enough to trust again. Sits above
+                                                        // a truly quiet side (0) and below test-taps
+                                                        // (~10%)? No — test-taps at 1 Hz are ~3%, so a
+                                                        // player poking a muted seat still frees it
 static const uint16_t MAP_PROMPT_TIMEOUT_MS   = 20000;  // silence at a prompt aborts the whole remap
 static const uint16_t MAP_SETTLE_MS           = 400;    // ring-down gap so one tap can't answer two prompts
 static const uint16_t BRIGHTNESS_SETTLE_MS    = 2000;   // quiet time before a slider change hits flash
@@ -64,9 +67,9 @@ static uint32_t lastTapMs = 0;
 
 // Tap-guard state, all RAM-only — a power cycle retries the hardware fresh.
 static bool     armed[NUM_SIDES]      = {true, true, true, true, true, true, true, true};
-static uint8_t  fireStreak[NUM_SIDES] = {0};
+static uint16_t dutyAcc[NUM_SIDES]    = {0};   // loudness duty EMA, 8.8 fixed point (max 255<<8)
 static bool     muted[NUM_SIDES]      = {false};
-static uint32_t lastLoudMs[NUM_SIDES] = {0};   // last scan at/above the re-arm level
+static bool     stickyMute[NUM_SIDES] = {false};  // game-declared: only a power cycle retries
 
 static TapHandler  tapCb  = nullptr;
 static PairHandler pairCb = nullptr;
@@ -80,6 +83,19 @@ uint32_t lastAnyTapMs() { return lastTapMs; }
 uint32_t lastTapForSide(uint8_t i) { return (i < NUM_SIDES) ? lastTapPerSide[i] : 0; }
 
 bool sideMuted(uint8_t i) { return (i < NUM_SIDES) ? muted[i] : false; }
+
+// Game-declared quarantine, for faults the duty EMA can't see: a slow tap-like
+// phantom is physically indistinguishable from a patient player at the scanner,
+// but a game can know better (e.g. a setup session running minutes past any
+// human pace). Sticky because the evidence was behavioral, not instantaneous —
+// only a power cycle retries the channel.
+void muteSide(uint8_t i) {
+  if (i >= NUM_SIDES) return;
+  muted[i] = true;
+  stickyMute[i] = true;
+  dutyAcc[i] = 255 << 8;
+  Serial.printf("Piezo side %u MUTED by the game - sticky until power cycle\n", i);
+}
 
 uint16_t totalLeds() { return sideStarts[NUM_SIDES]; }
 
@@ -175,24 +191,12 @@ void renderProgressBar(uint8_t percent, const CRGB &color) {
   FastLED.show();
 }
 
-// Commit a fire on side i: refractory bookkeeping plus chatter accounting.
-// Returns false when the fire is swallowed (debounce, or the fire that crossed
-// the quarantine line). lastTapMs — the clock the games' idle/setup timers key
-// off — moves only on ACCEPTED fires, so a faulted side can no longer hold
-// setup open by refreshing it.
+// Commit a fire on side i: refractory bookkeeping. lastTapMs — the clock the
+// games' idle/setup timers key off — moves only on ACCEPTED fires.
 static bool commitFire(uint8_t i, uint32_t now) {
-  uint32_t gap = now - lastTapPerSide[i];
-  if (gap <= DEBOUNCE_MS) return false;
+  if (now - lastTapPerSide[i] <= DEBOUNCE_MS) return false;
   armed[i] = false;                        // re-arms on a scan below baseline + TAP_DELTA/2
-  fireStreak[i] = (lastTapPerSide[i] != 0 && gap < CHATTER_GAP_MS) ? fireStreak[i] + 1 : 1;
   lastTapPerSide[i] = now;
-  if (fireStreak[i] >= CHATTER_STREAK) {
-    muted[i] = true;
-    Serial.printf("Piezo side %u MUTED - %u fires at machine pace (chatter). "
-                  "Ignoring it until it stays quiet %u ms.\n",
-                  i, fireStreak[i], UNMUTE_QUIET_MS);
-    return false;
-  }
   lastTapMs = now;
   return true;
 }
@@ -218,35 +222,32 @@ static uint8_t readPiezos(uint32_t now) {
   for (uint8_t i = 0; i < NUM_SIDES; i++) {
     uint16_t reading = analogRead(sidePiezoPin[i]);
     uint16_t base = baseline(i);
-    bool hot = reading > base + TAP_DELTA;
+    bool hot  = reading > base + TAP_DELTA;
+    bool loud = reading >= base + TAP_DELTA / 2;
 
-    if (reading >= base + TAP_DELTA / 2) {
-      lastLoudMs[i] = now;                 // loud: blocks re-arm and the unmute clock
-    } else {
-      armed[i] = true;                     // dipped below hysteresis: eligible again
-    }
+    if (!loud) armed[i] = true;            // dipped below hysteresis: eligible again
     if (!hot) {
       baselineAcc[i] += reading - base;    // slow average, tau ~0.3 s at 5 ms/loop
     }
 
+    // Loudness duty EMA — the fault detector. Integer truncation stalls the
+    // last fraction of a unit in either direction, which is harmless at both
+    // watermarks.
+    dutyAcc[i] += ((int32_t)(loud ? (255 << 8) : 0) - (int32_t)dutyAcc[i]) / DUTY_TAU_SCANS;
+    uint8_t duty = dutyAcc[i] >> 8;
+
     if (muted[i]) {
-      if (now - lastLoudMs[i] >= UNMUTE_QUIET_MS) {
+      if (!stickyMute[i] && duty <= MUTE_DUTY_LO) {
         muted[i] = false;
-        fireStreak[i] = 0;
-        Serial.printf("Piezo side %u unmuted - quiet for %u ms\n", i, UNMUTE_QUIET_MS);
+        Serial.printf("Piezo side %u unmuted - signal calmed to %u%% duty\n", i, duty * 100 / 255);
       }
       continue;                            // invisible: no fire, no shadow
     }
 
-    if (!armed[i] && now - lastTapPerSide[i] > STUCK_MUTE_MS) {
-      // Fired and never re-armed: no real ring survives this long above
-      // half-threshold. A pinned input would otherwise shadow the whole
-      // table forever without ever firing again — a silent outage.
+    if (duty >= MUTE_DUTY_HI) {
       muted[i] = true;
-      fireStreak[i] = 0;
-      Serial.printf("Piezo side %u MUTED - stuck above re-arm level for %u ms "
-                    "(floating input?). Ignoring it until it stays quiet %u ms.\n",
-                    i, STUCK_MUTE_MS, UNMUTE_QUIET_MS);
+      Serial.printf("Piezo side %u MUTED - loud %u%% of the last second (fault, not taps). "
+                    "Ignored until it calms down.\n", i, duty * 100 / 255);
       continue;
     }
 

@@ -86,8 +86,11 @@ extern const uint16_t TAP_DELTA;
 uint32_t lastAnyTapMs();      // 0 until the first tap since boot; accepted fires only
 uint32_t lastTapForSide(uint8_t i);  // 0 until side i's first tap since boot
 bool sideMuted(uint8_t i);    // true while the tap guard has quarantined side i
-                              // (chattering or stuck channel); self-clears after
-                              // 5 s of quiet. See the guard block in the .cpp.
+                              // (loud far more of the time than taps can be);
+                              // self-clears when the signal calms, unless sticky.
+void muteSide(uint8_t i);     // game-declared quarantine for faults the duty EMA
+                              // can't see (slow tap-like phantoms). Sticky: only
+                              // a power cycle retries the channel.
 uint16_t totalLeds();
 uint16_t baseline(uint8_t i);  // side i's resting ADC level, for bench diagnosis
 bool isOppositeSide(int8_t a, int8_t b);

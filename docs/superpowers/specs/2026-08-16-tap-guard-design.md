@@ -1,7 +1,7 @@
 # Tap guard — surviving a broken piezo
 
 **Date**: 2026-08-16
-**Status**: draft
+**Status**: implemented (v2 — see the amendment at the bottom)
 
 ## Goal
 
@@ -159,3 +159,54 @@ the mute announces itself and the other seats keep passing turns.
 | `UNMUTE_QUIET_MS` | 5000 | long enough that a fault must actually be gone |
 
 All in `octagon_core.cpp`; none are game-visible.
+
+---
+
+## Amendment: v2, after adversarial review
+
+A 17-agent adversarial review of the v1 implementation confirmed four majors
+and one minor, and the pattern behind the majors was a design flaw: **rate-based
+quarantine cannot separate human bursts from faults**, because the bands
+overlap in both directions. An eager wake-then-setup burst (8 taps at 300 ms)
+reached the chatter streak and muted a healthy seat on exactly the tap that
+should have opened setup; a metronomic fault at 400–666 ms evaded all three
+mechanisms and re-created the setup-wedge outage this spec exists to prevent;
+the chatter mute's 7 accepted fires were precisely enough to walk the whole
+setup flow and let the join-idle exit persist a phantom one-seat roster to NVS
+(worse than pre-guard, which aborted cleanly); and nothing in either game ever
+consulted `sideMuted()`, so the turn parked on a muted seat and wedged the ring
+anyway.
+
+### What changed
+
+**The discriminator is now loudness duty cycle, not fire rate.** A tap is loud
+~30 ms out of every few hundred (~10% duty even at machine-gun pace); mains hum
+on a floating pin is loud half the time; a pinned input always. One EMA per
+side (tau ~1 s), mute at ~38% (`MUTE_DUTY_HI` 96/255), unmute at ~5%
+(`MUTE_DUTY_LO` 13/255). This replaces the chatter streak, the stuck timeout
+and the quiet-clock unmute in one mechanism: pinned mutes in ~0.5 s, hum in
+~1.4 s, any human burst never mutes, and a player test-tapping a muted seat
+(~3% duty) frees it instead of holding it hostage.
+
+**Faults duty can't see belong to the game.** A slow tap-like phantom is
+physically indistinguishable from a patient player at the scanner — so
+`octagon_core` exports `muteSide()` and `turn_counter`'s 180 s setup-session
+failsafe now names the side that drove the session (per-side tap counts,
+tracked during setup) and mutes it, sticky until a power cycle. One bounded
+episode, then the fault is dead.
+
+**The games route around mutes.** `turn_counter`: next/prev/join-order skip
+muted seats, `skipMutedCurrent()` passes the turn off a seat muted mid-turn,
+READY counts and lights only playable seats (muted = dark), placement prefers
+`firstPlayableSide()`, and `exitSetupMode` drops muted seats from the joined
+roster before committing — phantom joins can no longer reach NVS. `eight`
+advances off a muted seat in its loop.
+
+The minor: `/api/diag` clamps `sinceTapMs` to `INT32_MAX` so a >24.8-day gap
+cannot wrap `%ld` negative and read as "never"; the host model clamps
+identically.
+
+The v1 constants (`CHATTER_GAP_MS`, `CHATTER_STREAK`, `STUCK_MUTE_MS`,
+`UNMUTE_QUIET_MS`) are gone. The hysteresis re-arm, the shadow/ghost filter,
+accepted-fires-only `lastTapMs`, and the bounded pre-mute window (now ~0.5 s
+for the worst fault, down from 2 s) all survive from v1 unchanged.

@@ -641,9 +641,8 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 | `BRIGHTNESS_FADE_ALPHA` | 40 | Lerp rate out of 255 per frame. Settle time scales with distance: ~130 ms for a 1% nudge, ~540 ms for a full 5→100% sweep |
 | `TAP_DELTA` | 720 | Adaptive: a tap fires at a side's auto-tracked baseline + this delta. Set from the 2026-07-28 bench recordings in `data/piezo/` — top of the gap between the soft-tap cluster (<490) and the weakest real tap (757), with ~12× headroom over the worst idle noise seen (59) |
 | `DEBOUNCE_MS` | 250 | Raise if double-triggers, lower if it feels sluggish |
-| `CHATTER_GAP_MS` / `CHATTER_STREAK` | 400 / 8 | Tap guard: 8 consecutive fires under 400 ms apart is a machine, not a hand — the side is muted (a fault announced, not a game bug) |
-| `STUCK_MUTE_MS` | 2000 | Tap guard: a side that fires and stays above the re-arm level this long is a pinned input, muted before it can shadow the table |
-| `UNMUTE_QUIET_MS` | 5000 | Tap guard: continuous quiet that restores a muted side — a transient self-heals, a real fault stays muted until fixed |
+| `MUTE_DUTY_HI` / `MUTE_DUTY_LO` | 96 / 13 (of 255) | Tap guard: a side loud ≥ ~38% of the last second is a fault, not taps (taps top out ~10% even machine-gunned) — muted; it restores when its duty calms below ~5%. Pinned mutes in ~0.5 s, hum in ~1.4 s, no human burst ever qualifies |
+| `SETUP_SESSION_MAX_MS` | 180000 | A setup session only lasts this long if nonstop taps hold it open, and only a fault taps nonstop for 3 minutes — the side that drove the session is muted (sticky until power cycle) and the snapshot restored |
 | `SETUP_TAP_COUNT` | 4 | Taps on one side to open setup — or, while the table is off, to wake it |
 | `SETUP_TAP_WINDOW_MS` | 2000 | Window in which those taps must occur |
 | `MODE_DEMO_MS` | 5000 | Setup phase 1: how long each mode demos before the dial advances |
@@ -752,7 +751,7 @@ curl -s -X POST "http://turn-counter.local/api/power?value=off"
 | Far-end LEDs tint pink/orange | Voltage drop along strip | Add or check power injection at midpoint and end |
 | Whole strip dark | PSU off, switch off, blown fuse, or reversed polarity | Check switch first, then fuse, then PSU output, then polarity |
 | Tap doesn't register | `TAP_DELTA` too high, bad piezo solder, glue not contacting wood | Lower `TAP_DELTA`, reflow joint, re-glue |
-| One seat dead, its diag row red with "muted" | The tap guard quarantined a chattering or stuck channel (broken ground, floating input) | Fix the channel's wiring; the seat restores itself after 5 s of quiet. Serial logs the mute with its cause. Everything else keeps playing — that's the point |
+| One seat dead, its diag row red with "muted" | The tap guard quarantined a chattering or stuck channel (broken ground, floating input) | Fix the channel's wiring; the seat restores itself once its signal calms down (a game-declared mute needs a power cycle). The turn skips a muted seat, so everything else keeps playing — that's the point |
 | Tap on side 1 lights side 3 | Piezo wire mapping wrong | Run `make map-piezos` — each side lights in turn, you tap it, the corrected map is stored on the board. No reflash, no wire tracing |
 | Adjacent sides cross-trigger | Mechanical cross-talk through wood | Foam break, kerf cut, or relative-strength filter in firmware |
 | Weird boot behavior | Strapping pin pulled wrong | Confirm GPIO 0/3/45/46 unused (ESP32-S3 strap pins) |
