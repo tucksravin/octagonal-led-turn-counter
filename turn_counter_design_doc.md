@@ -190,7 +190,7 @@ This is identical to the main wiring diagram, just with one piezo channel and no
 - [ ] Strip should light up in the first mode (warm orange). The onboard RGB pixel mirrors the current mode too, so tap → color cycling is testable even before the strip is wired
 - [ ] Open Serial Monitor at 115200 baud — at boot it prints the piezo baseline (the sketch averages the resting level for ~0.5 s, then keeps tracking it slowly)
 - [ ] Tap the piezo. Mode should advance, and a line should print to serial showing the reading, the baseline, and the delta between them
-- [ ] If no response: tap harder, or lower `TAP_DELTA` in the code and re-upload. Detection is adaptive — a tap fires when a reading jumps `TAP_DELTA` (default 1500) above the tracked baseline, so noise and drift are absorbed automatically; `TAP_DELTA` only sets how hard a hit must be
+- [ ] If no response: tap harder, or lower `TAP_DELTA` in the code and re-upload. Detection is adaptive — a tap fires when a reading jumps `TAP_DELTA` (default 720) above the tracked baseline, so noise and drift are absorbed automatically; `TAP_DELTA` only sets how hard a hit must be
 - [ ] Cycle through all 6 modes by tapping. Confirm the rainbow mode looks right (each LED a different color)
 - [ ] Unplug USB, plug back in. The strip should resume on whatever mode you left it on (state persists in NVS)
 
@@ -498,7 +498,12 @@ The gaming table sits on top of an existing bumper pool table, and the top slab 
 ### Phase 2: Bench Prototype
 
 - [ ] Wire ESP32-S3 + 30-LED test segment + 1 piezo on breadboard per the wiring diagram (`doc-src/breadboard_layout.svg` shows a hole-by-hole placement). Connect the piezo to GPIO 1 (`PIEZO_PINS[0]`)
-- [ ] Flash the main firmware with these temporary edits so the bench rig fits the small strip: `NUM_LEDS = 24`, `LEDS_PER_SIDE = 3`. Leave `NUM_SIDES = 8` and the default 4-player layout — each player owns 2 sides × 3 LEDs = 6 LEDs on the test strip. Tapping the wired piezo (side 0) will advance the lit zone from player 0 to player 1 once; after that, side 0 is no longer the active player's side and further taps will print *"Tap on side 0 ignored - not active player's side"* on Serial. That's the active-side filter doing its job — proof the firmware is wired up correctly. To watch the lit zone rotate through *all* 4 players on the bench, replace the `if (playerForSide(side) == currentPlayer) { advanceTurn(); renderTurn(); } else { Serial.printf(...); }` block in `commitTap()` with just `advanceTurn(); renderTurn();` and re-flash. Every tap will now advance the turn unconditionally. Restore the original block before moving to Phase 3
+- [ ] Use the purpose-built bench sketches rather than editing the main firmware — there is one for each thing you want to prove, and none of them needs a temporary edit you have to remember to undo:
+  - `make flash-tap` (`tap_light`) — strip smoke test and the per-side LED calibration. On a short bench strip this is the one to use; it doesn't assume a full octagon.
+  - `make flash-piezo` (`piezo_test`) — per-channel tap diagnostics. With a single piezo wired, tap it and watch which channel reports.
+  - `make flash-eight` (`eight`) — all eight seats, clockwise passing, no setup mode. The simplest end-to-end proof once the real table is wired.
+- [ ] With one seat's piezo wired and `eight` flashed, tapping it advances the turn to side 1 exactly once; further taps on that same piezo print *"Tap on side N ignored - not the current seat"*, because the turn has moved on. That message is the current-seat filter doing its job, not a fault
+- [ ] If a tap lights the wrong seat, do **not** edit `PIEZO_PINS` — run `make map-piezos`, tap each side as it lights, and the corrected map is stored on the board
 - [ ] Open Serial Monitor at 115200 baud
 - [ ] Add a temporary `int v = analogRead(PIEZO_PINS[0]); if (v > 100) Serial.println(v);` inside `loop()` and tap the piezo — the threshold of 100 keeps the serial output quiet at idle and only prints when something interesting happens (note the single-read pattern: a piezo's voltage decays fast, so reading twice would give two different numbers)
 - [ ] Note the reading at rest (probably 0–50) and the peak when tapped (likely 500–3000+)
@@ -626,18 +631,21 @@ The main firmware is in `turn_counter.ino`. The Phase 0 starter firmware is in `
 
 | Constant | Default | Tune to… |
 |----------|---------|----------|
-| `NUM_LEDS` | 240 | Actual LED count after corner trim |
-| `LEDS_PER_SIDE` | 30 | `NUM_LEDS / 8` |
+| `NUM_LEDS` | 240 | Buffer ceiling only. The lit total is `totalLeds()`, the sum of the calibrated per-side table |
+| `sideLedCounts[8]` | calibrated | Per-side LED counts, set by `tap_light`'s serial calibration and stored in NVS `"octagon"/"sides"`. Replaced the old uniform `LEDS_PER_SIDE`, since corner cuts make sides unequal |
+| `sidePiezoPin[8]` | `PIEZO_PINS` order | Which ADC pin serves each side, stored in NVS `"octagon"/"pmap"`. Set by `make map-piezos`, not by editing source |
 | `BRIGHTNESS_DEFAULT_PCT` | 50 | Startup brightness before any phone change; the runtime value lives in NVS `"octagon"/"bri"` |
 | `BRIGHTNESS_MIN_PCT` | 5 | Slider floor. Going fully dark is the on/off control's job, not the slider's |
 | `BRIGHTNESS_SETTLE_MS` | 2000 | Quiet time before a brightness change is written to flash, so dragging the slider costs one write, not twenty |
 | `BRIGHTNESS_FRAME_MS` | 16 | Fade step interval (~60 Hz). A `show()` blocks ~7 ms for 221 pixels, so this can't run every loop pass |
 | `BRIGHTNESS_FADE_ALPHA` | 40 | Lerp rate out of 255 per frame. Settle time scales with distance: ~130 ms for a 1% nudge, ~540 ms for a full 5→100% sweep |
-| `TAP_DELTA` | 1000 | Calibrate during Phase 7. Adaptive: a tap fires at a side's auto-tracked baseline + this delta |
+| `TAP_DELTA` | 720 | Adaptive: a tap fires at a side's auto-tracked baseline + this delta. Set from the 2026-07-28 bench recordings in `data/piezo/` — top of the gap between the soft-tap cluster (<490) and the weakest real tap (757), with ~12× headroom over the worst idle noise seen (59) |
 | `DEBOUNCE_MS` | 250 | Raise if double-triggers, lower if it feels sluggish |
-| `SETUP_TAP_COUNT` | 4 | Taps required to enter setup mode |
-| `SETUP_TAP_WINDOW_MS` | 2000 | Window in which the taps must occur |
-| `SETUP_EXIT_IDLE_MS` | 3000 | Idle time in setup mode before saving and exiting |
+| `SETUP_TAP_COUNT` | 4 | Taps on one side to open setup — or, while the table is off, to wake it |
+| `SETUP_TAP_WINDOW_MS` | 2000 | Window in which those taps must occur |
+| `MODE_DEMO_MS` | 5000 | Setup phase 1: how long each mode demos before the dial advances |
+| `MODE_ABORT_IDLE_MS` | 25000 | Setup phase 1: no tap for a full demo rotation aborts, changing nothing |
+| `SETUP_JOIN_IDLE_MS` | 5000 | Setup phase 2: idle time before the roster is committed and setup exits |
 | `OPPOSITE_PAIR_WINDOW_MS` | 150 | Window for detecting the on/off two-handed gesture; raise to make it more forgiving, lower for snappier turn passes |
 | `WIFI_SSID` / `WIFI_PASSWORD` | (unset) | Your home Wi-Fi, in `firmware/turn_counter/secrets.h` (gitignored; copy `secrets.example.h`). Unset = radio off |
 | `OTA_HOSTNAME` | `turn-counter` | In `secrets.h`; mDNS name, reach device at `turn-counter.local` |

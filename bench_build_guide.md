@@ -215,7 +215,7 @@ Do all of these with the board **unpowered** and the ESP32 still **out of its so
 - [ ] **Partition Scheme → Minimal SPIFFS (min_spiffs)** — `turn_counter.ino` is ~9 KB too big for the default 1.25 MB app partition and won't link otherwise
 - [ ] **USB CDC On Boot → Enabled**; upload speed 115200 if it's flaky
 - [ ] Port: pick the **`usbserial-*` (CP2102)** device — the `usbmodem` ports are not the board
-- [ ] Confirm `PIEZO_PINS[] = {1,2,4,5,6,7,8,9}` and `NUM_LEDS` / `LEDS_PER_SIDE` match the installed strip
+- [ ] Confirm `PIEZO_PINS[] = {1,2,4,5,6,7,8,9}` matches the ADC pins you wired, and that `NUM_LEDS` (240) is at least the installed count — the lit total comes from the calibrated `sideLedCounts[8]` table, not from a uniform per-side figure
 - [ ] Flash, open Serial Monitor at 115200; watch the per-side baseline seed lines at boot
 - [ ] If it won't enter download mode: hold **BOOT**, tap **RESET**, release **BOOT**
 - [ ] Piezo map: run `make map-piezos`, tap each side as it lights white, then power-cycle and confirm taps land on the right seats. Do this instead of chasing a crossed harness back through the wiring
@@ -247,7 +247,7 @@ Do all of these with the board **unpowered** and the ESP32 still **out of its so
 ## 12. Quick reference
 
 **Pin map**: LED data = **GPIO 11** → 470 Ω → strip DIN (direct 3.3 V; optional 74AHCT125 in between). Piezos = **GPIO 1, 2, 4, 5, 6, 7, 8, 9** (ADC1), sides 1–8 in order.
-**Firmware knobs**: `NUM_LEDS` (match installed count), `LEDS_PER_SIDE = NUM_LEDS/8` rounded down, `TAP_DELTA` ≈ 30% of a deliberate tap's jump above baseline, `DEBOUNCE_MS = 250`.
+**Firmware knobs**: `NUM_LEDS` (buffer ceiling, 240), per-side counts via `tap_light` calibration into NVS, `TAP_DELTA = 720` (sits between the soft-tap cluster and the weakest real tap in `data/piezo/`), `DEBOUNCE_MS = 250`. Piezo-to-side mapping is fixed with `make map-piezos`, not by editing `PIEZO_PINS`.
 **Golden rules**: 1OE → GND or no light · + to 5 V on the cap · polarity-check every DC junction · unplug the wall before opening the box · label every off-board cable.
 
 *Companion to `turn_counter_design_doc.md`. Wiring per `doc-src/protoboard_wiring.svg`.*

@@ -173,7 +173,7 @@
 <ul>
 <li><strong>FastLED + Preferences (NVS).</strong> <code>MAX_POWER_MA = 1500</code>, <code>BRIGHTNESS = 128</code>.</li>
 <li><strong>Calibration</strong>: flash <code>firmware/tap_light/tap_light.ino</code> first and calibrate per-side LED counts over serial (<code>0</code>–<code>7</code> select a side, <code>+</code>/<code>-</code> adjust, <code>p</code> print). It saves to NVS namespace <code>octagon</code>; turn_counter reads the same table automatically. Current table: <code>{29, 28, 27, 27, 27, 28, 28, 27}</code> = <strong>221 LEDs</strong>.</li>
-<li><strong>Tap detection</strong>: adaptive per-side baseline; a tap fires when a reading jumps <code>TAP_DELTA</code> (1000) above that side's own resting level.</li>
+<li><strong>Tap detection</strong>: adaptive per-side baseline; a tap fires when a reading jumps <code>TAP_DELTA</code> (720) above that side's own resting level.</li>
 <li><strong>Setup gesture</strong> = 4 fast taps on the <em>same</em> side (so ready-or-not's rapid multi-player taps don't false-trip it).</li>
 <li><strong>Build/flash</strong>: <code>make flash-turn</code> (needs the <code>min_spiffs</code> partition — the Makefile handles it). Wi-Fi/OTA credentials are at the top of the sketch.</li>
 <li>Bench note: <code>setup()</code> currently forces <code>isOn = true</code> so a stale NVS "off" can't boot dark — <strong>revert that line for real play.</strong></li>

@@ -1373,7 +1373,7 @@
 <li class="task"><span class="task-box">☐</span> <strong>Partition Scheme → Minimal SPIFFS (min_spiffs)</strong> — <code>turn_counter.ino</code> is ~9 KB too big for the default 1.25 MB app partition and won't link otherwise</li>
 <li class="task"><span class="task-box">☐</span> <strong>USB CDC On Boot → Enabled</strong>; upload speed 115200 if it's flaky</li>
 <li class="task"><span class="task-box">☐</span> Port: pick the <strong><code>usbserial-*</code> (CP2102)</strong> device — the <code>usbmodem</code> ports are not the board</li>
-<li class="task"><span class="task-box">☐</span> Confirm <code>PIEZO_PINS[] = {1,2,4,5,6,7,8,9}</code> and <code>NUM_LEDS</code> / <code>LEDS_PER_SIDE</code> match the installed strip</li>
+<li class="task"><span class="task-box">☐</span> Confirm <code>PIEZO_PINS[] = {1,2,4,5,6,7,8,9}</code> matches the ADC pins you wired, and that <code>NUM_LEDS</code> (240) is at least the installed count — the lit total comes from the calibrated <code>sideLedCounts[8]</code> table, not from a uniform per-side figure</li>
 <li class="task"><span class="task-box">☐</span> Flash, open Serial Monitor at 115200; watch the per-side baseline seed lines at boot</li>
 <li class="task"><span class="task-box">☐</span> If it won't enter download mode: hold <strong>BOOT</strong>, tap <strong>RESET</strong>, release <strong>BOOT</strong></li>
 <li class="task"><span class="task-box">☐</span> Piezo map: run <code>make map-piezos</code>, tap each side as it lights white, then power-cycle and confirm taps land on the right seats. Do this instead of chasing a crossed harness back through the wiring</li>
@@ -1449,7 +1449,7 @@
 
 <h2 id="12-quick-reference">12. Quick reference</h2>
 <p><strong>Pin map</strong>: LED data = <strong>GPIO 11</strong> → 470 Ω → strip DIN (direct 3.3 V; optional 74AHCT125 in between). Piezos = <strong>GPIO 1, 2, 4, 5, 6, 7, 8, 9</strong> (ADC1), sides 1–8 in order.
-<strong>Firmware knobs</strong>: <code>NUM_LEDS</code> (match installed count), <code>LEDS_PER_SIDE = NUM_LEDS/8</code> rounded down, <code>TAP_DELTA</code> ≈ 30% of a deliberate tap's jump above baseline, <code>DEBOUNCE_MS = 250</code>.
+<strong>Firmware knobs</strong>: <code>NUM_LEDS</code> (buffer ceiling, 240), per-side counts via <code>tap_light</code> calibration into NVS, <code>TAP_DELTA = 720</code> (sits between the soft-tap cluster and the weakest real tap in <code>data/piezo/</code>), <code>DEBOUNCE_MS = 250</code>. Piezo-to-side mapping is fixed with <code>make map-piezos</code>, not by editing <code>PIEZO_PINS</code>.
 <strong>Golden rules</strong>: 1OE → GND or no light · + to 5 V on the cap · polarity-check every DC junction · unplug the wall before opening the box · label every off-board cable.</p>
 <p><em>Companion to <code>turn_counter_design_doc.md</code>. Wiring per <code>doc-src/protoboard_wiring.svg</code>.</em></p>
 </body>

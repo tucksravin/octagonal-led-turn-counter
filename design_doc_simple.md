@@ -98,7 +98,7 @@ So the whole control box unplugs as a unit — 8 piezo JSTs + 1 strip JST + the 
 
 - **FastLED + Preferences (NVS).** `MAX_POWER_MA = 1500`, `BRIGHTNESS = 128`.
 - **Calibration**: flash `firmware/tap_light/tap_light.ino` first and calibrate per-side LED counts over serial (`0`–`7` select a side, `+`/`-` adjust, `p` print). It saves to NVS namespace `octagon`; turn_counter reads the same table automatically. Current table: `{29, 28, 27, 27, 27, 28, 28, 27}` = **221 LEDs**.
-- **Tap detection**: adaptive per-side baseline; a tap fires when a reading jumps `TAP_DELTA` (1000) above that side's own resting level.
+- **Tap detection**: adaptive per-side baseline; a tap fires when a reading jumps `TAP_DELTA` (720) above that side's own resting level.
 - **Setup gesture** = 4 fast taps on the *same* side (so ready-or-not's rapid multi-player taps don't false-trip it).
 - **Build/flash**: `make flash-turn` (needs the `min_spiffs` partition — the Makefile handles it). Wi-Fi/OTA credentials are at the top of the sketch.
 - Bench note: `setup()` currently forces `isOn = true` so a stale NVS "off" can't boot dark — **revert that line for real play.**
