@@ -32,10 +32,12 @@ def share_leds_uint32(side_len, mine_ms, total_ms, active_count):
 
 
 def timer_leds(side_len, elapsed_ms, total_ms):
-    """renderTimer(): LEDs still lit. 0 means the expired branch was taken."""
+    """renderTimer(): LEDs still lit. 0 means the expired branch was taken.
+    While draining, the last LED holds — plain truncation zeroed the bar for the
+    final total/len ms of every turn, reading as a dead table before the pulse."""
     if elapsed_ms >= total_ms:
         return 0
-    return side_len * (total_ms - elapsed_ms) // total_ms
+    return max(1, side_len * (total_ms - elapsed_ms) // total_ms)
 
 
 def timer_offset(side_len, lit):
@@ -125,6 +127,14 @@ def test_timer_block_stays_inside_the_side():
     for e in range(0, total, 250):
         lit = timer_leds(SIDE_LEN, e, total)
         assert timer_offset(SIDE_LEN, lit) + lit <= SIDE_LEN
+
+
+def test_timer_never_fully_dark_before_expiry():
+    """The regression that shipped: truncation gave 0 LEDs for the last ~2.2 s
+    of a 60 s turn on a 27-LED side, indistinguishable from the table being off."""
+    total = 60_000
+    assert all(timer_leds(SIDE_LEN, e, total) >= 1 for e in range(0, total, 100))
+    assert timer_leds(SIDE_LEN, total - 1, total) == 1
 
 
 def test_timer_expired_branch_not_a_negative_length():

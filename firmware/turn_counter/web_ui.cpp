@@ -201,7 +201,16 @@ async function poll(){
 }
 
 (async ()=>{
-  cfg = await (await fetch('/api/config')).json();
+  // Keep trying: a link blip during this one fetch would otherwise leave a
+  // dead page — no controls, no error, no retry.
+  while(!cfg){
+    try{ cfg = await (await fetch('/api/config')).json(); }
+    catch(e){
+      $('err').textContent='Waiting for the table...';
+      await new Promise(r=>setTimeout(r,2000));
+    }
+  }
+  $('err').textContent='';
   cfg.modes.forEach((name,i)=>{
     const b=document.createElement('button');
     b.textContent=name;
@@ -235,8 +244,16 @@ async function poll(){
   tsec.onchange=()=>{ tdragging=false; tsend(); };
 
   // Re-posting the active mode is what resets the stats — more discoverable
-  // than a note explaining that re-tapping the mode button does it.
-  $('sharereset').onclick=()=>post('/api/mode?value='+cfg.shareMode);
+  // than a note explaining that re-tapping the mode button does it. Check the
+  // live mode first: from a stale page this would otherwise silently yank a
+  // table someone else just switched back into time share.
+  $('sharereset').onclick=async()=>{
+    try{
+      const s=await (await fetch('/api/state')).json();
+      if(s.mode===cfg.shareMode) post('/api/mode?value='+cfg.shareMode);
+      else render(s);
+    }catch(e){ $('err').textContent='Table not responding.'; }
+  };
 
   // preventDefault: the button lives inside <details>, and without it a click
   // collapses the block you're trying to refresh.
@@ -398,16 +415,24 @@ void webUiBegin(const TableConfig &c, const TableHooks &h) {
   cfg = c;
   hooks = h;
 
-  server.on("/",               HTTP_GET,  handleRoot);
-  server.on("/api/config",     HTTP_GET,  handleConfig);
-  server.on("/api/state",      HTTP_GET,  handleState);
-  server.on("/api/diag",       HTTP_GET,  handleDiag);
-  server.on("/api/mode",       HTTP_POST, handleMode);
-  server.on("/api/brightness", HTTP_POST, handleBrightness);
-  server.on("/api/power",      HTTP_POST, handlePower);
-  server.on("/api/lock",       HTTP_POST, handleLock);
-  server.on("/api/timer",      HTTP_POST, handleTimer);
-  server.onNotFound([]() { server.send(404, "text/plain", "no such endpoint"); });
+  // Registered once, ever: WebServer::on() appends to a handler list that
+  // stop() never frees, so re-registering on every Wi-Fi reconnect would leak
+  // a little heap per cycle — an evening on a flaky AP walks the board out of
+  // memory and into a mid-game reboot.
+  static bool routesRegistered = false;
+  if (!routesRegistered) {
+    routesRegistered = true;
+    server.on("/",               HTTP_GET,  handleRoot);
+    server.on("/api/config",     HTTP_GET,  handleConfig);
+    server.on("/api/state",      HTTP_GET,  handleState);
+    server.on("/api/diag",       HTTP_GET,  handleDiag);
+    server.on("/api/mode",       HTTP_POST, handleMode);
+    server.on("/api/brightness", HTTP_POST, handleBrightness);
+    server.on("/api/power",      HTTP_POST, handlePower);
+    server.on("/api/lock",       HTTP_POST, handleLock);
+    server.on("/api/timer",      HTTP_POST, handleTimer);
+    server.onNotFound([]() { server.send(404, "text/plain", "no such endpoint"); });
+  }
 
   server.begin();
   started = true;

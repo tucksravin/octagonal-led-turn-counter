@@ -75,6 +75,12 @@ enum GameMode : uint8_t {
 // longer than 16 s would silently wrap a uint16_t.
 const uint32_t MODE_ABORT_IDLE_MS = (uint32_t)MODE_DEMO_MS * MODE_DIAL_COUNT;
 
+// Failsafe ceiling on a whole setup session. Both exits key off tap idleness
+// (abort in phase 1, commit in phase 2), so a fault that keeps generating taps —
+// a chattering piezo — would otherwise hold setup open until someone pulls the
+// plug. No legitimate session gets anywhere near this.
+const uint32_t SETUP_SESSION_MAX_MS = 180000;
+
 // Setup runs in two phases: the whole table demos candidate modes until any tap
 // commits the one showing, then seats tap themselves into the roster.
 enum SetupPhase : uint8_t { PHASE_MODE = 0, PHASE_JOIN = 1 };
@@ -102,10 +108,15 @@ int8_t   joinOrder[NUM_SIDES] = {0};    // seats in the order they joined (ARB t
 uint8_t  joinCount = 0;
 SetupPhase setupPhase = PHASE_MODE;
 uint8_t  dialMode = MODE_CW;            // mode currently being demoed in phase 1
+uint8_t  demoOrder[NUM_SIDES] = {0, 1, 2, 3, 4, 5, 6, 7};  // ARB demo: this round's shuffled order
+uint8_t  demoOrderPos = NUM_SIDES - 1;  // wraps on the first tick, so round one is shuffled too
+uint32_t demoLastHopMs = 0;             // 0 = that first tick fires immediately
 uint32_t setupEnteredMs = 0;            // when setup opened (anchors the tap grace window)
 uint32_t demoModeStartMs = 0;           // when the current demo began (auto-advance + animation clock)
 int8_t   prevJoinOrder[NUM_SIDES] = {0};// join-order snapshot paired with prevRosterMask
 uint8_t  prevJoinCount = 0;
+uint8_t  prevGameMode = MODE_CW;        // mode snapshot: a phase-2 commit is RAM-only
+                                        // until exit, so an abort must put it back
 bool     ready[NUM_SIDES] = {false};    // READY mode: green (ready) vs red, active seats only
 
 uint16_t turnSeconds = TIMER_SECONDS_DEFAULT;   // persisted, "turntable"/"tsec"
@@ -268,25 +279,24 @@ void renderModeDemo(uint32_t now) {
       break;
     }
     case MODE_ARB: {  // the turn lands solid on one seat, then another — every
-                      // seat exactly once per round, in a freshly shuffled order
-      static uint8_t  order[NUM_SIDES] = {0, 1, 2, 3, 4, 5, 6, 7};
-      static uint8_t  orderPos = NUM_SIDES - 1;  // wraps on the first tick, so round one is shuffled too
-      static uint32_t lastHopMs = 0;             // 0 = that first tick fires immediately
-      if (now - lastHopMs >= DEMO_HOP_MS) {
-        lastHopMs = now;
-        if (++orderPos >= NUM_SIDES) {
-          orderPos = 0;
-          uint8_t last = order[NUM_SIDES - 1];
+                      // seat exactly once per round, in a freshly shuffled order.
+                      // State lives at file scope so enterSetupMode() can re-deal
+                      // it: a stale half-round would open mid-pattern.
+      if (now - demoLastHopMs >= DEMO_HOP_MS) {
+        demoLastHopMs = now;
+        if (++demoOrderPos >= NUM_SIDES) {
+          demoOrderPos = 0;
+          uint8_t last = demoOrder[NUM_SIDES - 1];
           do {  // Fisher-Yates; re-deal if the new round would open on the seat
                 // that just closed the old one (a repeat the eye would catch)
             for (uint8_t i = NUM_SIDES - 1; i > 0; i--) {
               uint8_t j = random(i + 1);
-              uint8_t t = order[i]; order[i] = order[j]; order[j] = t;
+              uint8_t t = demoOrder[i]; demoOrder[i] = demoOrder[j]; demoOrder[j] = t;
             }
-          } while (order[0] == last);
+          } while (demoOrder[0] == last);
         }
       }
-      fillSide(order[orderPos], MODE_COLORS[MODE_ARB]);
+      fillSide(demoOrder[demoOrderPos], MODE_COLORS[MODE_ARB]);
       break;
     }
     default: {  // MODE_READY: seats flip green one by one, hold all-green, snap back
@@ -360,6 +370,9 @@ void renderTimer(uint32_t now) {
 
   uint32_t left = total - elapsed;
   uint16_t lit  = (uint32_t)len * left / total;
+  if (lit < 1) lit = 1;   // hold the last LED until expiry — truncation would go
+                          // fully dark for the final total/len ms (~2 s at 60 s),
+                          // reading as a dead table right before the red pulse
   uint32_t warn = total / 4;
 
   CRGB col = PLAYER_COLORS[currentSide];
@@ -419,6 +432,8 @@ void renderTimed(uint32_t now) {
 // through it, so 20 fps is well inside proven territory.
 void modeTick(uint32_t now) {
   if (!tableLit || inSetupMode || !timedMode()) return;
+  if (refuseSide >= 0) return;   // let the amber refusal flash own the strip —
+                                 // refuseTick's closing renderCurrent() repaints us
   if (now - modeFrameMs < MODE_FRAME_MS) return;
   modeFrameMs = now;
   renderTimed(now);
@@ -462,13 +477,16 @@ void refuseTick(uint32_t now) {
 }
 
 // Start (or resume) play in the current mode. Unlike renderCurrent() this is a
-// fresh start: the READY round is cleared and the turn clock restarts.
+// fresh start: the READY round is cleared and the turn clock restarts. Both
+// resets run even while the table is dark — a mode switched from the phone
+// during a break must not resume a stale READY round (or a stale clock) when
+// the table relights, and the phone's roster dots read ready[] in every mode.
 void startPlay() {
-  if (!tableLit) { renderOff(); return; }
+  for (uint8_t s = 0; s < NUM_SIDES; s++) ready[s] = false;
   turnStartMs = millis();
   lastDrawnLeds = -1;
+  if (!tableLit) { renderOff(); return; }
   if (readyMode()) {
-    for (uint8_t s = 0; s < NUM_SIDES; s++) ready[s] = false;
     renderReady();
   } else if (timedMode()) {
     renderTimed(millis());
@@ -534,16 +552,19 @@ bool setupGestureFired(int8_t side, uint32_t now) {
   return false;
 }
 
-void enterSetupMode() {
+void enterSetupMode(uint32_t whenMs) {
+  bankTurnTime();                 // credit the live turn before the table stops playing
   inSetupMode = true;
   setupPhase = PHASE_MODE;
   firstTapInBurstMs = 0;
   tapsInBurst = 0;
 
-  // Snapshot everything a phase-1 abort (or an empty phase-2 exit) must put back.
+  // Snapshot everything an abort (or an empty phase-2 exit) must put back —
+  // including the mode: a phase-2 tap commits gameMode in RAM before exit.
   prevRosterMask = rosterMask();
   memcpy(prevJoinOrder, joinOrder, NUM_SIDES);
   prevJoinCount = joinCount;
+  prevGameMode = gameMode;
 
   for (uint8_t s = 0; s < NUM_SIDES; s++) sideActive[s] = false;  // everyone taps in fresh — nobody auto-joins
   joinCount = 0;
@@ -553,8 +574,16 @@ void enterSetupMode() {
   // back to CW gives the gesture a second job: it's the manual way out of a
   // phone-only mode when the phone isn't around.
   dialMode = (gameMode < MODE_DIAL_COUNT) ? gameMode : MODE_CW;
-  setupEnteredMs = millis();
-  demoModeStartMs = setupEnteredMs;
+
+  // Anchor both clocks to the tap that opened setup, not a fresh millis(). The
+  // fresh read lands 1+ ms after the tap's loop-top snapshot, so a same-pass
+  // ghost tap (the opposite-pair second bit) or the first demo frame would
+  // compute now - anchor as a huge unsigned number — blowing straight through
+  // the grace window and advancing the dial on frame one.
+  setupEnteredMs = whenMs;
+  demoModeStartMs = whenMs;
+  demoOrderPos = NUM_SIDES - 1;   // ARB demo re-deals rather than resuming a
+  demoLastHopMs = 0;              // stale half-round from the last session
 
   Serial.printf("Entering setup - demoing %s; tap any side to pick the mode showing\n", MODE_NAMES[dialMode]);
 }
@@ -563,6 +592,7 @@ void enterSetupMode() {
 // it was — roster, join order and mode untouched, nothing written to NVS.
 void abortSetupMode() {
   inSetupMode = false;
+  gameMode = prevGameMode;        // undo a RAM-only phase-2 mode commit
   applyRosterMask(prevRosterMask);
   memcpy(joinOrder, prevJoinOrder, NUM_SIDES);
   joinCount = prevJoinCount;
@@ -632,6 +662,7 @@ bool applyPower(bool lit) {
   if (lit == tableLit) return true;
   if (!lit && inSetupMode) {
     abortSetupMode();              // restores the previous roster and mode, writes nothing
+    turnStartMs = millis();        // setup time is nobody's play time — don't bank it
   }
   if (!lit) bankTurnTime();        // freeze the share clock where it stands
   tableLit = lit;
@@ -713,7 +744,7 @@ void commitTap(int8_t side, uint32_t whenMs) {
   if (readyMode()) {
     // Group ready-check: no current seat, so any fast 4-tap opens setup.
     if (setupGestureFired(side, whenMs)) {
-      enterSetupMode();
+      enterSetupMode(whenMs);
       return;
     }
     if (!sideActive[side]) return;             // seats not in the roster do nothing
@@ -743,7 +774,7 @@ void commitTap(int8_t side, uint32_t whenMs) {
     // land on the current seat, so brisk normal play can never accumulate toward
     // the gesture and trip setup mode by accident.
     if (setupGestureFired(side, whenMs)) {
-      enterSetupMode();
+      enterSetupMode(whenMs);
       return;
     }
     Serial.printf("Tap on side %d ignored - not the current seat\n", side);
@@ -763,7 +794,10 @@ void readTableState(TableState &s) {
   s.inSetupMode       = inSetupMode;
   s.locked            = setupLocked;
 
-  uint32_t live  = millis() - turnStartMs;
+  // While dark the clock is frozen (relighting restarts the turn), so the live
+  // add must stop too — otherwise the phone shows the current seat's share
+  // creeping upward all through a break.
+  uint32_t live  = tableLit ? millis() - turnStartMs : 0;
   uint32_t total = live;
   for (uint8_t i = 0; i < NUM_SIDES; i++) total += sideMs[i];
   for (uint8_t i = 0; i < NUM_SIDES; i++) {
@@ -775,13 +809,15 @@ void readTableState(TableState &s) {
   }
 
   s.turnSeconds = turnSeconds;
-  if (gameMode == MODE_TIMER) {
+  if (gameMode != MODE_TIMER) {
+    s.secondsLeft = -1;
+  } else if (!tableLit) {
+    s.secondsLeft = turnSeconds;         // relighting restarts the turn in full
+  } else {
     uint32_t span    = (uint32_t)turnSeconds * 1000;
     uint32_t elapsed = millis() - turnStartMs;
     // Round up, so the last second reads "1 s" rather than "0 s left".
     s.secondsLeft = (elapsed >= span) ? 0 : (int32_t)((span - elapsed + 999) / 1000);
-  } else {
-    s.secondsLeft = -1;
   }
 }
 
@@ -893,7 +929,8 @@ void handleSerial() {
     char c = Serial.read();
     if (c == 'm') {
       runPiezoMapWizard();
-      inSetupMode = false;
+      if (inSetupMode) abortSetupMode();   // put the snapshot back — a bare flag
+                                           // clear would strand the emptied roster
       startPlay();
     } else if (c == 'p') {
       printPiezoMap();
@@ -955,7 +992,11 @@ void loop() {
 
   if (inSetupMode) {
     // lastAnyTapMs() is never 0 here — setup can only be entered by tapping.
-    if (setupPhase == PHASE_MODE) {
+    if (now - setupEnteredMs > SETUP_SESSION_MAX_MS) {
+      Serial.println("Setup ran far past any human pace - aborting (chattering piezo?)");
+      abortSetupMode();
+      startPlay();
+    } else if (setupPhase == PHASE_MODE) {
       if (now - lastAnyTapMs() > MODE_ABORT_IDLE_MS) {
         abortSetupMode();
         startPlay();
