@@ -5,7 +5,7 @@
 
 static WebServer server(80);
 static TableConfig cfg = {nullptr, 0};
-static TableHooks hooks = {nullptr, nullptr, nullptr, nullptr};
+static TableHooks hooks = {nullptr, nullptr, nullptr, nullptr, nullptr};
 static bool started = false;
 
 // String::toInt() returns 0 for non-numeric input, which would quietly turn
@@ -63,6 +63,11 @@ td.warn{color:#ff9f0a}
 <div id="banner" class="hide">Setup in progress at the table &mdash; mode changes are locked.</div>
 <div class="card"><button id="power" data-lit="true">Turn off</button></div>
 <div class="card">
+  <button id="lock">Lock setup</button>
+  <div class="note">Stops the four-tap setup gesture at the table. Turning the table
+  off and on from here keeps the lock; unplugging it clears it.</div>
+</div>
+<div class="card">
   <div class="lbl">Now</div>
   <div class="row"><div class="swatch" id="swatch"></div><div id="now">&hellip;</div></div>
   <div class="dots" id="dots"></div>
@@ -99,6 +104,8 @@ function render(s){
   $('power').textContent = s.lit ? 'Turn off' : 'Turn on';
   $('power').dataset.lit = s.lit;
   $('banner').classList.toggle('hide', !s.setup);
+  $('lock').textContent = s.locked ? 'Setup locked' : 'Lock setup';
+  $('lock').setAttribute('aria-pressed', s.locked);
 
   document.querySelectorAll('#modes button').forEach((b,i)=>
     b.setAttribute('aria-pressed', i===s.mode));
@@ -168,6 +175,8 @@ async function poll(){
   });
   $('power').onclick=()=>post('/api/power?value='+
     ($('power').dataset.lit==='true'?'off':'on'));
+  $('lock').onclick=()=>post('/api/lock?value='+
+    ($('lock').getAttribute('aria-pressed')==='true'?'off':'on'));
 
   const bri=$('bri');
   const send=()=>{ lastLocal=Date.now(); post('/api/brightness?value='+bri.value); };
@@ -194,12 +203,13 @@ async function poll(){
 static void sendState(int code) {
   TableState s;
   hooks.read(s);
-  char buf[256];
+  char buf[384];
   snprintf(buf, sizeof(buf),
            "{\"mode\":%u,\"brightness\":%u,\"lit\":%s,\"currentSide\":%d,"
-           "\"roster\":%u,\"ready\":%u,\"setup\":%s}",
+           "\"roster\":%u,\"ready\":%u,\"setup\":%s,\"locked\":%s}",
            s.mode, s.brightnessPercent, s.lit ? "true" : "false", s.currentSide,
-           s.rosterMask, s.readyMask, s.inSetupMode ? "true" : "false");
+           s.rosterMask, s.readyMask, s.inSetupMode ? "true" : "false",
+           s.locked ? "true" : "false");
   server.send(code, "application/json", buf);
 }
 
@@ -295,6 +305,16 @@ static void handlePower() {
   sendState(200);
 }
 
+static void handleLock() {
+  String v = server.arg("value");
+  if (v != "on" && v != "off") {
+    server.send(400, "text/plain", "value must be on or off");
+    return;
+  }
+  hooks.setLock(v == "on");
+  sendState(200);
+}
+
 static void handleRoot() {
   server.send_P(200, "text/html", PAGE_HTML);
 }
@@ -311,6 +331,7 @@ void webUiBegin(const TableConfig &c, const TableHooks &h) {
   server.on("/api/mode",       HTTP_POST, handleMode);
   server.on("/api/brightness", HTTP_POST, handleBrightness);
   server.on("/api/power",      HTTP_POST, handlePower);
+  server.on("/api/lock",       HTTP_POST, handleLock);
   server.onNotFound([]() { server.send(404, "text/plain", "no such endpoint"); });
 
   server.begin();

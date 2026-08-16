@@ -16,6 +16,7 @@ struct TableState {
   uint8_t rosterMask;         // bit s = seat s is in
   uint8_t readyMask;          // bit s = seat s is green (READY only)
   bool    inSetupMode;
+  bool    locked;             // setup gesture refused while lit
 };
 
 struct TableConfig {
@@ -27,6 +28,7 @@ typedef void (*StateReader)(TableState &out);
 typedef bool (*ModeSetter)(uint8_t mode);           // false = valid but refused
 typedef bool (*BrightnessSetter)(uint8_t percent);  // false = valid but refused
 typedef bool (*PowerSetter)(bool lit);              // always true today
+typedef bool (*LockSetter)(bool locked);            // always true today
 
 // Bundled rather than passed positionally: these are same-shaped function
 // pointers, and swapping two of them compiles clean and fails at the table.
@@ -35,6 +37,7 @@ struct TableHooks {
   ModeSetter       setMode;
   BrightnessSetter setBrightness;
   PowerSetter      setPower;
+  LockSetter       setLock;
 };
 
 void webUiBegin(const TableConfig &cfg, const TableHooks &hooks);

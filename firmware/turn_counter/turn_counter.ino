@@ -558,6 +558,7 @@ void readTableState(TableState &s) {
   s.readyMask         = 0;
   for (uint8_t i = 0; i < NUM_SIDES; i++) if (ready[i]) s.readyMask |= (1 << i);
   s.inSetupMode       = inSetupMode;
+  s.locked            = setupLocked;
 }
 
 const TableConfig WEB_CONFIG = {MODE_NAMES, MODE_COUNT};
@@ -600,6 +601,7 @@ void beginOta() {
     .setMode       = applyMode,
     .setBrightness = applyBrightness,
     .setPower      = applyPower,
+    .setLock       = applyLock,
   };
   webUiBegin(WEB_CONFIG, hooks);
   netServicesUp = true;
