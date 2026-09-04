@@ -256,7 +256,11 @@ source URL and tip sha (the subtree merge records the split sha but **never** th
 
 ## 8. Verification
 
-Baselines, measured 2026-09-04 on a clean tree:
+Baselines, measured 2026-09-04 on a clean tree **immediately before this document was committed**.
+Every commit added between now and the migration — this spec, the implementation plan, the D9
+cleanups — shifts the count and the tip sha. **Re-measure at migration start and use those values
+as the gates**; the numbers below fix the *method*, and the invariants that do not drift are the
+root commit, the merge count, and the test count.
 
 | Quantity | Value |
 | --- | --- |
