@@ -8,10 +8,10 @@ def test_parse_secrets_reads_defines():
 #define WIFI_SSID     "my network"
 #define WIFI_PASSWORD "hunter2"
 #define OTA_HOSTNAME  "turn-counter"
-#define OTA_PASSWORD  "letsplayagame"
+#define OTA_PASSWORD  "not-a-real-password"
 '''
     got = parse_secrets(text)
-    assert got["OTA_PASSWORD"] == "letsplayagame"
+    assert got["OTA_PASSWORD"] == "not-a-real-password"
     assert got["OTA_HOSTNAME"] == "turn-counter"
     assert got["WIFI_SSID"] == "my network"
 

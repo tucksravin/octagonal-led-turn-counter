@@ -1,7 +1,6 @@
 .venv/
 data/
-doc-src/_build_doc.html
-doc-src/_build_dry_run.html
+doc-src/_build_*.html
 __pycache__/
 *.pyc
 .pytest_cache/
